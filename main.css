@@ -321,6 +321,12 @@ body{
     font-size: 29px;
     cursor: pointer;;
 }
+
+.calendar_box{
+    width: 942px;
+    height: 701px;
+    background-color:#FFFFFF;
+}
 /* .form_input:hover{
     border-color: var(--color-primary);
 } */
