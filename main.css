@@ -476,16 +476,26 @@ body{
   }
 
   .profile_pic{
-    margin-top:3rem ;
+    margin-top:2.5rem ;
     margin-left: 3rem;
     border-radius: 50%;
     height: 150px;
     float: left;
     bottom: 20px;
     position: relative;
-    float: left;
+    display: inline-block;
+
+    border: 3px  solid #5DAC50 ;
 }
 
 .preference_text{
+    width: 609px;
+    font-weight: 500; 
+    font-size: 23px;
+    position: absolute;
+    left: 30px;
+    text-align: left;
+
+    margin-top: 100px;
     
 }
