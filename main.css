@@ -457,7 +457,7 @@ body{
     bottom: 0;
     background-color: rgba(0,0,0,0.5);
     z-index: 2;
-    cursor: pointer;
+    
   }
   
   .account_preference{
@@ -473,6 +473,7 @@ body{
     border-radius: var(--border-radius);
     margin: 1rem;
     padding: 1.5rem;
+    display: none;
   }
 
   .profile_pic{
@@ -497,5 +498,61 @@ body{
     text-align: left;
 
     margin-top: 100px;
-    
+}
+
+.regular_buttons{
+    width: 163.21px;
+    height: 41.03px;
+    background-color: var(--color-primary);
+    color: #FFFFFF;
+    border-radius: var(--border-radius);
+    outline: none;
+    border: none;
+    position: relative;
+}
+
+.notification_box{
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    font-family: "Lato";
+    transform: translate(-50%,-50%);
+    -ms-transform: translate(-50%,-50%);
+    background-color:#EAF0E8;
+    width: 609px;
+    height: 491px;
+    border-radius: var(--border-radius);
+    margin: 1rem;
+    padding: 1.5rem;
+    display: none;
+}
+
+.notif_box{
+    width: 600px;
+    height: 84px;
+    background-color: #ffffff;
+    border-radius: var(--border-radius);
+    position: relative;
+    border-color: #ffffff;
+    margin-top: 1rem;
+}
+
+.notif_box:hover{
+    border-color: #5DAC50;
+}
+
+.add_checklist{
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    font-family: "Lato";
+    transform: translate(-50%,-50%);
+    -ms-transform: translate(-50%,-50%);
+    background-color:#EAF0E8;
+    width: 533px;
+    height: 235px;
+    border-radius: var(--border-radius);
+    margin: 1rem;
+    padding: 1.5rem;
+    display: inline;
 }

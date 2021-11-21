@@ -6,9 +6,23 @@
         <meta charset="utf-8">
         <meta name="Dashboard Student" content="width=device-width, initial-scale = 1.0">
         <link rel="stylesheet" href="main.css">
+        <script src="script.js"></script>
     </head>
 
     <body>
+
+        <div class="overlay" id="overlay">
+            <div class="add_checklist" id="add_checklist">
+                <h2 class="dashboard_text"> Add Task </h2>
+
+                <input class="form_input" style="top: 10px; width: 500px;" id="task" type="text" autofocus placeholder="Submission Title"> 
+
+                <button class="regular_buttons" style="top: 70px; left: 350px" onclick="add_class_button()"> Done </button>
+            </div>
+        </div>
+
+
+
 
         <div class="row">
             <div class="column" style="width: auto;">
@@ -47,7 +61,7 @@
                             <li class="dashboard_elements" style="text-align: right;"> 13 Dec 2020 </li>
                             <li class="dashboard_elements" style="text-align: right;"> 13 Dec 2020 </li>
                         </ul>
-                        <button class="add_checklist_button"> + </button>
+                        <button class="add_checklist_button" onclick="add_class_button()"> + </button>
                     </div>
 
                     
