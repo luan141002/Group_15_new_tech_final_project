@@ -8,6 +8,7 @@ import DashboardPage from './pages/dashboard'
 import RegisterConfirmationPage from './pages/confirm'
 import DocumentsPage from './pages/documents'
 import DefensePage from './pages/defense'
+import ErrorPage from './pages/err'
 
 class App extends Component {
   render() {
@@ -15,12 +16,13 @@ class App extends Component {
       <BrowserRouter>
         <Routes>
           <Route path='/'>
-            <Route index element={<DashboardPage />} />
-            <Route path='documents' element={<DocumentsPage />} />
-            <Route path='defense' element={<DefensePage />} />
-            <Route path='login' element={<LoginPage />} />
-            <Route path='register' element={<RegisterPage />} />
-            <Route path='confirm' element={<RegisterConfirmationPage />} />
+            <Route index element={<LoginPage />} />
+            <Route path='studentdocuments' element={<DocumentsPage />} />
+            <Route path='studentdefense' element={<DefensePage />} />
+            <Route path='studentdashboard' element={<DashboardPage />} />
+            <Route path='studentregister' element={<RegisterPage />} />
+            <Route path='studentconfirm' element={<RegisterConfirmationPage />} />
+            <Route path='*' element={<ErrorPage/>} />
           </Route>
         </Routes>
       </BrowserRouter>
