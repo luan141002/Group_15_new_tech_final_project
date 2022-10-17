@@ -12,8 +12,20 @@ class LoginPage extends Component {
           <meta name='Log in Student' content='width=device-width, initial-scale=1.0' />
           <title>Log in Page Student</title>
         </Helmet>
-        <img src={logo} alt='logo' style={{ width: '240px', top: '200px', position: 'absolute' }} /> 
-        <h1 class="form_title">Thesis Management Portal</h1>
+
+        <body id='loginContainer'>
+
+          <div>
+            <a href='/'>
+              <img src={logo} alt='logo' style={{ width: '10em', position: 'static'}} /> 
+            </a>
+          </div>
+
+          <div>
+            <h1 class="form_title">Thesis Management Portal</h1>
+
+          </div>
+        
         <div class="container">
           <form class="form" id="login">
             <div class="form_input-group" >
@@ -27,10 +39,24 @@ class LoginPage extends Component {
             
             <button class="form_button" type="button" id="button1"> Login </button>
             <p class="form_text">
-              <NavLink to='/register' style={{ color: '#8F8F8F' }}> No account? Register </NavLink>
+              <NavLink to='/studentregister' style={{ color: '#8F8F8F' }}> No account? Register </NavLink>
             </p>
           </form>
         </div>
+
+        <div>
+          <button style={{width:'auto', padding: '.75rem', color: '#ffffff', border:'none',
+                          outline: 'none', background: 'var(--color-primary)'}}>
+          <NavLink to="/admindashboard" style={{color:'white'}}
+            activeStyle={{ color: 'red' }}>
+            Temporary Link to access ADMIN dashboard</NavLink>
+
+          </button>
+          
+        </div>
+
+        </body>
+        
       </>
     )
   }

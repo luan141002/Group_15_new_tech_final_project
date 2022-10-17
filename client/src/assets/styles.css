@@ -10,10 +10,12 @@
   background-color: var(--color-secondary);
   
   top: 360px;
-  position:absolute;
+  position:static;
 
 }
-
+#loginContainer{
+  flex-direction: column;
+}
 /* set form fonts */
 .container,
 .form_input,
@@ -27,8 +29,8 @@
   font-size: 43.37px;
   font-family: "Lato", "Segoe UI";
   font-weight: bold;
-  top: 275px;
-  position: absolute;
+  top: 1em;
+  position: static;
 }
 
 .form_input-group{
@@ -92,10 +94,10 @@
 
 .row{
   background-color: #EAF0E8;
-  border-radius: 50px;
+  border-radius: 1em;
   margin: 0%;
-  width: 1600px;
-  height: auto;
+  width: 115rem;
+  height: 100vh;
   display: flex;
 
   box-shadow: 0px 16px 24px rgba(0, 0, 0, 0.4);
@@ -153,14 +155,6 @@
   background-color:#8BA486 ;
 }
 
-.sideNav{
-  background-color: var(--color-light);
-  border-radius: 59px;
-
-  width: 253px;
-  height:905px;
-  box-shadow: 4px 0px 24px rgba(0,0,0,0.25);
-}
 
 .calendar{
   width: 601px;

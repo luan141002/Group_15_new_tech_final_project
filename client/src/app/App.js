@@ -9,6 +9,7 @@ import RegisterConfirmationPage from './pages/confirm'
 import DocumentsPage from './pages/documents'
 import DefensePage from './pages/defense'
 import ErrorPage from './pages/err'
+import AdminDashboardPage from './pages/adminPages/dashboard'
 
 class App extends Component {
   render() {
@@ -22,6 +23,7 @@ class App extends Component {
             <Route path='studentdashboard' element={<DashboardPage />} />
             <Route path='studentregister' element={<RegisterPage />} />
             <Route path='studentconfirm' element={<RegisterConfirmationPage />} />
+            <Route path='admindashboard' element={<AdminDashboardPage />} />
             <Route path='*' element={<ErrorPage/>} />
           </Route>
         </Routes>
