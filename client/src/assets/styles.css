@@ -13,9 +13,7 @@
   position:static;
 
 }
-#loginContainer{
-  flex-direction: column;
-}
+
 /* set form fonts */
 .container,
 .form_input,
@@ -92,42 +90,7 @@
 
 }
 
-.row{
-  background-color: #EAF0E8;
-  border-radius: 1em;
-  margin: 0%;
-  width: 115rem;
-  height: 100vh;
-  display: flex;
 
-  box-shadow: 0px 16px 24px rgba(0, 0, 0, 0.4);
-}
-
-.column {
-  float: left;
-  width: 32%;
-  padding: 10px;
-  height: auto;
-}
-
-.navButton{
-  background-color: var(--color-light);
-  width: 165px;
-  border-radius: 25px;
-  padding: .5rem;
-  height: 39px;
-  padding-left: 50px;
- 
-  text-align: justify;
-  left: 50px;
-  top: 180px;
-  position: relative;
-
-  cursor: pointer;
-  outline: none;
-  color: #6a6a6a;
-  border: none;
-} 
 
 .submit_button{
   width: 165px;
@@ -145,16 +108,6 @@
   top:700px;
   position: relative;
 }
-
-.navButton:focus{
-  background-color: var(--color-primary);
-  color: #FFFFFF;
-}
-
-.navButton:hover{
-  background-color:#8BA486 ;
-}
-
 
 .calendar{
   width: 601px;

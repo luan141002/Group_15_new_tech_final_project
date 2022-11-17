@@ -61,7 +61,7 @@ function RegisterPage() {
     
     if (!validateForm()) return
 
-    await fetch('http://localhost:8080/accounts/register/student', {
+    await fetch(`${process.env.REACT_APP_API}/account/register/student`, {
       body: JSON.stringify({
         username: form.username,
         password: form.password,

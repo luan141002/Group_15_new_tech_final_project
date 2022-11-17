@@ -42,30 +42,14 @@ class DashboardPage extends Component {
           <meta name='Administrator Dashboard' content='width=device-width, initial-scale=1.0' />
           <title>Administrator Dashboard</title>
         </Helmet>
-
-        {/* <Overlay show={this.state.showOverlay}>
-          <AccountPreferencesOverlay overlayName='account-preferences' onClose={this.closeOverlay} />
-          <NotificationsOverlay overlayName='notifications' onClose={this.closeOverlay} />
-        </Overlay> */}
-
-        
-          
-
-        
-        
-        
-          <div className="row">     
-          <Sidebar></Sidebar>      
-            <div className="column" style={{ width: 'auto' }}>
-              
+        <div className='row'>
+          <div className='column'>
+            <div className='group'>
+              <h2 className="dashboard_text"> Calendar</h2>
             </div>
-            <div className="column" style={{ width: 'auto' }}>
-              <h1 style={{ fontFamily: 'Lato, "Segoe UI"', margin: '1rem', padding: '.5rem' }}> Thesis Management System </h1>
-              <div className="calendar">
-                <h2 className="dashboard_text"> Calendar</h2>
-              </div>
-              <div className="documents">
-                <h2 className="dashboard_text"> Documents </h2>
+            <div className="group">
+              <h2 className="dashboard_text"> Documents </h2>
+              <div className='row'>
                 <div className="column" style={{ width: '55%', padding: '0' }}>
                   <a href='/' className="dashboard_elementNames"> Document Title </a>
                   <ul>
@@ -95,26 +79,26 @@ class DashboardPage extends Component {
                 </div>
               </div>
             </div>
-            <div className="column" style={{ width: 'auto' }}>
-              <button className="account_text" style={{ right: '35px', backgroundColor: 'transparent', border: 'none' }} id="account_button" onClick={this.openOverlay('account-preferences')}>{this.state.account.name}</button>
-              <a href='/' className="account_text" style={{ top: '35px', left: '80px', color: '#818181' }}> Student account</a>
-              <div className="groups">
-                <span> <h2 className="dashboard_text"> Groups </h2> <h2 className="dashboard_elements" style={{ left: '275px', position: 'relative', bottom: '40px' }}> Endorsement Status</h2> </span>
-                <span>
-                  <img className="member_icon" src={person2} alt='person2.jpg' />
-                  <img className="member_icon" src={person2} alt='person2.jpg' /> 
-                  <img className="member_icon" src={person2} alt='person2.jpg' />
-                  <img className="member_icon" src={person2} alt='person2.jpg' /> 
+          </div>
+          <div className="column">
+            <div className="group">
+              <span>
+                <h2 className="dashboard_text">Groups</h2>
+                <h2 className="dashboard_elements" style={{/* left: '275px', position: 'relative', bottom: '40px' */}}> Endorsement Status</h2> </span>
+              <span>
+                <img className="member_icon" src={person2} alt='person2.jpg' />
+                <img className="member_icon" src={person2} alt='person2.jpg' /> 
+                <img className="member_icon" src={person2} alt='person2.jpg' />
+                <img className="member_icon" src={person2} alt='person2.jpg' /> 
 
-                  <div className="endorsement_status"></div>
-                </span>
-              </div> 
-              <div className="deadlines">
-                <h2 className="dashboard_text">Deadlines</h2>
-              </div>
+                <div className="endorsement_status"></div>
+              </span>
+            </div> 
+            <div className="group">
+              <h2 className="dashboard_text">Deadlines</h2>
             </div>
           </div>
-
+        </div>
       </>
     )
   }

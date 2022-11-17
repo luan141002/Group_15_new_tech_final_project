@@ -11,6 +11,14 @@ const TokenSchema = new mongoose.Schema({
         ref: 'Account',
         required: true
     },
+    kind: {
+        type: String,
+        required: true
+    },
+    roles: {
+        type: [String],
+        required: true
+    },
     issuedAt: {
         type: Date,
         default: Date.now,

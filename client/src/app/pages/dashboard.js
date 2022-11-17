@@ -45,7 +45,7 @@ class DashboardPage extends Component {
           <AccountPreferencesOverlay overlayName='account-preferences' onClose={this.closeOverlay} />
           <NotificationsOverlay overlayName='notifications' onClose={this.closeOverlay} />
         </Overlay>
-        <div className="row">           
+        <div className="row">
           <div className="column" style={{ width: 'auto' }}>
             <div className="sideNav">
               <button className="navButton"> Overview </button>

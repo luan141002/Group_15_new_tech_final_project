@@ -2,18 +2,18 @@ const mongoose = require('mongoose')
 const Schema = mongoose.Schema
 
 const GroupSchema = new mongoose.Schema({
-    title: {
+    name: {
         type: String,
         required: true
     },
     members: {
         type: [Schema.Types.ObjectId],
-        ref: 'Account',
+        ref: 'Student',
         required: true
     },
-    adviser: {
-        type: Schema.Types.ObjectId,
-        ref: 'Account',
+    advisers: {
+        type: [Schema.Types.ObjectId],
+        ref: 'Faculty',
         required: true
     }
 })

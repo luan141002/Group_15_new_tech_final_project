@@ -1,12 +1,14 @@
 const bcrypt = require('bcrypt')
 const mongoose = require('mongoose')
+const Schema = mongoose.Schema
 
 const options = { discriminatorKey: 'kind' }
 
-const AccountSchema = new mongoose.Schema({
+const AccountSchema = new Schema({
     idnum: {
         type: String,
-        required: true
+        required: true,
+        unique: true
     },
     username: {
         type: String,
@@ -22,7 +24,6 @@ const AccountSchema = new mongoose.Schema({
         required: true
     },
     middleName: String,
-    username: String,
     email: {
         type: String,
         required: true,
@@ -96,21 +97,25 @@ const Student = User.discriminator('Student', new mongoose.Schema({
     group: {
         type: Schema.Types.ObjectId,
         ref: 'Group'
+    },
+    roles: {
+        type: [String],
+        enum: ['proponent']
     }
 }))
 
 const Faculty = User.discriminator('Faculty', new mongoose.Schema({
-    role: {
-        type: String,
+    roles: {
+        type: [String],
         enum: ['panel', 'adviser', 'coordinator']
     }
 }))
+
 const Administrator = User.discriminator('Administrator', new mongoose.Schema({
-    role: {
-        type: String,
+    roles: {
+        type: [String],
         enum: ['chair', 'secretary']
-    },
-    
+    }
 }))
 
 module.exports = {

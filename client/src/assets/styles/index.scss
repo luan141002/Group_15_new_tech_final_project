@@ -1,4 +1,4 @@
-*{
+* {
   box-sizing: border-box;
   padding: 0;
   margin: 0;
@@ -27,7 +27,6 @@ body {
   padding: 0px;
   height: 100vh;
   width: auto;
-  display: flex;
   align-items: center;
   justify-content: center;
   background-color: #F0F0F0;
@@ -39,5 +38,3 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
-
-
