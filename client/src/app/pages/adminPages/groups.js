@@ -134,7 +134,7 @@ function GroupsPage() {
       setFaculty(facultyList)
       const studentsList = await UserService.getUsers('student')
       setStudents(studentsList)
-      const groupList = await GroupService.getGroups()
+      const groupList = await GroupService.getAllGroups()
       setGroups(groupList)
     } catch (error) {
 
@@ -149,8 +149,8 @@ function GroupsPage() {
     <>
       <Helmet>
         <meta charSet='utf-8' />
-        <meta name='Members' content='width=device-width, initial-scale=1.0' />
-        <title>Members</title>
+        <meta name='Groups' content='width=device-width, initial-scale=1.0' />
+        <title>Groups</title>
       </Helmet>
       <Modal isOpen={isFormOpen} fade={false} centered scrollable>
         <ModalHeader>{formId ? 'Update' : 'Add'} group</ModalHeader>

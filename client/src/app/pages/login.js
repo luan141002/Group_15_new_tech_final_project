@@ -8,39 +8,35 @@ import AuthService from '../services/AuthService'
 function LoginPage() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [nextUrl, setNextUrl] = useState('')
   const navigate = useNavigate()
-  const token = AuthService.getToken()
 
   const onChange = (setter) => (event) => {
     setter(event.target.value)
   }
 
+  useEffect(() => {
+    async function load() {
+      const token = await AuthService.getTokenInfo()
+      setNextUrl(token.nextUrl)
+    }
+
+    load()
+  }, [])
+
   const onSubmit = async (event) => {
     event.preventDefault()
-    const result = await fetch(`${process.env.REACT_APP_API}/account/login`, {
-      body: JSON.stringify({ username, password }),
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      method: 'POST'
-    })
-
-    if (result.ok) {
-      const data = await result.json()
-      localStorage.setItem('token', data.token)
-      navigate('/studentdashboard')
-    } else {
-      
-    }
+    const result = await AuthService.login(username, password)
+    navigate(result.nextUrl)
   }
 
   return (
     <>
-      { token && <Navigate to='/' /> }
+      { nextUrl && <Navigate to={nextUrl} /> }
       <Helmet>
         <meta charSet='utf-8' />
-        <meta name='Log in Student' content='width=device-width, initial-scale=1.0' />
-        <title>Log in Page Student</title>
+        <meta name='Log in' content='width=device-width, initial-scale=1.0' />
+        <title>Log in</title>
       </Helmet>
       <form class="form" id="login" onSubmit={onSubmit}>
         <div class="form_input-group" >

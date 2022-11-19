@@ -11,6 +11,15 @@ const jwt = require('jsonwebtoken')
 
 const router = express.Router()
 
+function generateAccessToken(account) {
+    const hasher = crypto.createHash('sha256')
+    hasher.update(account.idnum)
+    hasher.update(account.lastName)
+    hasher.update(account.firstName)
+    hasher.update(Date.now().toString())
+    return hasher.digest('base64')
+}
+
 function generateVerifyToken(text) {
     const hasher = crypto.createHash('sha256')
     hasher.update(text)
@@ -18,13 +27,40 @@ function generateVerifyToken(text) {
     return hasher.digest('base64')
 }
 
+async function getTokenAccount(token) {
+    const { account, id, kind, roles, issuedAt, expiresAt } = token
+    const accountDetails = await Account.User.findById(account)
+    return {
+        id, kind, roles, issuedAt, expiresAt,
+        account: {
+            idnum: accountDetails.idnum,
+            lastName: accountDetails.lastName,
+            firstName: accountDetails.firstName,
+            middleName: accountDetails.middleName,
+            email: accountDetails.email
+        }
+    }
+}
+
 router.post('/login', async (req, res) => {
     const { username, password } = req.body
     try {
         const account = await User.authenticate(username, password)
+        const now = Date.now()
+        const expiresIn = Number.parseInt(process.env.JWT_DURATION) || 86400
 
         const accountType = (account.kind || '').toLowerCase()
-        const accountInfo = {
+        const tokenId = generateAccessToken(account)
+        const token = await Token.create({
+            id: tokenId,
+            account,
+            kind: accountType,
+            roles: account.roles || [],
+            expiresAt: new Date(now + expiresIn * 1000)
+        })
+
+        const tokenInfo = await getTokenAccount(token)
+        /*const accountInfo = {
             id: account._id,
             idnum: account.idnum,
             lastName: account.lastName,
@@ -37,21 +73,18 @@ router.post('/login', async (req, res) => {
         }
         const jwtoken = jwt.sign(tokenInfo, process.env.JWT_SECRET, {
             expiresIn: `${process.env.JWT_DURATION}s` || 86400
-        })
+        })*/
 
-        return res
-            .json({
-                token: jwtoken,
-                account: accountInfo
-            })
+        return res.json(tokenInfo)
     } catch (error) {
         console.log(error)
         res.status(401).json({ message: 'Cannot log in' })
     }
 })
 
-router.get('/checkToken', readToken, async (req, res) => {
-    return res.sendStatus(200)
+router.post('/checkToken', readToken, async (req, res) => {
+    const tokenInfo = await getTokenAccount(req.token)
+    return res.json(tokenInfo)
 })
 
 router.post('/logout', readToken, async (req, res) => {

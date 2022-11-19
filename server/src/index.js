@@ -8,10 +8,7 @@ dotenv.config()
 
 const app = express()
 
-const allowedOrigins = process.env.DOMAINS.split(/,/).map(e => RegExp(e))
-app.use(cors({
-    origin: allowedOrigins
-}))
+app.use(cors())
 
 const PORT = Number.parseInt(process.env.PORT)
 async function main() {
@@ -22,6 +19,8 @@ async function main() {
     
     require('./controllers/account')(app)
     require('./controllers/group')(app)
+    require('./controllers/announcement')(app)
+    require('./controllers/schedule')(app)
     
     app.listen(PORT, () => {
         console.log(`Listening on port ${PORT}`)

@@ -7,6 +7,12 @@ const GroupService = {
     return result
   },
 
+  getAllGroups: async () => {
+    const response = await WebService.get('/group/all')
+    const result = await response.json()
+    return result
+  },
+
   createGroup: async (data) => {
     const response = await WebService.postJson('/group/create', data)
     return await response.json()

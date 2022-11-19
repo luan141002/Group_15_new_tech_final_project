@@ -3,13 +3,14 @@ import { Navigate, Outlet } from "react-router-dom"
 import AuthService from "./services/AuthService"
 
 function PrivateRoute(props) {
-  const { isAllowed, redirect, children, condition } = props
+  const { isAllowed, redirect, children, customCondition, condition } = props
 
   const [showLoading, setShowLoading] = useState(true)
   const [shouldLoad, setShouldLoad] = useState(false)
 
-  const _condition = condition || (async () => {
-    await AuthService.getTokenInfo()
+  const _condition = customCondition || (async () => {
+    const token = await AuthService.getTokenInfo()
+    if (condition) return condition(token)
     return true
   })
 

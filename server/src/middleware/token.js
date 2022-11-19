@@ -33,16 +33,31 @@ async function readToken(req, res, next) {
         }
 
         rawToken = token
+    } else if (req.cookies) {
+        // Use http cookie instead
 
-        /*
+        const token = req.cookies.accessToken
+        if (!token) {
+            return res.status(401).json({
+                message: 'Missing authorization header or cookie'
+            })
+        }
+
+        rawToken = token
+    } else {
+        return res.status(401).json({
+            message: 'Missing authorization header or cookie'
+        })
+    }
+
+    try {
         // Find the token in the database
-        const accessToken = await Token.findOne({ id: token }).lean()
+        accessToken = await Token.findOne({ id: rawToken }).lean()
         if (!accessToken) {
             return res.status(401).json({
                 message: 'Invalid access token'
             })
         }
-        req.token = accessToken
     
         // Ensure the token is not expired or invalidated
         if (accessToken.invalidated || (!accessToken.expiresAt && Date.now() >= accessToken.expiresAt)) {
@@ -50,31 +65,11 @@ async function readToken(req, res, next) {
                 message: 'Invalid or expired access token'
             })
         }
-        */
-    } else if (req.cookies) {
-        // Use http cookie instead
-
-        const token = req.cookies.accessToken
-        if (!token) {
-            /*return res.status(401).json({
-                message: 'Missing authorization header or cookie'
-            })*/
-        }
-
-        rawToken = token
-    } else {
-        /*return res.status(401).json({
-            message: 'Missing authorization header or cookie'
-        })*/
-    }
-
-    try {
-        accessToken = jwt.verify(rawToken, process.env.JWT_SECRET)
     } catch (err) {
-        /*return res.status(401).json({
+        return res.status(401).json({
             message: 'Cannot decode token',
             details: err
-        })*/
+        })
     }
 
     req.token = accessToken

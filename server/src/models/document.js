@@ -19,6 +19,10 @@ const DocumentSchema = new mongoose.Schema({
         type: Buffer,
         required: true
     },
+    submission: {
+        type: Schema.Types.ObjectId,
+        ref: 'Submission'
+    },
     uploadedAt: {
         type: Date,
         default: Date.now,

@@ -10,7 +10,18 @@ const Group = require('../models/group')
 
 const router = express.Router()
 
-router.get('/', readToken, async (req, res) => {
+router.get('/', readToken, checkKind(['faculty', 'student']), async (req, res) => {
+    const { account } = req.token
+    try {
+        const groups = await Group.find({ $or: [ { members: account }, { advisers: account } ] })
+        return res.json(groups)
+    } catch (err) {
+        console.log(err)
+        return res.status(500).json({ message: 'Could not get groups for user' })
+    }
+})
+
+router.get('/all', readToken, checkKind(['faculty', 'administrator']), async (req, res) => {
     try {
         const groups = await Group.find()
         return res.json(groups)
