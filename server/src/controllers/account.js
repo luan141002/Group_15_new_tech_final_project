@@ -94,14 +94,14 @@ router.post('/logout', readToken, async (req, res) => {
     res.json({ message: 'Logged out' })
 })
 
-function createUserFromBody(type, body) {
-    const { idnum, username, lastName, firstName, middleName, email, password, startDate, endDate } = body
+function createUserFromBody(type, body, passOptional) {
+    const { idnum, username, lastName, firstName, middleName, email, password, roles, startDate, endDate } = body
 
     if (!idnum) throw new ServerError(400, 'ID Number is required')
     if (!lastName) throw new ServerError(400, 'Last name is required')
     if (!firstName) throw new ServerError(400, 'First name is required')
     if (!email) throw new ServerError(400, 'Email is required')
-    if (!password) throw new ServerError(400, 'Password is required')
+    if (!passOptional && !password) throw new ServerError(400, 'Password is required')
 
     let uname = username || generateName(lastName, firstName)
 
@@ -117,12 +117,13 @@ function createUserFromBody(type, body) {
         firstName,
         middleName,
         email,
-        passwordEnc: password,
+        roles,
         startDate: startDateObj,
         endDate: endDateObj,
         verified: false,
         verifyCode: '0'
     }
+    if (!passOptional) user.passwordEnc = password
 
     if (type === 'student') {
         user.verifyCode = generateVerifyToken(uname)
@@ -172,6 +173,68 @@ router.post('/add/administrator', readToken, checkKind('administrator'), async (
     }
 })
 
+router.post('/update/administrator/:id', readToken, checkKind('administrator'), async (req, res) => {
+    const current = req.token.account
+    const { id } = req.params
+    try {
+        const user = createUserFromBody('administrator', req.body, true)
+        const account = await Account.Administrator.findOne({ _id: id })
+
+        account.idnum = user.idnum
+        account.lastName = user.lastName
+        account.firstName = user.firstName
+        account.middleName = user.middleName
+        account.email = user.email
+        account.roles = user.roles
+        if (user.passwordEnc) account.passwordEnc = user.passwordEnc
+
+        await account.save()
+        return res.json({
+            message: 'Administrator has been updated'
+        })
+    } catch (err) {
+        if (err instanceof ServerError) {
+            return res.status(err.status).json({
+                message: err.message,
+                details: res.details
+            })
+        }
+
+        if (err.code === 11000) {
+            if (err.message.includes('idnum')) {
+                return res.status(400).json({ message: 'Another account with the same ID number exists' })
+            }
+            if (err.message.includes('email')) {
+                return res.status(400).json({ message: 'Another account with the same email exists' })
+            }
+            if (err.message.includes('username')) {
+                return res.status(400).json({ message: 'Another account with the same username exists' })
+            }
+        }
+
+        console.log(err)
+        return res.status(500).json({ message: 'Could not update administrator account' })
+    }
+})
+
+router.delete('/delete/administrator/:id', readToken, checkKind('administrator'), async (req, res) => {
+    const idnum = req.params.id
+    try {
+        await Account.Administrator.deleteOne({ idnum })
+        return res.json({ message: `User has been removed` })
+    } catch (err) {
+        if (err instanceof ServerError) {
+            return res.status(err.status).json({
+                message: err.message,
+                details: res.details
+            })
+        }
+
+        console.log(err)
+        return res.status(500).json({ message: 'Could not remove account', details: err })
+    }
+})
+
 router.post('/add/faculty', readToken, checkKind('administrator'), async (req, res) => {
     try {
         const user = createUserFromBody('faculty', req.body)
@@ -208,6 +271,68 @@ router.post('/add/faculty', readToken, checkKind('administrator'), async (req, r
 
         console.log(err)
         return res.status(500).json({ message: 'Could not register faculty account', details: err })
+    }
+})
+
+router.post('/update/faculty/:id', readToken, checkKind('administrator'), async (req, res) => {
+    const current = req.token.account
+    const { id } = req.params
+    try {
+        const user = createUserFromBody('faculty', req.body, true)
+        const account = await Account.Faculty.findOne({ _id: id })
+
+        account.idnum = user.idnum
+        account.lastName = user.lastName
+        account.firstName = user.firstName
+        account.middleName = user.middleName
+        account.email = user.email
+        account.roles = user.roles
+        if (user.passwordEnc) account.passwordEnc = user.passwordEnc
+
+        await account.save()
+        return res.json({
+            message: 'Faculty has been updated'
+        })
+    } catch (err) {
+        if (err instanceof ServerError) {
+            return res.status(err.status).json({
+                message: err.message,
+                details: res.details
+            })
+        }
+
+        if (err.code === 11000) {
+            if (err.message.includes('idnum')) {
+                return res.status(400).json({ message: 'Another account with the same ID number exists' })
+            }
+            if (err.message.includes('email')) {
+                return res.status(400).json({ message: 'Another account with the same email exists' })
+            }
+            if (err.message.includes('username')) {
+                return res.status(400).json({ message: 'Another account with the same username exists' })
+            }
+        }
+
+        console.log(err)
+        return res.status(500).json({ message: 'Could not update faculty account' })
+    }
+})
+
+router.delete('/delete/faculty/:id', readToken, checkKind('administrator'), async (req, res) => {
+    const idnum = req.params.id
+    try {
+        await Account.Faculty.deleteOne({ idnum })
+        return res.json({ message: `Faculty has been removed` })
+    } catch (err) {
+        if (err instanceof ServerError) {
+            return res.status(err.status).json({
+                message: err.message,
+                details: res.details
+            })
+        }
+
+        console.log(err)
+        return res.status(500).json({ message: 'Could not remove account', details: err })
     }
 })
 
@@ -251,47 +376,55 @@ router.post('/add/student', readToken, checkKind(['faculty', 'administrator']), 
     }
 })
 
+router.post('/update/student/:id', readToken, checkRole(['faculty.coordinator', 'administrator']), async (req, res) => {
+    const current = req.token.account
+    const { id } = req.params
+    try {
+        const user = createUserFromBody('student', req.body, true)
+        const account = await Account.Student.findOne({ _id: id })
+
+        account.idnum = user.idnum
+        account.lastName = user.lastName
+        account.firstName = user.firstName
+        account.middleName = user.middleName
+        account.email = user.email
+        account.roles = user.roles
+        if (user.passwordEnc) account.passwordEnc = user.passwordEnc
+
+        await account.save()
+        return res.json({
+            message: 'Student has been updated'
+        })
+    } catch (err) {
+        if (err instanceof ServerError) {
+            return res.status(err.status).json({
+                message: err.message,
+                details: res.details
+            })
+        }
+
+        if (err.code === 11000) {
+            if (err.message.includes('idnum')) {
+                return res.status(400).json({ message: 'Another account with the same ID number exists' })
+            }
+            if (err.message.includes('email')) {
+                return res.status(400).json({ message: 'Another account with the same email exists' })
+            }
+            if (err.message.includes('username')) {
+                return res.status(400).json({ message: 'Another account with the same username exists' })
+            }
+        }
+
+        console.log(err)
+        return res.status(500).json({ message: 'Could not update student account' })
+    }
+})
+
 router.delete('/delete/student/:id', readToken, checkKind(['faculty', 'administrator']), async (req, res) => {
     const idnum = req.params.id
     try {
         await Account.Student.deleteOne({ idnum })
         return res.json({ message: `Student has been removed` })
-    } catch (err) {
-        if (err instanceof ServerError) {
-            return res.status(err.status).json({
-                message: err.message,
-                details: res.details
-            })
-        }
-
-        console.log(err)
-        return res.status(500).json({ message: 'Could not remove account', details: err })
-    }
-})
-
-router.delete('/delete/faculty/:id', readToken, checkKind('administrator'), async (req, res) => {
-    const idnum = req.params.id
-    try {
-        await Account.Faculty.deleteOne({ idnum })
-        return res.json({ message: `Faculty has been removed` })
-    } catch (err) {
-        if (err instanceof ServerError) {
-            return res.status(err.status).json({
-                message: err.message,
-                details: res.details
-            })
-        }
-
-        console.log(err)
-        return res.status(500).json({ message: 'Could not remove account', details: err })
-    }
-})
-
-router.delete('/delete/administrator/:id', readToken, checkKind('administrator'), async (req, res) => {
-    const idnum = req.params.id
-    try {
-        await Account.Administrator.deleteOne({ idnum })
-        return res.json({ message: `User has been removed` })
     } catch (err) {
         if (err instanceof ServerError) {
             return res.status(err.status).json({

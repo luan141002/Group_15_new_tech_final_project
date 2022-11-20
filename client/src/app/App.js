@@ -10,6 +10,7 @@ import LoginPage from './pages/login'
 import RegisterPage from './pages/register'
 import DefaultLayout from './layouts/default'
 import AdminLayout from './layouts/admin'
+import FacultyLayout from './layouts/faculty'
 import DashboardPage from './pages/dashboard'
 import RegisterConfirmationPage from './pages/confirm'
 import DocumentsPage from './pages/documents'
@@ -19,6 +20,11 @@ import AdminAnnouncementsPage from './pages/adminPages/announcements';
 import AdminGroupsPage from './pages/adminPages/groups';
 import AdminMembersPage from './pages/adminPages/members'
 import AdminSchedulePage from './pages/adminPages/schedule';
+import FacultyDashboardPage from './pages/facultyPages/dashboard';
+import FacultyGroupPage from './pages/facultyPages/group';
+import FacultyGroupsPage from './pages/facultyPages/groups';
+import FacultyMembersPage from './pages/facultyPages/members';
+import FacultySubmissionsPage from './pages/facultyPages/submissions';
 
 class App extends Component {
   render() {
@@ -33,6 +39,13 @@ class App extends Component {
               <Route path='members' element={<AdminMembersPage />} />
               <Route path='groups' element={<AdminGroupsPage />} />
               <Route path='' element={<AdminDashboardPage />} />
+            </Route>
+            <Route path='/faculty' element={<PrivateRoute condition={(token) => token.kind === 'faculty'} redirect='/login'><FacultyLayout /></PrivateRoute>}>
+              <Route path='members' element={<FacultyMembersPage />} />
+              <Route path='groups' element={<FacultyGroupsPage />} />
+              <Route path='group/:id' element={<FacultyGroupPage />} />
+              <Route path='submissions' element={<FacultySubmissionsPage />} />
+              <Route path='' element={<FacultyDashboardPage />} />
             </Route>
             <Route path='studentdocuments' element={<DocumentsPage />} />
             <Route path='studentdefense' element={<DefensePage />} />

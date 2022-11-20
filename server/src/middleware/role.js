@@ -23,6 +23,11 @@ function checkRole(roles) {
             })
         }
 
+        // Skip role checks if superadmin
+        if (token.superadmin) {
+            return next()
+        }
+
         const checkPerm = (kind, roles, entry) => {
             if (entry.includes('.')) {
                 const [eKind, eRole] = entry.split(/\s+/)
@@ -66,6 +71,11 @@ function checkKind(kind) {
             return res.status(401).json({
                 message: 'No token'
             })
+        }
+
+        // Skip role checks if superadmin
+        if (token.superadmin) {
+            return next()
         }
 
         const func = typeof kind === 'string'

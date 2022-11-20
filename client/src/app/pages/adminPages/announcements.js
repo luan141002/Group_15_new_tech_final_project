@@ -115,10 +115,10 @@ function AnnouncementsPage() {
           <Button onClick={closeModal}>Close</Button>
         </ModalFooter>
       </Modal>
-      <div className='row'>
-        <div className='column'>
-          <div className='group'>
-            <h2 className="group-name">Announcements</h2>
+      <div className='tm-row'>
+        <div className='tm-column'>
+          <div className='tm-group'>
+            <h2 className="tm-group-name">Announcements</h2>
             <Button onClick={openModal}>Post announcement</Button>
             <Table>
               <thead>

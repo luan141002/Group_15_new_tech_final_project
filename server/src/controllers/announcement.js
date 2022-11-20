@@ -7,7 +7,7 @@ const router = express.Router()
 
 router.get('/', readToken, async (req, res) => {
     const { since } = req.query
-    const sinceObj = new Date(since)
+    const sinceObj = new Date(0)
 
     try {
         const announcements = await Announcement.find({ uploadDate: { $gt: sinceObj } })

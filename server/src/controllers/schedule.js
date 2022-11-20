@@ -19,6 +19,31 @@ const numberToTime = (number) => {
     return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
 }
 
+const dateToString = (date) => {
+    if (date instanceof Date) {
+        const offset = date.getTimezoneOffset()
+        date = new Date(date.getTime() - (offset*60*1000))
+        return date.toISOString().split('T')[0]
+    }
+
+    return date
+}
+
+const scheduleToJson = (schedule) => {
+    return {
+        id: schedule._id,
+        name: schedule.name,
+        description: schedule.description,
+        type: schedule.type,
+        repeating: schedule.repeating,
+        repeat: schedule.repeat,
+        startPeriod: dateToString(schedule.period.from),
+        endPeriod: schedule.period.to && dateToString(schedule.period.to),
+        startTime: numberToTime(schedule.time.from),
+        endTime: numberToTime(schedule.time.to)
+    }
+}
+
 router.get('/', readToken, async (req, res) => {
     const { all } = req.query
     const author = req.token.account
@@ -34,17 +59,7 @@ router.get('/', readToken, async (req, res) => {
         }
 
         const schedules = await Schedule.find(query)
-        return res.json(schedules.map(e => ({
-            name: e.name,
-            description: e.description,
-            type: e.type,
-            repeating: e.repeating,
-            repeat: e.repeat,
-            startPeriod: e.period.from,
-            endPeriod: e.period.to,
-            startTime: numberToTime(e.time.from),
-            endTime: numberToTime(e.time.to)
-        })))
+        return res.json(schedules.map(scheduleToJson))
     } catch (err) {
         console.log(err)
         return res.status(500).json({ message: 'Could not get schedules' })
@@ -70,7 +85,7 @@ router.post('/global', readToken, checkKind(['administrator', 'faculty']), async
                 to: timeToNumber(endTime)
             }
         })
-        return res.json(schedule)
+        return res.json(scheduleToJson(schedule))
     } catch (err) {
         console.log(err)
         return res.status(500).json({ message: 'Could not get schedules' })
@@ -96,7 +111,71 @@ router.post('/personal', readToken, async (req, res) => {
                 to: timeToNumber(endTime)
             }
         })
-        return res.json(schedule)
+        return res.json(scheduleToJson(schedule))
+    } catch (err) {
+        console.log(err)
+        return res.status(500).json({ message: 'Could not get schedules' })
+    }
+})
+
+router.post('/:id', readToken, async (req, res) => {
+    const { id } = req.params
+    const { name, description, startPeriod, endPeriod, startTime, endTime, repeat } = req.body
+    const author = req.token.account
+
+    try {
+        const schedule = await Schedule.findOne({ _id: id, author })
+        if (schedule) {
+            schedule.name = name
+            schedule.description = description
+            schedule.time = {
+                from: timeToNumber(startTime),
+                to: timeToNumber(endTime)
+            }
+            if (repeat) {
+                schedule.repeating = true
+                schedule.repeat = repeat
+                schedule.period = {
+                    from: startPeriod,
+                    to: endPeriod
+                }
+            } else {
+                schedule.repeating = false
+                schedule.repeat = ''
+                schedule.period = {
+                    from: startPeriod
+                }
+            }
+
+            await schedule.save()
+            return res.json({
+                message: 'Schedule updated.'
+            })
+        } else {
+            return res.status(404).json({ message: 'Schedule not found' })
+        }
+        
+    } catch (err) {
+        console.log(err)
+        return res.status(500).json({ message: 'Could not get schedules' })
+    }
+})
+
+router.delete('/:id', readToken, async (req, res) => {
+    const { id } = req.params
+    const author = req.token.account
+
+    try {
+        const schedule = await Schedule.findOne({ _id: id, author })
+        if (schedule) {
+            await Schedule.deleteOne({ _id: id })
+            return res.json({
+                message: 'Schedule deleted.'
+            })
+        } else {
+            return res.status(404).json({ message: 'Schedule not found' })
+        }
+        
     } catch (err) {
         console.log(err)
         return res.status(500).json({ message: 'Could not get schedules' })

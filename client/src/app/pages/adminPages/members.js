@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react"
 import { Helmet } from "react-helmet"
 import UserService from '../../services/UserService'
-import { Alert, Button, FormGroup, Input, Label, Modal, ModalBody, ModalFooter, ModalHeader, Table } from 'reactstrap'
-import { clone, merge } from "lodash"
+import { Alert, Button, Col, FormGroup, Input, Label, Modal, ModalBody, ModalFooter, ModalHeader, Row, Table } from 'reactstrap'
+import { clone, cloneDeep, merge } from "lodash"
 
 function createFormState() {
   return {
@@ -11,12 +11,28 @@ function createFormState() {
     lastName: '',
     firstName: '',
     email: '',
+    roles: [],
     password: ''
   }
 }
 
+const roles = (type) => {
+  switch (type) {
+    case 'student': return []
+    case 'faculty': return [
+      { name: 'adviser', display: 'Adviser' },
+      { name: 'panelist', display: 'Panelist' },
+      { name: 'coordinator', display: 'Coordinator' }
+    ]
+    case 'administrator': return [
+      { name: 'chair', display: 'Chair' },
+      { name: 'secretary', display: 'Secretary' }
+    ]
+    default: return []
+  }
+}
+
 function MembersPage() {
-  const [formMode, setFormMode] = useState('')
   const [deleteForm, setDeleteForm] = useState(false)
   const [deleteType, setDeleteType] = useState('')
   const [deleteId, setDeleteId] = useState('')
@@ -26,11 +42,12 @@ function MembersPage() {
   const [students, setStudents] = useState([])
   const [isFormOpen, setFormOpen] = useState(false)
   const [form, setForm] = useState(createFormState())
+  const [formId, setFormId] = useState('')
   const [formType, setFormType] = useState('')
   const [formError, setFormError] = useState('')
 
   const updateForm = (partial) => {
-    setForm(prev => merge(clone(prev), partial))
+    setForm(prev => merge(cloneDeep(prev), partial))
   }
 
   const updateFormField = (name) => (event) => {
@@ -38,8 +55,19 @@ function MembersPage() {
     updateForm({ [name]: value })
   }
 
+  const updateFormRoleField = (name) => (event) => {
+    const value = event.target.checked
+    setForm(prev => {
+      const next = cloneDeep(prev)
+      if (value) { if (!next.roles.includes(name)) next.roles.push(name) }
+      else next.roles = next.roles.filter(e => e !== name)
+      return next
+    })
+  }
+
   const openModal = (type, data) => () => {
-    setFormMode(data ? 'Edit' : 'Add')
+    console.log(data)
+    setFormId(data ? data._id : '')
     setFormType(type)
     setForm(data || createFormState())
     setFormOpen(true)
@@ -92,7 +120,11 @@ function MembersPage() {
 
   const onAdd = async (event) => {
     try {
-      await UserService.addUser(formType, form)
+      if (formId) {
+        await UserService.updateUser(formType, formId, form)
+      } else {
+        await UserService.addUser(formType, form)
+      }
       await loadType(formType)
       closeModal()
     } catch (error) {
@@ -120,6 +152,29 @@ function MembersPage() {
     loadAll()
   }, [])
 
+  const rolesList = roles(formType)
+  const rolesLayout = rolesList.length > 0 ?
+    <>
+      <Row>
+        <Col>
+          <Label>Roles</Label>
+        </Col>
+      </Row>
+      <Row>
+        {
+          rolesList.map((role, i) => (
+            <Col key={`role-${i}`}>
+              <FormGroup check>
+                <Input id={`account-role${i}`} type='checkbox' name={`role${i}`} checked={form.roles.includes(role.name)} onChange={updateFormRoleField(role.name)} />
+                <Label for={`account-role${i}`}>{role.display}</Label>
+              </FormGroup>
+            </Col>
+          ))
+        }
+      </Row>
+    </>
+  : <></>
+
   return (
     <>
       <Helmet>
@@ -127,8 +182,8 @@ function MembersPage() {
         <meta name='Members' content='width=device-width, initial-scale=1.0' />
         <title>Members</title>
       </Helmet>
-      <Modal isOpen={isFormOpen} fade={false} centered scrollable>
-        <ModalHeader>{formMode} {formType}</ModalHeader>
+      <Modal isOpen={isFormOpen} fade={false} centered scrollable size='lg'>
+        <ModalHeader>{formId ? 'Edit' : 'Add'} {formType}</ModalHeader>
         <ModalBody>
           { formType === 'administrator' && 'If you add another administrator, you cannot update their information nor remove them.' }
           <FormGroup floating>
@@ -159,10 +214,11 @@ function MembersPage() {
             <Input id='account-password' type='password' name='password' placeholder='Password' value={form.password} onChange={updateFormField('password')} />
             <Label for='account-password'>Password</Label>
           </FormGroup>
+          {rolesLayout}
           { formError && <Alert color='danger'>{formError}</Alert> }
         </ModalBody>
         <ModalFooter>
-          <Button onClick={onAdd}>Add</Button>
+          <Button onClick={onAdd}>{formId ? 'Update' : 'Add'}</Button>
           <Button onClick={closeModal}>Close</Button>
         </ModalFooter>
       </Modal>
@@ -177,10 +233,10 @@ function MembersPage() {
           <Button onClick={() => setDeleteForm(false)}>Close</Button>
         </ModalFooter>
       </Modal>
-      <div className='row'>
-        <div className='column'>
-          <div className='group'>
-            <h2 className="group-name">Administrators</h2>
+      <div className='tm-row'>
+        <div className='tm-column'>
+          <div className='tm-group'>
+            <h2 className="tm-group-name">Administrators</h2>
             <Button onClick={openModal('administrator')}>Add</Button>
             <Table>
               <thead>
@@ -203,8 +259,8 @@ function MembersPage() {
               </tbody>
             </Table>
           </div>
-          <div className="group">
-            <h2 className="group-name">Faculty</h2>
+          <div className="tm-group">
+            <h2 className="tm-group-name">Faculty</h2>
             <Button onClick={openModal('faculty')}>Add</Button>
             <Table>
               <thead>
@@ -232,8 +288,8 @@ function MembersPage() {
               </tbody>
             </Table>
           </div>
-          <div className="group">
-            <h2 className="group-name">Students</h2>
+          <div className="tm-group">
+            <h2 className="tm-group-name">Students</h2>
             <Button onClick={openModal('student')}>Add</Button>
             <Table>
               <thead>

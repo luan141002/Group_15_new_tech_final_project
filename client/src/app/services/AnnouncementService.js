@@ -1,8 +1,10 @@
 import WebService from "./WebService"
 
 const AnnouncementService = {
-  getGroups: async (since) => {
-    const response = await WebService.get('/announcement', { since })
+  getAnnouncements: async (since) => {
+    const queries = {}
+    if (since) queries.since = since
+    const response = await WebService.get('/announcement', queries)
     const result = await response.json()
     return result
   },

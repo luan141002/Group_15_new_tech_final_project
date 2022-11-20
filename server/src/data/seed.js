@@ -10,6 +10,7 @@ module.exports.initialize = async function() {
             firstName: 'Admin',
             email: 'admin@example.com',
             passwordEnc: 'thesis!',
+            superadmin: true,
             startDate: new Date(0),
             endDate: new Date(10000 * 365 * 86400 * 1000),
             verified: true,

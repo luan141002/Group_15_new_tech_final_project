@@ -71,6 +71,16 @@ AccountSchema.pre('save', function(next) {
     }
 })
 
+AccountSchema.statics.getBasicInfo = function(account) {
+    return {
+        id: account._id,
+        idnum: account.idnum,
+        lastName: account.lastName,
+        firstName: account.firstName,
+        middleName: account.middleName
+    }
+}
+
 AccountSchema.statics.authenticate = async function(username, password) {
     const query = {
         username: { $regex: new RegExp(`^${username}$`, 'i') }
@@ -107,7 +117,7 @@ const Student = User.discriminator('Student', new mongoose.Schema({
 const Faculty = User.discriminator('Faculty', new mongoose.Schema({
     roles: {
         type: [String],
-        enum: ['panel', 'adviser', 'coordinator']
+        enum: ['panelist', 'adviser', 'coordinator']
     }
 }))
 
@@ -115,6 +125,10 @@ const Administrator = User.discriminator('Administrator', new mongoose.Schema({
     roles: {
         type: [String],
         enum: ['chair', 'secretary']
+    },
+    superadmin: {
+        type: Boolean,
+        default: false
     }
 }))
 

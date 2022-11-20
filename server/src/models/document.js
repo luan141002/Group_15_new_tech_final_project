@@ -32,10 +32,17 @@ const DocumentSchema = new mongoose.Schema({
     receivedAt: Date,
     processedAt: Date,
     approvedAt: Date,
-    endorsed: {
-        type: Boolean,
-        default: false
-    },
+    endorsements: [{
+        by: {
+            type: Schema.Types.ObjectId,
+            ref: 'Faculty'
+        },
+        date: {
+            type: Date,
+            required: true,
+            default: Date.now
+        }
+    }],
     approved: {
         type: Boolean,
         default: false

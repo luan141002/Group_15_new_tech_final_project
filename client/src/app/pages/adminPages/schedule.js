@@ -25,6 +25,7 @@ function SchedulePage() {
   const [year, setYear] = useState(currentDate.getFullYear())
   const [month, setMonth] = useState(currentDate.getMonth())
   const [form, setForm] = useState(createFormState())
+  const [formId, setFormId] = useState('')
   const [formOpen, setFormOpen] = useState(false)
   const [formError, setFormError] = useState('')
   const [deleteFormOpen, setDeleteFormOpen] = useState(false)
@@ -74,8 +75,16 @@ function SchedulePage() {
     setMonth(month)
   }
 
-  const openModal = () => {
-    setForm(createFormState())
+  const onClickEvent = (scheduleId) => {
+    const schedule = schedules.find(e => e.id === scheduleId)
+    if (schedule) {
+      openModal(schedule)()
+    }
+  }
+
+  const openModal = (data) => () => {
+    setFormId(data ? data.id : '')
+    setForm(data || createFormState())
     setFormOpen(true)
   }
 
@@ -102,11 +111,25 @@ function SchedulePage() {
 
   const onAdd = async () => {
     try {
-      await ScheduleService.createSchedule(form)
+      if (formId) {
+        await ScheduleService.updateSchedule(formId, form)
+      } else {
+        await ScheduleService.createSchedule(form)
+      }
       await load()
       closeModal()
     } catch (error) {
       setFormError(error.message)
+    }
+  }
+
+  const onDelete = async () => {
+    try {
+      await ScheduleService.deleteSchedule(deleteId)
+      await load()
+      closeModal()
+    } catch (error) {
+      setDeleteFormError(error.message)
     }
   }
 
@@ -122,7 +145,7 @@ function SchedulePage() {
         <title>Schedule</title>
       </Helmet>
       <Modal isOpen={formOpen} fade={false} centered scrollable size='lg'>
-        <ModalHeader>Add schedule</ModalHeader>
+        <ModalHeader>{ formId ? 'Update' : 'Add' } schedule</ModalHeader>
         <ModalBody>
           <FormGroup floating>
             <Input id='schedule-name' type='text' name='name' placeholder='Name' value={form.name} onChange={updateFormField('name')} />
@@ -132,16 +155,24 @@ function SchedulePage() {
             <Input id='schedule-description' type='textarea' name='description' placeholder='Description' value={form.description} onChange={updateFormField('description')} />
             <Label for='schedule-description'>Description</Label>
           </FormGroup>
-          <FormGroup floating>
-            <Input id='schedule-type' type='select' name='type' value={form.type} onChange={updateFormField('type')}>
-              <option>--- Select type ---</option>
-              <option value='personal'>Personal</option>
-              <option value='global'>Global</option>
-            </Input>
-            <Label for='schedule-type'>Type</Label>
-          </FormGroup>
+          {
+            formId ?
+              <FormGroup floating>
+                <Input id='schedule-type-ro' type='type' name='type' placeholder='Type' value={form.type} readOnly />
+                <Label for='schedule-type-ro'>Type</Label>
+              </FormGroup>
+              :
+              <FormGroup floating>
+                <Input id='schedule-type' type='select' name='type' value={form.type} onChange={updateFormField('type')}>
+                  <option>--- Select type ---</option>
+                  <option value='personal'>Personal</option>
+                  <option value='global'>Global</option>
+                </Input>
+                <Label for='schedule-type'>Type</Label>
+              </FormGroup>
+          }
           <FormGroup check>
-            <Input id='schedule-repeating' type='checkbox' name='repeating' value={form.repeating} onChange={updateFormCheckField('repeating')} />
+            <Input id='schedule-repeating' type='checkbox' name='repeating' checked={form.repeating} onChange={updateFormCheckField('repeating')} />
             <Label for='schedule-repeating'>Repeating schedule</Label>
           </FormGroup>
           {
@@ -184,7 +215,7 @@ function SchedulePage() {
                   daysOfWeekShort.map((dayOfWeek, i) => (
                     <Col key={`dayOfWeek-${i}`}>
                       <FormGroup check>
-                        <Input id={`schedule-repeat${i}`} type='checkbox' name={`repeat${i}`} value={getRepeatValue(i, form.repeat)} onChange={updateFormRepeat(i)} />
+                        <Input id={`schedule-repeat${i}`} type='checkbox' name={`repeat${i}`} checked={getRepeatValue(i, form.repeat)} onChange={updateFormRepeat(i)} />
                         <Label for={`schedule-repeat${i}`}>{dayOfWeek}</Label>
                       </FormGroup>
                     </Col>
@@ -219,7 +250,8 @@ function SchedulePage() {
           { formError && <Alert color='danger'>{formError}</Alert> }
         </ModalBody>
         <ModalFooter>
-          <Button onClick={onAdd}>Add</Button>
+          { formId && <Button color='danger' onClick={() => openDeleteModal(formId)()}>Delete</Button> }
+          <Button onClick={onAdd}>{ formId ? 'Update' : 'Add'}</Button>
           <Button onClick={closeModal}>Close</Button>
         </ModalFooter>
       </Modal>
@@ -230,16 +262,16 @@ function SchedulePage() {
           { deleteFormError && <Alert color='danger'>{deleteFormError}</Alert> }
         </ModalBody>
         <ModalFooter>
-          <Button color='danger'>Delete</Button>
+          <Button onClick={onDelete} color='danger'>Delete</Button>
           <Button onClick={closeModal}>Close</Button>
         </ModalFooter>
       </Modal>
-      <div className='row'>
-        <div className='column'>
-          <div className='group'>
-            <h2 className="group-name">Schedule</h2>
-            <Button onClick={openModal}>Add</Button>
-            <Calendar year={year} month={month} onChange={onChange} events={schedules} />
+      <div className='tm-row'>
+        <div className='tm-column'>
+          <div className='tm-group'>
+            <h2 className="tm-group-name">Schedule</h2>
+            <Button onClick={openModal()}>Add</Button>
+            <Calendar year={year} month={month} onChange={onChange} events={schedules} onClickEvent={onClickEvent} />
           </div>
         </div>
       </div>

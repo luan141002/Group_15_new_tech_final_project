@@ -1,4 +1,5 @@
-import { Button, Col, Row } from "reactstrap"
+import { Link } from "react-router-dom"
+import { Button, Card, CardBody, CardTitle, Col, Row } from "reactstrap"
 
 const monthsOfYear = [
   'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'
@@ -13,7 +14,7 @@ const daysOfWeekShort = [
 // events: [{ period: {from,to}, time: {from,to}, repeat }]
 
 function Calendar(props) {
-  const { year, month, firstDayOfWeek, onChange, events } = props
+  const { year, month, firstDayOfWeek, onChange, onClickEvent, events } = props
 
   const now = new Date()
   const currentFirstDayOfWeek = firstDayOfWeek || 0
@@ -68,13 +69,16 @@ function Calendar(props) {
     if (onChange) onChange(date.getUTCFullYear(), date.getUTCMonth())
   }
 
+  const doClickEvent = (eventId) => () => {
+    if (onClickEvent) onClickEvent(eventId)
+  }
+
   const eventIsWithinPeriod = (date, event) => {
     const start = new Date(event.startPeriod)
     const end = new Date(event.endPeriod || event.startPeriod)
     end.setTime(end.getTime() + 86400 * 1000 - 1)
 
     const { datetime } = date
-    console.log(`${start.getTime()}, ${datetime.getTime()}, ${end.getTime()}`)
     
     return start.getTime() <= datetime.getTime() && datetime.getTime() <= end.getTime()
   }
@@ -90,9 +94,7 @@ function Calendar(props) {
 
   const getEventsOfDate = (date) => {
     return events ? events.filter(e => eventOccursOnDay(date, e)).sort((a, b) => {
-      const da = new Date(a.startPeriod)
-      const db = new Date(b.startPeriod)
-      return da.getTime() - db.getTime()
+      return a.startTime.localeCompare(b.startTime)
     }) : []
   }
 
@@ -132,7 +134,16 @@ function Calendar(props) {
                       {entry.date}
                     </div>
                     {
-                      events.map(e => (<div>{e.name}</div>))
+                      events.map(e => (
+                        <Card onClick={doClickEvent(e.id)} style={{ cursor: "pointer" }}>
+                          <CardTitle>
+                            {e.name}
+                          </CardTitle>
+                          <CardBody>
+                            <small className='text-muted'>{e.startTime} - {e.endTime}</small>
+                          </CardBody>
+                        </Card>
+                      ))
                     }
                   </div>
                 </Col>
