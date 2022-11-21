@@ -25,6 +25,9 @@ import FacultyGroupPage from './pages/facultyPages/group';
 import FacultyGroupsPage from './pages/facultyPages/groups';
 import FacultyMembersPage from './pages/facultyPages/members';
 import FacultySubmissionsPage from './pages/facultyPages/submissions';
+import SubmissionBoxesPage from './pages/SubmissionBoxesPage';
+import SubmissionBoxPage from './pages/SubmissionBoxPage';
+import SubmissionPage from './pages/SubmissionPage';
 
 class App extends Component {
   render() {
@@ -41,18 +44,20 @@ class App extends Component {
               <Route path='' element={<AdminDashboardPage />} />
             </Route>
             <Route path='/faculty' element={<PrivateRoute condition={(token) => token.kind === 'faculty'} redirect='/login'><FacultyLayout /></PrivateRoute>}>
-              <Route path='members' element={<FacultyMembersPage />} />
+              <Route path='students' element={<FacultyMembersPage />} />
               <Route path='groups' element={<FacultyGroupsPage />} />
               <Route path='group/:id' element={<FacultyGroupPage />} />
               <Route path='submissions' element={<FacultySubmissionsPage />} />
               <Route path='' element={<FacultyDashboardPage />} />
             </Route>
-            <Route path='studentdocuments' element={<DocumentsPage />} />
-            <Route path='studentdefense' element={<DefensePage />} />
-            <Route path='studentdashboard' element={<DashboardPage />} />
-            <Route path='studentregister' element={<RegisterPage />} />
-            <Route path='studentconfirm' element={<RegisterConfirmationPage />} />
-            <Route path='' element={<DashboardPage />} />
+            <Route path='' element={<DefaultLayout />}>
+              <Route path='submission/:id' element={<SubmissionPage />} />
+              <Route path='assignment/:id' element={<SubmissionBoxPage />} />
+              <Route path='assignment' element={<SubmissionBoxesPage />} />
+              <Route path='documents' element={<DocumentsPage />} />
+              <Route path='defense' element={<DefensePage />} />
+              <Route path='' element={<DashboardPage />} />
+            </Route>
             <Route path='*' element={<ErrorPage/>} />
           </Route>
         </Routes>

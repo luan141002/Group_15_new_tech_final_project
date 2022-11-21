@@ -1,6 +1,6 @@
 const express = require('express')
 const readToken = require('../middleware/token')
-const { checkKind } = require('../middleware/role')
+const { checkRole } = require('../middleware/role')
 const Announcement = require('../models/announcement')
 
 const router = express.Router()
@@ -28,7 +28,7 @@ router.get('/all', readToken, async (req, res) => {
     }
 })
 
-router.post('/', readToken, checkKind(['faculty.coordinator', 'administrator']), async (req, res) => {
+router.post('/', readToken, checkRole(['faculty.coordinator', 'administrator']), async (req, res) => {
     const { title, message } = req.body
     const author = req.token.account
     try {
@@ -43,25 +43,19 @@ router.post('/', readToken, checkKind(['faculty.coordinator', 'administrator']),
     }
 })
 
-router.post('/:id', readToken, checkKind(['faculty.coordinator', 'administrator']), async (req, res) => {
+router.post('/:id', readToken, checkRole(['faculty.coordinator', 'administrator']), async (req, res) => {
     const { id } = req.params
     const { title, message } = req.body
     const author = req.token.account
 
     try {
-        const announcement = await Announcement.findById(id)
+        const announcement = await Announcement.findOne({ _id: id, author })
         if (announcement) {
-            if (announcement.author === author) {
-                author.title = title
-                author.message = message
-                await announcement.save()
+            announcement.title = title
+            announcement.message = message
+            await announcement.save()
 
-                return res.json({ message: 'Announcement updated' })
-            } else {
-                return res.status(401).json({
-                    message: 'You are not the author of the announcement'
-                })
-            }
+            return res.json({ message: 'Announcement updated' })
         } else {
             return res.status(404).json({
                 message: 'Announcement not found'
@@ -73,21 +67,15 @@ router.post('/:id', readToken, checkKind(['faculty.coordinator', 'administrator'
     }
 })
 
-router.delete('/:id', readToken, checkKind(['faculty.coordinator', 'administrator']), async (req, res) => {
+router.delete('/:id', readToken, checkRole(['faculty.coordinator', 'administrator']), async (req, res) => {
     const { id } = req.params
     const author = req.token.account
 
     try {
-        const announcement = await Announcement.findById(id)
+        const announcement = await Announcement.findOne({ _id: id, author })
         if (announcement) {
-            if (announcement.author === author) {
-                await Announcement.deleteOne({ _id: id })
-                return res.json({ message: 'Announcement deleted' })
-            } else {
-                return res.status(401).json({
-                    message: 'You are not the author of the announcement'
-                })
-            }
+            await Announcement.deleteOne({ _id: id })
+            return res.json({ message: 'Announcement deleted' })
         } else {
             return res.status(404).json({
                 message: 'Announcement not found'

@@ -32,6 +32,10 @@ const TokenSchema = new mongoose.Schema({
         type: Boolean,
         required: true,
         default: false
+    },
+    superadmin: {
+        type: Boolean,
+        default: false
     }
 })
 

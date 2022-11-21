@@ -111,6 +111,10 @@ const Student = User.discriminator('Student', new mongoose.Schema({
     roles: {
         type: [String],
         enum: ['proponent']
+    },
+    process: {
+        type: Number,
+        default: 1
     }
 }))
 

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 import { Card, CardBody, CardText, CardTitle } from 'reactstrap'
 import AnnouncementService from "../../services/AnnouncementService"
 
-function AnnouncementsSection() {
+function ViewAnnouncementsSection() {
   const [announcements, setAnnouncements] = useState([])
 
   const load = async() => {
@@ -37,4 +37,4 @@ function AnnouncementsSection() {
   ) : <></>
 }
 
-export default AnnouncementsSection
+export default ViewAnnouncementsSection

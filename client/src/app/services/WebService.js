@@ -51,6 +51,17 @@ const WebService = {
     })
   },
 
+  postForm: async (endpoint, form, init) => {
+    const { headers, ...rest } = init || {}
+    const jsonHeaders = { ...headers }
+    return await WebService.request(endpoint, {
+      body: form,
+      headers: jsonHeaders,
+      method: 'POST',
+      ...rest
+    })
+  },
+
   patchJson: async (endpoint, body, init) => {
     const { headers, ...rest } = init || {}
     const jsonHeaders = { ...headers, ...{ 'Content-Type': 'application/json' } }

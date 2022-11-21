@@ -4,7 +4,7 @@ const Account = require('../models/account')
 const crypto = require('crypto')
 const Token = require('../models/token')
 const readToken = require('../middleware/token')
-const { checkKind, checkRole } = require('../middleware/role')
+const { checkRole } = require('../middleware/role')
 const { generateName } = require('../utility/name')
 const ServerError = require('../error')
 const jwt = require('jsonwebtoken')
@@ -56,7 +56,8 @@ router.post('/login', async (req, res) => {
             account,
             kind: accountType,
             roles: account.roles || [],
-            expiresAt: new Date(now + expiresIn * 1000)
+            expiresAt: new Date(now + expiresIn * 1000),
+            superadmin: account.superadmin || false
         })
 
         const tokenInfo = await getTokenAccount(token)
@@ -134,7 +135,7 @@ function createUserFromBody(type, body, passOptional) {
     return user
 }
 
-router.post('/add/administrator', readToken, checkKind('administrator'), async (req, res) => {
+router.post('/add/administrator', readToken, checkRole('administrator'), async (req, res) => {
     try {
         const user = createUserFromBody('administrator', req.body)
         await Account.Administrator.create(user)
@@ -173,7 +174,7 @@ router.post('/add/administrator', readToken, checkKind('administrator'), async (
     }
 })
 
-router.post('/update/administrator/:id', readToken, checkKind('administrator'), async (req, res) => {
+router.post('/update/administrator/:id', readToken, checkRole('administrator'), async (req, res) => {
     const current = req.token.account
     const { id } = req.params
     try {
@@ -217,7 +218,7 @@ router.post('/update/administrator/:id', readToken, checkKind('administrator'), 
     }
 })
 
-router.delete('/delete/administrator/:id', readToken, checkKind('administrator'), async (req, res) => {
+router.delete('/delete/administrator/:id', readToken, checkRole('administrator'), async (req, res) => {
     const idnum = req.params.id
     try {
         await Account.Administrator.deleteOne({ idnum })
@@ -235,7 +236,7 @@ router.delete('/delete/administrator/:id', readToken, checkKind('administrator')
     }
 })
 
-router.post('/add/faculty', readToken, checkKind('administrator'), async (req, res) => {
+router.post('/add/faculty', readToken, checkRole('administrator'), async (req, res) => {
     try {
         const user = createUserFromBody('faculty', req.body)
         await Account.Faculty.create(user)
@@ -274,7 +275,7 @@ router.post('/add/faculty', readToken, checkKind('administrator'), async (req, r
     }
 })
 
-router.post('/update/faculty/:id', readToken, checkKind('administrator'), async (req, res) => {
+router.post('/update/faculty/:id', readToken, checkRole('administrator'), async (req, res) => {
     const current = req.token.account
     const { id } = req.params
     try {
@@ -318,7 +319,7 @@ router.post('/update/faculty/:id', readToken, checkKind('administrator'), async 
     }
 })
 
-router.delete('/delete/faculty/:id', readToken, checkKind('administrator'), async (req, res) => {
+router.delete('/delete/faculty/:id', readToken, checkRole('administrator'), async (req, res) => {
     const idnum = req.params.id
     try {
         await Account.Faculty.deleteOne({ idnum })
@@ -336,7 +337,7 @@ router.delete('/delete/faculty/:id', readToken, checkKind('administrator'), asyn
     }
 })
 
-router.post('/add/student', readToken, checkKind(['faculty', 'administrator']), async (req, res) => {
+router.post('/add/student', readToken, checkRole(['faculty', 'administrator']), async (req, res) => {
     try {
         const user = createUserFromBody('student', req.body)
         await Account.Student.create(user)
@@ -420,7 +421,7 @@ router.post('/update/student/:id', readToken, checkRole(['faculty.coordinator', 
     }
 })
 
-router.delete('/delete/student/:id', readToken, checkKind(['faculty', 'administrator']), async (req, res) => {
+router.delete('/delete/student/:id', readToken, checkRole(['faculty.coordinator', 'administrator']), async (req, res) => {
     const idnum = req.params.id
     try {
         await Account.Student.deleteOne({ idnum })

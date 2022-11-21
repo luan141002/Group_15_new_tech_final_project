@@ -20,6 +20,10 @@ module.exports.connect = async function(url) {
     isOpen = true
 }
 
+module.exports.startSession = async function() {
+    return await mongoose.startSession()
+}
+
 module.exports.close = async function() {
     if (!isOpen) return
 

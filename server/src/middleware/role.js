@@ -30,7 +30,7 @@ function checkRole(roles) {
 
         const checkPerm = (kind, roles, entry) => {
             if (entry.includes('.')) {
-                const [eKind, eRole] = entry.split(/\s+/)
+                const [eKind, eRole] = entry.split(/\./)
                 return eKind === kind.toLowerCase() && roles.map(e => e.toLowerCase()).includes(eRole)
             } else {
                 return kind.toLowerCase() === entry
@@ -43,7 +43,7 @@ function checkRole(roles) {
 
         if (!func(token.kind, token.roles, roles)) {
             return res.status(401).json({
-                message: 'Not in kind'
+                message: 'Not in role'
             })
         }
     
@@ -65,6 +65,10 @@ function checkKind(kind) {
      * @param {import('express').NextFunction} next Next function to run
      */
     return async function(req, res, next) {
+        return res.status(500).json({
+            message: 'checkKind is no longer supported; please convert to checkRole'
+        })
+
         // Retrieve the token
         const token = req.token
         if (!token) {

@@ -1,6 +1,6 @@
 const express = require('express')
 const readToken = require('../middleware/token')
-const { checkKind, checkRole } = require('../middleware/role')
+const { checkRole } = require('../middleware/role')
 const Group = require('../models/group')
 const Schedule = require('../models/schedule')
 
@@ -66,7 +66,7 @@ router.get('/', readToken, async (req, res) => {
     }
 })
 
-router.post('/global', readToken, checkKind(['administrator', 'faculty']), async (req, res) => {
+router.post('/global', readToken, checkRole(['administrator', 'faculty']), async (req, res) => {
     const { name, description, startPeriod, endPeriod, startTime, endTime, repeat } = req.body
     const author = req.token.account
 

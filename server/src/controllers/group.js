@@ -4,13 +4,13 @@ const Account = require('../models/account')
 const crypto = require('crypto')
 const Token = require('../models/token')
 const readToken = require('../middleware/token')
-const { checkKind, checkRole } = require('../middleware/role')
+const { checkRole } = require('../middleware/role')
 const { generateName } = require('../utility/name')
 const Group = require('../models/group')
 
 const router = express.Router()
 
-router.get('/my', readToken, checkKind(['faculty', 'student']), async (req, res) => {
+router.get('/my', readToken, checkRole(['faculty', 'student']), async (req, res) => {
     const { account } = req.token
     try {
         const groups = await Group.find({ $or: [ { members: account }, { advisers: account } ] })
@@ -21,7 +21,35 @@ router.get('/my', readToken, checkKind(['faculty', 'student']), async (req, res)
     }
 })
 
-router.get('/:id', readToken, checkKind(['faculty', 'student']), async (req, res) => {
+router.get('/all', readToken, checkRole(['faculty', 'administrator']), async (req, res) => {
+    try {
+        const groups = await Group.find()
+        return res.json(groups)
+    } catch (err) {
+        console.log(err)
+        return res.status(500).json({ message: 'Could not get groups' })
+    }
+})
+
+router.post('/create', readToken, checkRole(['faculty', 'administrator']), async (req, res) => {
+    const { name, advisers, members } = req.body
+
+    try {
+        const group = await Group.create({ name, advisers, members })
+        return res.json({
+            message: 'Group created',
+            group: {
+                id: group._id,
+                name
+            }
+        })
+    } catch (err) {
+        console.log(err)
+        return res.status(500).json({ message: 'Could not create group', details: err })
+    }
+})
+
+router.get('/:id', readToken, checkRole(['faculty', 'student']), async (req, res) => {
     const { account } = req.token
     const { id } = req.params
     try {
@@ -46,35 +74,7 @@ router.get('/:id', readToken, checkKind(['faculty', 'student']), async (req, res
     }
 })
 
-router.get('/all', readToken, checkKind(['faculty', 'administrator']), async (req, res) => {
-    try {
-        const groups = await Group.find()
-        return res.json(groups)
-    } catch (err) {
-        console.log(err)
-        return res.status(500).json({ message: 'Could not get groups' })
-    }
-})
-
-router.post('/create', readToken, checkKind(['faculty', 'administrator']), async (req, res) => {
-    const { name, advisers, members } = req.body
-
-    try {
-        const group = await Group.create({ name, advisers, members })
-        return res.json({
-            message: 'Group created',
-            group: {
-                id: group._id,
-                name
-            }
-        })
-    } catch (err) {
-        console.log(err)
-        return res.status(500).json({ message: 'Could not create group', details: err })
-    }
-})
-
-router.post('/:id', readToken, checkKind(['faculty', 'administrator']), async (req, res) => {
+router.post('/:id', readToken, checkRole(['faculty', 'administrator']), async (req, res) => {
     const { id } = req.params
     const { name, advisers, members } = req.body
 
@@ -91,7 +91,7 @@ router.post('/:id', readToken, checkKind(['faculty', 'administrator']), async (r
     }
 })
 
-router.delete('/:id', readToken, checkKind(['faculty', 'administrator']), async (req, res) => {
+router.delete('/:id', readToken, checkRole(['faculty', 'administrator']), async (req, res) => {
     const { id } = req.params
 
     try {

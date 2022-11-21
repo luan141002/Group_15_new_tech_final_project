@@ -11,14 +11,20 @@ const AssignmentSchema = new mongoose.Schema({
         type: Schema.Types.ObjectId,
         ref: 'Account'
     },
-    available: {
-        from: Date,
-        to: Date
+    published: {
+        type: Boolean,
+        required: true,
+        default: false
     },
     due: {
         type: Date, required: true
+    },
+    process: {
+        type: Number,
+        required: true,
+        default: 1
     }
 })
 
-const Assignment = mongoose.model('Submission', AssignmentSchema)
+const Assignment = mongoose.model('Assignment', AssignmentSchema)
 module.exports = Assignment

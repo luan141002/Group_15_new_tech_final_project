@@ -21,6 +21,8 @@ async function main() {
     require('./controllers/group')(app)
     require('./controllers/announcement')(app)
     require('./controllers/schedule')(app)
+    require('./controllers/assignment')(app)
+    require('./controllers/submission')(app)
     
     app.listen(PORT, () => {
         console.log(`Listening on port ${PORT}`)

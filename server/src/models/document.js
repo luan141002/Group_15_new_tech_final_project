@@ -2,14 +2,11 @@ const mongoose = require('mongoose')
 const Schema = mongoose.Schema
 
 const DocumentSchema = new mongoose.Schema({
-    name: {
+    filename: {
         type: String,
         required: true
     },
-    type: {
-        type: String,
-        required: true
-    },
+    type: String,
     uploader: {
         type: Schema.Types.ObjectId,
         ref: 'User',
@@ -19,34 +16,23 @@ const DocumentSchema = new mongoose.Schema({
         type: Buffer,
         required: true
     },
+    group: {
+        type: Schema.Types.ObjectId,
+        ref: 'Group'
+    },
     submission: {
         type: Schema.Types.ObjectId,
         ref: 'Submission'
     },
-    uploadedAt: {
+    uploadDate: {
         type: Date,
         default: Date.now,
         required: true
     },
-    submittedAt: Date,
-    receivedAt: Date,
-    processedAt: Date,
-    approvedAt: Date,
-    endorsements: [{
-        by: {
-            type: Schema.Types.ObjectId,
-            ref: 'Faculty'
-        },
-        date: {
-            type: Date,
-            required: true,
-            default: Date.now
-        }
-    }],
-    approved: {
-        type: Boolean,
-        default: false
-    }
+    processed: [{
+        by: { type: Schema.Types.ObjectId, required: true, ref: 'Faculty' },
+        when: { type: Date, required: true, default: Date.now }
+    }]
 })
 
 const Document = mongoose.model('Document', DocumentSchema)

@@ -2,7 +2,7 @@ import WebService from "./WebService"
 
 const AuthService = {
   findRedirectUrl: kind => {
-    let nextUrl = '/studentdashboard'
+    let nextUrl = '/'
     switch (kind) {
       case 'faculty':
         nextUrl = '/faculty'
