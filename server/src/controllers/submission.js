@@ -9,6 +9,7 @@ const Group = require('../models/group')
 const ServerError = require('../error')
 
 const multer = require('multer')
+const isInRole = require('../utility/isInRole')
 
 const router = express.Router()
 
@@ -18,16 +19,71 @@ const upload = multer({
     }
 })
 
+// Functions
+// For each assignment, get latest submissions by all groups
+// Get latest submissions by advisory groups
+// Given the assignment ID, get latest submissions by all groups
+// 
+
+// Get latest submissions by all advisory groups
+router.get('/adviser', readToken, checkRole('faculty.adviser'), async (req, res) => {
+    const account = req.token.account
+    try {
+        const myGroups = await Group.find({ advisers: account })
+        const submissions = await Submission
+            .find({ group: { $in: myGroups.map(e => e._id) } })
+
+        return res.json(submissions)
+    } catch (err) {
+        console.log(err)
+        return res.status(500).json({ message: 'Could not get submission' })
+    }
+})
+
+// Get all submissions by this group
+router.get('/group/:gid', readToken, async (req, res) => {
+    const { gid } = req.params
+    try {
+        if (isInRole(req.token, 'student')) {
+            const account = req.token.account
+            const group = await Group.findOne({ _id: gid, members: account })
+            if (!group) return res.status(403).json({ message: 'Cannot view this group\'s submissions' })
+        }
+
+        const submissions = await Submission.find({ group: gid }).sort({
+            submitDate: 'desc'
+        }).populate('assignment')
+
+        return res.json(submissions)
+    } catch (err) {
+        console.log(err)
+        return res.status(500).json({ message: 'Could not get submission' })
+    }
+})
+
 // Get submissions by current group for specified assignment
-router.get('/assignment/:id', readToken, checkRole('student'), async (req, res) => {
+router.get('/assignment/:id/group', readToken, async (req, res) => {
     const { id } = req.params
     const account = req.token.account
     try {
-        const group = await Group.findOne({ members: account })
-        if (!group) throw new ServerError(404, 'Current group not found')
-
-        const submissions = await Submission.find({ assignment: id, group: group._id })
-        return res.json(submissions)
+        if (isInRole(req.token, ['administrator', 'faculty.coordinator', 'faculty.panelist'])) {
+            const submissions = await Submission.find({ assignment: id })
+            return res.json(submissions)
+        } else if (isInRole(req.token, 'faculty.adviser')) {
+            const group = await Group.find({ advisers: account })
+            if (!group) throw new ServerError(404, 'Not in any group')
+    
+            const submissions = await Submission.find({ assignment: id, group: { advisers: account } }).populate('group')
+            return res.json(submissions)
+        } else if (isInRole(req.token, 'student')) {
+            const group = await Group.findOne({ members: account })
+            if (!group) throw new ServerError(404, 'Current group not found')
+    
+            const submissions = await Submission.find({ assignment: id, group: group._id })
+            return res.json(submissions)
+        } else {
+            throw new ServerError(403, 'You cannot get submissions for this assignment')
+        }
     } catch (err) {
         if (err instanceof ServerError) {
             return res.status(err.status).json({
@@ -75,7 +131,9 @@ router.post('/assignment/:id', readToken, checkRole('student'), upload.array('fi
         const group = await Group.findOne({ members: author })
         if (!group) throw new ServerError(400, 'Student does not belong to any group')
 
-        console.log(files)
+        const assignment = await Assignment.findById(id)
+        if (!assignment.published) throw new ServerError(400, 'Assignment is not published')
+
         const submission = await Submission.create({
             assignment: id,
             group: group._id,
@@ -116,7 +174,7 @@ router.get('/:id', readToken, async (req, res) => {
     const { id } = req.params
 
     try {
-        const submission = await Submission.findById(id)
+        const submission = await Submission.findById(id).populate('approvalBy')
         if (!submission) throw new ServerError(404, 'Submission not found')
         const documents = await Document.find({ submission: id }).select('-data')
         
@@ -157,7 +215,6 @@ router.get('/:id/document/:did', readToken, async (req, res) => {
     }
 })
 
-// Endorse the selected submission
 router.get('/:id/documents', readToken, async (req, res) => {
     const { id } = req.params
 
@@ -181,7 +238,6 @@ router.get('/:id/documents', readToken, async (req, res) => {
 router.post('/:id/endorse', readToken, checkRole('faculty.adviser'), async (req, res) => {
     const { id } = req.params
     const account = req.token.account
-    const files = req.files
 
     try {
         const submission = await Submission.findById(id)
@@ -213,13 +269,13 @@ router.post('/:id/endorse', readToken, checkRole('faculty.adviser'), async (req,
 router.post('/:id/approve', readToken, checkRole('faculty.coordinator'), async (req, res) => {
     const { id } = req.params
     const account = req.token.account
-    const files = req.files
 
     try {
         const submission = await Submission.findById(id)
         if (!submission) throw new ServerError(404, 'Submission not found')
 
-        submission.approval = { by: account }
+        submission.approvalBy = account
+        submission.approvalDate = new Date()
         await submission.save()
 
         return res.json({

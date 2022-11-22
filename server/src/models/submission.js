@@ -25,10 +25,8 @@ const SubmissionSchema = new mongoose.Schema({
         by: { type: Schema.Types.ObjectId, required: true, ref: 'Faculty' },
         when: { type: Date, required: true, default: Date.now }
     }],
-    approval: {
-        by: { type: Schema.Types.ObjectId, ref: 'Faculty' },
-        when: { type: Date, default: Date.now }
-    }
+    approvalBy: { type: Schema.Types.ObjectId, ref: 'Faculty' },
+    approvalDate: Date
 })
 
 const Submission = mongoose.model('Submission', SubmissionSchema)

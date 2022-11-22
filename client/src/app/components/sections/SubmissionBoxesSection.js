@@ -1,6 +1,8 @@
 import { cloneDeep, merge } from "lodash"
 import { useEffect, useState } from "react"
+import { Link } from "react-router-dom"
 import { Alert, Button, Col, FormGroup, Input, Label, Modal, ModalBody, ModalFooter, ModalHeader, Row, Table } from 'reactstrap'
+import { useAccount, checkAccount } from "../../providers/account"
 import AssignmentService from '../../services/AssignmentService'
 
 const createFormState = () => {
@@ -24,7 +26,12 @@ const dateToString = (date) => {
   return date
 }
 
-function SubmissionBoxesSection() {
+function SubmissionBoxesSection(props) {
+  const { readonly, getLink } = props
+
+  const { account } = useAccount()
+  const accountCanEdit = checkAccount(account, [ 'faculty.coordinator', 'administrator' ]) && !readonly
+
   const [form, setForm] = useState(createFormState())
   const [formOpen, setFormOpen] = useState(false)
   const [formId, setFormId] = useState('')
@@ -154,6 +161,11 @@ function SubmissionBoxesSection() {
       setDeleteFormError(error.message)
     }
   }
+
+  const doGetLink = (submission) => {
+    if (getLink) return getLink(submission)
+    return null
+  }
   
   useEffect(() => {
     load()
@@ -161,71 +173,75 @@ function SubmissionBoxesSection() {
 
   return (
     <>
-      <Modal isOpen={formOpen} fade={false} centered scrollable size='lg'>
-        <ModalHeader>{ formId ? 'Update' : 'Create' } submission box</ModalHeader>
-        <ModalBody>
-          <FormGroup floating>
-            <Input id='assignment-name' type='text' name='name' placeholder='Name' value={form.name} onChange={updateFormField('name')} />
-            <Label for='assignment-name'>Name</Label>
-          </FormGroup>
-          <FormGroup floating>
-            <Input id='assignment-description' type='textarea' name='description' placeholder='Description' value={form.description} onChange={updateFormField('description')} />
-            <Label for='assignment-description'>Description</Label>
-          </FormGroup>
-          <Row>
-            <Col>
+      {
+        accountCanEdit && <>
+          <Modal isOpen={formOpen} fade={false} centered scrollable size='lg'>
+            <ModalHeader>{ formId ? 'Update' : 'Create' } submission box</ModalHeader>
+            <ModalBody>
               <FormGroup floating>
-                <Input id='assignment-duedate' type='date' name='duedate' value={form.dueDate} onChange={updateFormField('dueDate')} />
-                <Label for='assignment-duedate'>Due Date</Label>
+                <Input id='assignment-name' type='text' name='name' placeholder='Name' value={form.name} onChange={updateFormField('name')} />
+                <Label for='assignment-name'>Name</Label>
               </FormGroup>
-            </Col>
-            <Col>
               <FormGroup floating>
-                <Input id='assignment-duetime' type='time' name='duetime' value={form.dueTime} onChange={updateFormField('dueTime')} />
-                <Label for='assignment-duetime'>Due Time</Label>
+                <Input id='assignment-description' type='textarea' name='description' placeholder='Description' value={form.description} onChange={updateFormField('description')} />
+                <Label for='assignment-description'>Description</Label>
               </FormGroup>
-            </Col>
-          </Row>
-          { formError && <Alert color='danger'>{formError}</Alert> }
-        </ModalBody>
-        <ModalFooter>
-          { formId && <Button disabled={form.published} onClick={() => setPublishFormOpen(true)}>{ form.published ? 'Already published' : 'Publish'}</Button> }
-          <Button onClick={onAdd}>{ formId ? 'Update' : 'Create'}</Button>
-          <Button onClick={closeModal}>Close</Button>
-        </ModalFooter>
-      </Modal>
-      <Modal isOpen={publishFormOpen} fade={false} centered scrollable>
-        <ModalHeader>Publish submission box</ModalHeader>
-        <ModalBody>
-          This will make the submission box visible to all students. This action cannot be undone.
-          { publishFormError && <Alert color='danger'>{publishFormError}</Alert> }
-        </ModalBody>
-        <ModalFooter>
-          <Button onClick={onPublish}>Publish</Button>
-          <Button onClick={closeModal}>Close</Button>
-        </ModalFooter>
-      </Modal>
-      <Modal isOpen={deleteFormOpen} fade={false} centered scrollable>
-        <ModalHeader>Delete submission box</ModalHeader>
-        <ModalBody>
-          This action cannot be undone.
-          { deleteFormError && <Alert color='danger'>{deleteFormError}</Alert> }
-        </ModalBody>
-        <ModalFooter>
-          <Button onClick={onDelete} color='danger'>Delete</Button>
-          <Button onClick={closeModal}>Close</Button>
-        </ModalFooter>
-      </Modal>
+              <Row>
+                <Col>
+                  <FormGroup floating>
+                    <Input id='assignment-duedate' type='date' name='duedate' value={form.dueDate} onChange={updateFormField('dueDate')} />
+                    <Label for='assignment-duedate'>Due Date</Label>
+                  </FormGroup>
+                </Col>
+                <Col>
+                  <FormGroup floating>
+                    <Input id='assignment-duetime' type='time' name='duetime' value={form.dueTime} onChange={updateFormField('dueTime')} />
+                    <Label for='assignment-duetime'>Due Time</Label>
+                  </FormGroup>
+                </Col>
+              </Row>
+              { formError && <Alert color='danger'>{formError}</Alert> }
+            </ModalBody>
+            <ModalFooter>
+              { formId && <Button disabled={form.published} onClick={() => setPublishFormOpen(true)}>{ form.published ? 'Already published' : 'Publish'}</Button> }
+              <Button onClick={onAdd}>{ formId ? 'Update' : 'Create'}</Button>
+              <Button onClick={closeModal}>Close</Button>
+            </ModalFooter>
+          </Modal>
+          <Modal isOpen={publishFormOpen} fade={false} centered scrollable>
+            <ModalHeader>Publish submission box</ModalHeader>
+            <ModalBody>
+              This will make the submission box visible to all students. This action cannot be undone.
+              { publishFormError && <Alert color='danger'>{publishFormError}</Alert> }
+            </ModalBody>
+            <ModalFooter>
+              <Button onClick={onPublish}>Publish</Button>
+              <Button onClick={closeModal}>Close</Button>
+            </ModalFooter>
+          </Modal>
+          <Modal isOpen={deleteFormOpen} fade={false} centered scrollable>
+            <ModalHeader>Delete submission box</ModalHeader>
+            <ModalBody>
+              This action cannot be undone.
+              { deleteFormError && <Alert color='danger'>{deleteFormError}</Alert> }
+            </ModalBody>
+            <ModalFooter>
+              <Button onClick={onDelete} color='danger'>Delete</Button>
+              <Button onClick={closeModal}>Close</Button>
+            </ModalFooter>
+          </Modal>
+        </>
+      }
       <div className='tm-group'>
         <h2 className="tm-group-name">Submission Boxes</h2>
-        <Button onClick={openModal()}>Create</Button>
+        { accountCanEdit && <Button onClick={openModal()}>Create</Button> }
         <Table>
           <thead>
             <tr>
               <th>Name</th>
               <th>Due</th>
               <th>Published</th>
-              <th>Actions</th>
+              { accountCanEdit && <th>Actions</th> }
             </tr>
           </thead>
           <tbody>
@@ -233,13 +249,15 @@ function SubmissionBoxesSection() {
               entries.map(e => {
                 return (
                   <tr>
-                    <td>{e.name}</td>
+                    <td><Link to={doGetLink(e) || '#'}>{e.name}</Link></td>
                     <td>{e.due}</td>
                     <td>{e.published ? 'Yes' : 'No'}</td>
-                    <td>
-                      <Button onClick={openModal(e)} size='sm' className='me-1'>Edit</Button>
-                      <Button onClick={openDeleteModal(e._id)} color='danger' size='sm'>Delete</Button>
-                    </td>
+                    {
+                      accountCanEdit && <td>
+                        <Button onClick={openModal(e)} size='sm' className='me-1'>Edit</Button>
+                        <Button onClick={openDeleteModal(e._id)} color='danger' size='sm'>Delete</Button>
+                      </td>
+                    }
                   </tr>
                 )
               })

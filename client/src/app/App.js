@@ -1,7 +1,7 @@
 import 'bootstrap/dist/css/bootstrap.min.css';
 import '../assets/styles.css'
-import { Component } from 'react'
-import {  } from 'react-router'
+import { Component, useEffect, useState } from 'react'
+import { useNavigate } from 'react-router'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import ErrorPage from './pages/err'
 import PrivateRoute from './PrivateRoute'
@@ -16,22 +16,46 @@ import RegisterConfirmationPage from './pages/confirm'
 import DocumentsPage from './pages/documents'
 import DefensePage from './pages/defense'
 import AdminDashboardPage from './pages/adminPages/dashboard'
-import AdminAnnouncementsPage from './pages/adminPages/announcements';
-import AdminGroupsPage from './pages/adminPages/groups';
+import AdminAnnouncementsPage from './pages/adminPages/announcements'
+import AdminGroupsPage from './pages/adminPages/groups'
 import AdminMembersPage from './pages/adminPages/members'
-import AdminSchedulePage from './pages/adminPages/schedule';
-import FacultyDashboardPage from './pages/facultyPages/dashboard';
-import FacultyGroupPage from './pages/facultyPages/group';
-import FacultyGroupsPage from './pages/facultyPages/groups';
-import FacultyMembersPage from './pages/facultyPages/members';
-import FacultySubmissionsPage from './pages/facultyPages/submissions';
-import SubmissionBoxesPage from './pages/SubmissionBoxesPage';
-import SubmissionBoxPage from './pages/SubmissionBoxPage';
-import SubmissionPage from './pages/SubmissionPage';
+import AdminSchedulePage from './pages/adminPages/schedule'
+import FacultyDashboardPage from './pages/facultyPages/dashboard'
+import FacultyDocumentPage from './pages/facultyPages/DocumentPage'
+import FacultyGroupPage from './pages/facultyPages/group'
+import FacultyGroupsPage from './pages/facultyPages/groups'
+import FacultyMembersPage from './pages/facultyPages/members'
+import FacultySubmissionsPage from './pages/facultyPages/submissions'
+import FacultySubmissionPage from './pages/facultyPages/SubmissionPage'
+import SubmissionBoxesPage from './pages/SubmissionBoxesPage'
+import SubmissionBoxPage from './pages/SubmissionBoxPage'
+import SubmissionPage from './pages/SubmissionPage'
+import AccountContext from './providers/account'
+import AuthService from './services/AuthService';
 
-class App extends Component {
-  render() {
-    return (
+function App() {
+  const [account, setAccount] = useState({ token: null, info: null })
+
+  useEffect(() => {
+    async function load() {
+      if (!account.token) {
+        const token = await AuthService.getTokenInfo()
+        if (token) {
+          setAccount({
+            token: token.id,
+            kind: token.kind,
+            roles: token.roles,
+            info: token.account
+          })
+        }
+      }
+    }
+
+    load()
+  }, [])
+  
+  return (
+    <AccountContext.Provider value={{ account, setAccount }}>
       <BrowserRouter>
         <Routes>
           <Route path='/login' element={<LoginLayout><LoginPage /></LoginLayout>} />
@@ -48,10 +72,12 @@ class App extends Component {
               <Route path='groups' element={<FacultyGroupsPage />} />
               <Route path='group/:id' element={<FacultyGroupPage />} />
               <Route path='submissions' element={<FacultySubmissionsPage />} />
+              <Route path='submissions/:id/document/:did' element={<FacultyDocumentPage />} />
+              <Route path='submissions/:id' element={<FacultySubmissionPage />} />
               <Route path='' element={<FacultyDashboardPage />} />
             </Route>
             <Route path='' element={<DefaultLayout />}>
-              <Route path='submission/:id' element={<SubmissionPage />} />
+              <Route path='submissions/:id' element={<SubmissionPage />} />
               <Route path='assignment/:id' element={<SubmissionBoxPage />} />
               <Route path='assignment' element={<SubmissionBoxesPage />} />
               <Route path='documents' element={<DocumentsPage />} />
@@ -62,8 +88,8 @@ class App extends Component {
           </Route>
         </Routes>
       </BrowserRouter>
-    )
-  }
+    </AccountContext.Provider>
+  )
 }
 
-export default App;
+export default App

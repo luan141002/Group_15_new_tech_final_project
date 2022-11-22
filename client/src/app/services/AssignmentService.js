@@ -31,6 +31,12 @@ const AssignmentService = {
   deleteAssignment: async (id) => {
     const response = await WebService.delete(`/assignment/${id}`)
     return await response.json()
+  },
+
+  getGroupsWithAssignment: async (id) => {
+    const response = await WebService.get(`/assignment/${id}/groups`)
+    const result = await response.json()
+    return result
   }
 }
 

@@ -33,6 +33,7 @@ async function getTokenAccount(token) {
     return {
         id, kind, roles, issuedAt, expiresAt,
         account: {
+            id: accountDetails._id,
             idnum: accountDetails.idnum,
             lastName: accountDetails.lastName,
             firstName: accountDetails.firstName,

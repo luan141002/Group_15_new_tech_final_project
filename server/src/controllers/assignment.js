@@ -2,9 +2,15 @@ const express = require('express')
 const readToken = require('../middleware/token')
 const { checkRole } = require('../middleware/role')
 const Assignment = require('../models/assignment')
+const Group = require('../models/group')
+const Submission = require('../models/submission')
+const isInRole = require('../utility/isInRole')
 
 const router = express.Router()
 
+/**
+ * Get all assignments
+ */
 router.get('/', readToken, async (req, res) => {
     try {
         const assignments = await Assignment.find({})
@@ -12,6 +18,51 @@ router.get('/', readToken, async (req, res) => {
     } catch (err) {
         console.log(err)
         return res.status(500).json({ message: 'Could not get assignments' })
+    }
+})
+
+/**
+ * Get all advisory groups with submissions
+ */
+router.get('/adviser', readToken, async (req, res) => {
+    try {
+        const assignments = await Assignment.find({})
+        return res.json(assignments)
+    } catch (err) {
+        console.log(err)
+        return res.status(500).json({ message: 'Could not get assignments' })
+    }
+})
+
+/**
+ * Get all groups that have submitted the specified assignment
+ */
+router.get('/:id/groups', readToken, checkRole(['administrator', 'faculty']), async (req, res) => {
+    const { id } = req.params
+    const { filter } = req.query
+    const account = req.token.account
+    
+    try {
+        const submissions = await Submission.find({ assignment: id }).distinct('group').populate('group')
+        let groups = submissions.map(e => e.group)
+        let canViewAll = isInRole(req.token, ['administrator', 'faculty.coordinator', 'faculty.panelist'])
+        let advisoryFilter = false
+
+        if (filter === 'adviser' && isInRole(req.token, 'faculty.adviser')) {
+            groups = groups.filter(e => e.advisers.some(e2 => e2 === account))
+            advisoryFilter = true
+        }
+
+        if (!canViewAll && !advisoryFilter) {
+            return res.status(403).json({
+                message: 'Cannot view all submissions by all groups'
+            })
+        }
+        
+        return res.json(groups)
+    } catch (err) {
+        console.log(err)
+        return res.status(500).json({ message: 'Could not get assignment' })
     }
 })
 

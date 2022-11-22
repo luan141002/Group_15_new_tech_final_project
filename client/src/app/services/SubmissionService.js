@@ -11,6 +11,12 @@ const SubmissionService = {
     return result
   },
 
+  getAllGroupSubmissions: async (groupId) => {
+    const response = await WebService.get(`/submission/group/${groupId}`)
+    const result = await response.json()
+    return result
+  },
+
   getStudentSubmissions: async (assignmentId) => {
     const response = await WebService.get(`/submission/assignment/${assignmentId}`)
     const result = await response.json()
@@ -26,6 +32,18 @@ const SubmissionService = {
   getDocument: async (submissionId, documentId) => {
     const response = await WebService.get(`/submission/${submissionId}/document/${documentId}`)
     const result = await response.blob()
+    return result
+  },
+
+  endorseSubmission: async (submissionId) => {
+    const response = await WebService.post(`/submission/${submissionId}/endorse`)
+    const result = await response.json()
+    return result
+  },
+
+  approveSubmission: async (submissionId) => {
+    const response = await WebService.post(`/submission/${submissionId}/approve`)
+    const result = await response.json()
     return result
   },
 }

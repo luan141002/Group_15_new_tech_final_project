@@ -3,6 +3,8 @@ import UserService from '../../services/UserService'
 import { Alert, Button, Col, FormGroup, Input, Label, Modal, ModalBody, ModalFooter, ModalHeader, Row, Table } from 'reactstrap'
 import { clone, cloneDeep, merge } from "lodash"
 import GroupService from "../../services/GroupService"
+import { Link } from "react-router-dom"
+import { checkAccount, useAccount } from "../../providers/account"
 
 function createFormState() {
   return {
@@ -12,7 +14,12 @@ function createFormState() {
   }
 }
 
-function GroupsSection() {
+function GroupsSection(props) {
+  const { readonly, getLink } = props
+
+  const { account } = useAccount()
+  const accountCanEdit = checkAccount(account, [ 'faculty.coordinator', 'administrator' ]) && !readonly
+
   const [deleteForm, setDeleteForm] = useState(false)
   const [deleteId, setDeleteId] = useState('')
   const [deleteError, setDeleteError] = useState('')
@@ -139,6 +146,11 @@ function GroupsSection() {
 
     }
   }
+
+  const doGetLink = (submission) => {
+    if (getLink) return getLink(submission)
+    return null
+  }
   
   useEffect(() => {
     load()
@@ -241,23 +253,25 @@ function GroupsSection() {
       </Modal>
       <div className='tm-group'>
         <h2 className="tm-group-name">Groups</h2>
-        <Button onClick={openModal()}>Add</Button>
+        { accountCanEdit && <Button onClick={openModal()}>Add</Button> }
         <Table>
           <thead>
             <tr>
               <th>Name</th>
-              <th>Actions</th>
+              { accountCanEdit && <th>Actions</th> }
             </tr>
           </thead>
           <tbody>
             {
               groups.map(e => (
                 <tr key={`group-${e._id}`}>
-                  <td>{e.name}</td>
-                  <td>
-                    <Button onClick={openModal(e)} size='sm' className='me-1'>Edit</Button>
-                    <Button onClick={openDeleteModal(e._id)} color='danger' size='sm'>Delete</Button>
-                  </td>
+                  <td><Link to={doGetLink(e) || '#'}>{e.name}</Link></td>
+                  {
+                    accountCanEdit && <td>
+                      <Button onClick={openModal(e)} size='sm' className='me-1'>Edit</Button>
+                      <Button onClick={openDeleteModal(e._id)} color='danger' size='sm'>Delete</Button>
+                    </td>
+                  }
                 </tr>
               ))
             }

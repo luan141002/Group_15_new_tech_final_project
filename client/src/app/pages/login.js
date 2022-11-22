@@ -1,11 +1,13 @@
 import logo from '../../assets/images/logo.png'
-import { useEffect, useState } from 'react'
+import { useContext, useEffect, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { Helmet } from 'react-helmet'
 import { NavLink } from 'react-router-dom'
 import AuthService from '../services/AuthService'
+import AccountContext from '../providers/account'
 
 function LoginPage() {
+  const { account, setAccount } = useContext(AccountContext)
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [nextUrl, setNextUrl] = useState('')
@@ -16,17 +18,21 @@ function LoginPage() {
   }
 
   useEffect(() => {
-    async function load() {
-      const token = await AuthService.getTokenInfo()
-      setNextUrl(token.nextUrl)
+    if (account) {
+      const nextUrl = AuthService.findRedirectUrl(account.kind)
+      setNextUrl(nextUrl)
     }
-
-    load()
-  }, [])
+  }, [account])
 
   const onSubmit = async (event) => {
     event.preventDefault()
     const result = await AuthService.login(username, password)
+    setAccount({
+      token: result.id,
+      kind: result.kind,
+      roles: result.roles,
+      info: result.account
+    })
     navigate(result.nextUrl)
   }
 
