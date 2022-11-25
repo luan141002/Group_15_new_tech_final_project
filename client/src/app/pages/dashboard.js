@@ -1,12 +1,28 @@
-import { Component } from 'react'
+import { Component, useEffect, useState } from 'react'
 import { Helmet } from 'react-helmet'
 import Overlay from '../components/overlay'
 
 import person2 from '../../assets/images/person2.jpg'
 import AccountPreferencesOverlay from '../components/overlays/account-preferences'
 import NotificationsOverlay from '../components/overlays/notifications'
+import GroupService from '../services/GroupService'
+import ViewCalendarSection from '../components/sections/ViewCalendarSection'
+import GroupInfoSection from '../components/sections/GroupInfoSection'
 
 function DashboardPage() {
+  const [group, setGroup] = useState(null)
+
+  useEffect(() => {
+    async function load() {
+      const groups = await GroupService.getMyGroups()
+      if (groups && groups.length > 0) {
+        setGroup(groups[0])
+      }
+    }
+
+    load()
+  }, [])
+
   return (
     <>
       <Helmet>
@@ -14,11 +30,9 @@ function DashboardPage() {
         <meta name='Student Dashboard' content='width=device-width, initial-scale=1.0' />
         <title>Student Dashboard</title>
       </Helmet>
-      <div className="row">
-        <div className="column" style={{ width: 'auto' }}>
-          <div className="calendar">
-            <h2 className="dashboard_text"> Calendar</h2>
-          </div>
+      <div className="tm-row">
+        <div className="tm-column" style={{ flexGrow: 3 }}>
+          <ViewCalendarSection />
           <div className="documents">
             <h2 className="dashboard_text"> Documents </h2>
             <div className="column" style={{ width: '55%', padding: '0' }}>
@@ -50,18 +64,8 @@ function DashboardPage() {
             </div>
           </div>
         </div>
-        <div className="column" style={{ width: 'auto' }}>
-          <div className="groups">
-            <span> <h2 className="dashboard_text"> Groups </h2> <h2 className="dashboard_elements" style={{ left: '275px', position: 'relative', bottom: '40px' }}> Endorsement Status</h2> </span>
-            <span>
-              <img className="member_icon" src={person2} alt='person2.jpg' />
-              <img className="member_icon" src={person2} alt='person2.jpg' /> 
-              <img className="member_icon" src={person2} alt='person2.jpg' />
-              <img className="member_icon" src={person2} alt='person2.jpg' /> 
-
-              <div className="endorsement_status"></div>
-            </span>
-          </div> 
+        <div className="tm-column">
+          <GroupInfoSection group={group} title='My Group' />
           <div className="deadlines">
             <h2 className="dashboard_text">Deadlines</h2>
           </div>

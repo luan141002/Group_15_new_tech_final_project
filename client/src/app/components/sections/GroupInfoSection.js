@@ -21,6 +21,14 @@ function GroupInfoSection(props) {
           ))
         }
       </ul>
+      <h4>{ group && group.panelists.length === 1 ? 'Panelist' : 'Panelists' }</h4>
+      <ul>
+        {
+          group && group.panelists.map(e => (
+            <li>{`${e.lastName}, ${e.firstName}`}</li>
+          ))
+        }
+      </ul>
     </div>
   )
 }

@@ -343,7 +343,6 @@ router.post('/add/student', readToken, checkRole(['faculty', 'administrator']), 
         const user = createUserFromBody('student', req.body)
         await Account.Student.create(user)
 
-        console.log(`Student can be verified using token ${user.verifyToken}`)
         return res.json({
             message: `Student has been registered`,
             details: {
@@ -461,8 +460,34 @@ router.get('/users', async (req, res) => {
             return res.json([])
     }
 
+    const isAdmin = isInRole('administrator')
+
     const list = await kind.find()
-    return res.json(list)
+    return res.json(list.map(e => ({
+        _id: e.id,
+        id: e.id,
+        idnum: e.idnum,
+        lastName: e.lastName,
+        firstName: e.firstName,
+        middleName: e.middleName,
+        email: e.email,
+        verified: isAdmin ? e.verified : undefined,
+        verifyCode: isAdmin ? e.verifyCode : undefined
+    })))
+})
+
+router.get('/getverify', checkRole('administrator'), async (req, res) => {
+    const students = Account.Student.find({ verified: false })
+
+    return res.json(students.map(e => ({
+        idnum: e.idnum,
+        username: e.username,
+        lastName: e.lastName,
+        firstName: e.firstName,
+        middleName: e.middleName,
+        email: e.email,
+        verifyCode: e.verifyCode
+    })))
 })
 
 router.post('/verify', async (req, res) => {

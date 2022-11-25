@@ -1,6 +1,7 @@
 import { Helmet } from "react-helmet"
-import GroupsSection from '../../components/sections/groups'
-import MyGroupsSection from '../../components/sections/mygroups'
+import EditGroupsSection from "../../components/sections/EditGroupsSection"
+import GroupsSection from '../../components/sections/EditGroupsSection'
+import MyGroupsSection from '../../components/sections/MyGroupsSection'
 
 function GroupsPage() {
   return (
@@ -12,8 +13,9 @@ function GroupsPage() {
       </Helmet>
       <div className='tm-row'>
         <div className='tm-column'>
-          <GroupsSection getLink={group => `/faculty/group/${group._id}`} />
-          <MyGroupsSection />
+          <GroupsSection getLink={group => `/faculty/group/${group.id}`} />
+          <MyGroupsSection getLink={group => `/faculty/group/${group.id}`} />
+          <EditGroupsSection />
         </div>
       </div>
     </>

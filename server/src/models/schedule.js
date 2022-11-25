@@ -12,7 +12,6 @@ const Schema = mongoose.Schema
 // |            |                |    faculty                 |                   |
 // |            |                | rest: all                  |                   |
 // | global     | admins, coord. | all                        | true              |
-// | group      | members, advs. | group only                 | true              |
 // | defense    | coordinator    | all                        | true              |
 // --------------------------------------------------------------------------------
 

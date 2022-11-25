@@ -20,6 +20,11 @@ const UserService = {
   deleteUser: async (type, id) => {
     const response = await WebService.delete(`/account/delete/${type}/${id}`)
     return await response.json()
+  },
+
+  verifyUser: async (username, code) => {
+    const response = await WebService.postJson('/account/verify', { username, verifyCode: code })
+    return await response.json()
   }
 }
 

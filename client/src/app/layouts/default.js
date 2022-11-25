@@ -20,6 +20,7 @@ const DefaultLayout = (props) => {
         <Sidebar entries={[
           { title: 'Overview', to: '', exact: true },
           { title: 'Group', to: '/group' },
+          { title: 'Schedule', to: '/schedule' },
           { title: 'Submissions', to: '/assignment' },
         ]} />
         <div className='content-pane'>

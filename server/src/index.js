@@ -2,6 +2,12 @@ const express = require('express')
 const data = require('./data')
 const seed = require('./data/seed')
 const cors = require('cors')
+const dayjs = require('dayjs')
+const CustomParseFormatPlugin = require('dayjs/plugin/customParseFormat')
+const TimezonePlugin = require('dayjs/plugin/timezone')
+
+dayjs.extend(CustomParseFormatPlugin)
+dayjs.extend(TimezonePlugin)
 
 const dotenv = require('dotenv')
 dotenv.config()
@@ -24,6 +30,7 @@ async function main() {
     require('./controllers/assignment')(app)
     require('./controllers/submission')(app)
     require('./controllers/comment')(app)
+    require('./controllers/process')(app)
     
     app.listen(PORT, () => {
         console.log(`Listening on port ${PORT}`)

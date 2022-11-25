@@ -1,11 +1,7 @@
 const express = require('express')
-const { User } = require('../models/account')
 const Account = require('../models/account')
-const crypto = require('crypto')
-const Token = require('../models/token')
 const readToken = require('../middleware/token')
 const { checkRole } = require('../middleware/role')
-const { generateName } = require('../utility/name')
 const Group = require('../models/group')
 const isInRole = require('../utility/isInRole')
 
@@ -14,8 +10,17 @@ const router = express.Router()
 router.get('/my', readToken, checkRole(['faculty.adviser', 'student']), async (req, res) => {
     const { account } = req.token
     try {
-        const groups = await Group.find({ $or: [ { members: account }, { advisers: account } ] }).populate([ 'members', 'advisers' ])
-        return res.json(groups)
+        const groups = await Group.find({
+            $or: [ { members: account }, { advisers: account }, { panelists: account } ] 
+        }).populate([ 'members', 'advisers', 'panelists' ])
+        return res.json(groups.map(group => ({
+            id: group._id,
+            name: group.name,
+            members: group.members.map(e => Account.User.getBasicInfo(e)),
+            advisers: group.advisers.map(e => Account.User.getBasicInfo(e)),
+            panelists: group.panelists.map(e => Account.User.getBasicInfo(e)),
+            grades: group.grades
+        })))
     } catch (err) {
         console.log(err)
         return res.status(500).json({ message: 'Could not get groups for user' })
@@ -25,7 +30,14 @@ router.get('/my', readToken, checkRole(['faculty.adviser', 'student']), async (r
 router.get('/all', readToken, checkRole(['faculty', 'administrator']), async (req, res) => {
     try {
         const groups = await Group.find()
-        return res.json(groups)
+        return res.json(groups.map(group => ({
+            id: group._id,
+            name: group.name,
+            members: group.members,
+            advisers: group.advisers,
+            panelists: group.panelists,
+            grades: group.grades
+        })))
     } catch (err) {
         console.log(err)
         return res.status(500).json({ message: 'Could not get groups' })
@@ -33,15 +45,14 @@ router.get('/all', readToken, checkRole(['faculty', 'administrator']), async (re
 })
 
 router.post('/create', readToken, checkRole(['faculty', 'administrator']), async (req, res) => {
-    const { name, advisers, members } = req.body
+    const { name, advisers, members, panelists } = req.body
 
     try {
-        const group = await Group.create({ name, advisers, members })
+        const group = await Group.create({ name, advisers, members, panelists })
         return res.json({
             message: 'Group created',
             group: {
-                id: group._id,
-                name
+                id: group._id
             }
         })
     } catch (err) {
@@ -55,13 +66,16 @@ router.get('/:id', readToken, async (req, res) => {
     const { id } = req.params
     try {
         const canSeeEveryone = isInRole(req.token, ['administrator', 'faculty.coordinator', 'faculty.panelist'])
-        const filter = canSeeEveryone ? { _id: id } : { _id: id, $or: [ { members: account }, { advisers: account } ] }
-        const groupInfo = await Group.findOne(filter).populate([ 'members', 'advisers' ])
+        const filter = canSeeEveryone ? { _id: id } : { _id: id, $or: [ { members: account }, { advisers: account }, { panelists: account } ] }
+        const groupInfo = await Group.findOne(filter).populate([ 'members', 'advisers', 'panelists' ])
         if (groupInfo) {
             return res.json({
+                id: groupInfo._id,
                 name: groupInfo.name,
                 members: groupInfo.members.map(e => Account.User.getBasicInfo(e)),
-                advisers: groupInfo.advisers.map(e => Account.User.getBasicInfo(e))
+                advisers: groupInfo.advisers.map(e => Account.User.getBasicInfo(e)),
+                panelists: groupInfo.panelists.map(e => Account.User.getBasicInfo(e)),
+                grades: groupInfo.grades
             })
         } else {
             return res.status(404).json({
@@ -76,13 +90,14 @@ router.get('/:id', readToken, async (req, res) => {
 
 router.post('/:id', readToken, checkRole(['faculty', 'administrator']), async (req, res) => {
     const { id } = req.params
-    const { name, advisers, members } = req.body
+    const { name, advisers, members, panelists } = req.body
 
     try {
         const group = await Group.findById(id)
         group.name = name
         group.advisers = advisers
         group.members = members
+        group.panelists = panelists
         await group.save()
         return res.json({ message: 'Group updated' })
     } catch (err) {

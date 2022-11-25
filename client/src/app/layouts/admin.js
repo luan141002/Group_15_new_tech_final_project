@@ -19,12 +19,13 @@ const AdminLayout = (props) => {
       <div className="page">
         <Sidebar entries={[
           { title: 'Overview', to: '/admin', exact: true },
-          { title: 'Documents', to: '/admin/documents' },
-          { title: 'Defense week', to: '/admin/defense' },
-          { title: 'Schedule', to: '/admin/schedule' },
           { title: 'Announcements', to: '/admin/announcements' },
-          { title: 'Members', to: '/admin/members' },
+          { title: 'Defense week', to: '/admin/defense' },
+          { title: 'Documents', to: '/admin/documents' },
           { title: 'Groups', to: '/admin/groups' },
+          { title: 'Members', to: '/admin/members' },
+          { title: 'Processes', to: '/admin/processes' },
+          { title: 'Schedule', to: '/admin/schedule' },
         ]} />
         <div className='content-pane'>
           <div className='content-header'>

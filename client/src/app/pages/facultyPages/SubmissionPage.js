@@ -24,6 +24,10 @@ function SubmissionPage() {
     }
   }
 
+  const reload = async () => {
+    await load()
+  }
+
   useEffect(() => {
     load()
   }, [])
@@ -37,7 +41,7 @@ function SubmissionPage() {
       </Helmet>
       <div className='tm-row'>
         <div className='tm-column' style={{ flexGrow: 3 }}>
-          <SubmissionSection submission={submission} />
+          <SubmissionSection submission={submission} onEndorse={reload} onApprove={reload} />
           <CommentSection submission={submission} />
         </div>
         <div className='tm-column'>

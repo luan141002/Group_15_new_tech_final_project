@@ -10,15 +10,16 @@ function createFormState() {
   return {
     name: '',
     members: [],
-    advisers: []
+    advisers: [],
+    panelists: []
   }
 }
 
-function GroupsSection(props) {
+function EditGroupsSection(props) {
   const { readonly, getLink } = props
 
   const { account } = useAccount()
-  const accountCanEdit = checkAccount(account, [ 'faculty.coordinator', 'administrator' ]) && !readonly
+  const accountCanEdit = checkAccount(account, [ 'faculty', 'administrator' ]) && !readonly
 
   const [deleteForm, setDeleteForm] = useState(false)
   const [deleteId, setDeleteId] = useState('')
@@ -77,8 +78,19 @@ function GroupsSection(props) {
     setSelectedFaculty('')
   }
 
+  const addPanelist = () => {
+    const selected = selectedFaculty
+    if (!selectedFaculty) return
+
+    setForm(prev => {
+      const next = cloneDeep(prev)
+      if (!next.panelists.includes(selected)) next.panelists.push(selected)
+      return next
+    })
+    setSelectedFaculty('')
+  }
+
   const removeAdviser = (id) => () => {
-    console.log(id)
     setForm(prev => {
       const next = cloneDeep(prev)
       next.advisers = next.advisers.filter(e => e !== id)
@@ -86,12 +98,22 @@ function GroupsSection(props) {
     })
   }
 
+  const removePanelist = (id) => () => {
+    setForm(prev => {
+      const next = cloneDeep(prev)
+      next.panelists = next.panelists.filter(e => e !== id)
+      return next
+    })
+  }
+
+
   const openModal = (data) => () => {
     setFormId(data ? data._id : '')
     setForm(data ? {
       name: data.name,
       members: data.members,
-      advisers: data.advisers
+      advisers: data.advisers,
+      panelists: data.panelists
     } : createFormState())
     setSelectedStudent('')
     setSelectedFaculty('')
@@ -158,7 +180,7 @@ function GroupsSection(props) {
 
   return (
     <>
-      <Modal isOpen={isFormOpen} fade={false} centered scrollable>
+      <Modal isOpen={isFormOpen} fade={false} centered scrollable size='lg'>
         <ModalHeader>{formId ? 'Update' : 'Add'} group</ModalHeader>
         <ModalBody>
           <FormGroup floating>
@@ -199,12 +221,11 @@ function GroupsSection(props) {
               }
             </tbody>
           </Table>
-          <h3>Advisers</h3>
           <FormGroup inline>
             <Row>
-              <Col sm={9}>
-                <Input type='select' placeholder='Add adviser' value={selectedFaculty} onChange={(event) => setSelectedFaculty(event.target.value)}>
-                  <option value=''>--- Add new adviser ---</option>
+              <Col sm={8}>
+                <Input type='select' placeholder='Add adviser or panelist' value={selectedFaculty} onChange={(event) => setSelectedFaculty(event.target.value)}>
+                  <option value=''>--- Add new faculty ---</option>
                   {
                     faculty.map(e => (
                       <option key={e._id} value={e._id}>{`${e.lastName}, ${e.firstName}`}</option>
@@ -212,9 +233,11 @@ function GroupsSection(props) {
                   }
                 </Input>
               </Col>
-              <Col sm={3}><Button onClick={addAdviser} disabled={!selectedFaculty}>Add</Button></Col>
+              <Col sm={2}><Button onClick={addAdviser} disabled={!selectedFaculty}>Adviser</Button></Col>
+              <Col sm={2}><Button onClick={addPanelist} disabled={!selectedFaculty}>Panelist</Button></Col>
             </Row>
           </FormGroup>
+          <h3>Advisers</h3>
           <Table>
             <thead>
               <tr>
@@ -228,6 +251,25 @@ function GroupsSection(props) {
                   <tr key={`adviser-${e.idnum}`}>
                     <td>{`${e.lastName}, ${e.firstName}`}</td>
                     <td><Button onClick={removeAdviser(e._id)} color='danger' size='sm'>Remove</Button></td>
+                  </tr>
+                ))
+              }
+            </tbody>
+          </Table>
+          <h3>Panelists</h3>
+          <Table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {
+                form.panelists.map(e => findFaculty(e)).map(e => (
+                  <tr key={`panelist-${e.idnum}`}>
+                    <td>{`${e.lastName}, ${e.firstName}`}</td>
+                    <td><Button onClick={removePanelist(e._id)} color='danger' size='sm'>Remove</Button></td>
                   </tr>
                 ))
               }
@@ -282,4 +324,4 @@ function GroupsSection(props) {
   )
 }
 
-export default GroupsSection
+export default EditGroupsSection

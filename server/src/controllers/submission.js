@@ -174,7 +174,7 @@ router.get('/:id', readToken, async (req, res) => {
     const { id } = req.params
 
     try {
-        const submission = await Submission.findById(id).populate('approvalBy')
+        const submission = await Submission.findById(id)
         if (!submission) throw new ServerError(404, 'Submission not found')
         const documents = await Document.find({ submission: id }).select('-data')
         
@@ -244,7 +244,7 @@ router.post('/:id/endorse', readToken, checkRole('faculty.adviser'), async (req,
         if (!submission) throw new ServerError(404, 'Submission not found')
 
         const group = await Group.findOne({ _id: submission.group, advisers: account })
-        if (!group) throw new ServerError(400, 'Adviser does not belong to this group')
+        if (!group) throw new ServerError(400, 'Faculty is not assigned to this group')
 
         submission.endorsements.push({ by: account })
         await submission.save()
@@ -266,7 +266,7 @@ router.post('/:id/endorse', readToken, checkRole('faculty.adviser'), async (req,
 })
 
 // Approve the selected submission
-router.post('/:id/approve', readToken, checkRole('faculty.coordinator'), async (req, res) => {
+router.post('/:id/approve', readToken, checkRole('faculty'), async (req, res) => {
     const { id } = req.params
     const account = req.token.account
 
@@ -274,8 +274,12 @@ router.post('/:id/approve', readToken, checkRole('faculty.coordinator'), async (
         const submission = await Submission.findById(id)
         if (!submission) throw new ServerError(404, 'Submission not found')
 
-        submission.approvalBy = account
-        submission.approvalDate = new Date()
+        if (!isInRole(req.token, 'faculty.coordinator')) {
+            const group = await Group.findOne({ _id: submission.group, $or: [ { advisers: account }, { panelists: account } ] })
+            if (!group) throw new ServerError(400, 'Faculty is not assigned to this group')
+        }
+
+        submission.approvals.push({ by: account })
         await submission.save()
 
         return res.json({

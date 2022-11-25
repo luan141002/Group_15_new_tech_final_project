@@ -5,6 +5,7 @@ import { useAccount, checkAccount } from "../../providers/account"
 import AssignmentService from "../../services/AssignmentService"
 import GroupService from "../../services/GroupService"
 import SubmissionService from "../../services/SubmissionService"
+import UserService from "../../services/UserService"
 
 const createFormState = () => ({
   title: '',
@@ -24,7 +25,7 @@ const dateToString = (date) => {
 }
 
 function SubmissionSection(props) {
-  const { submission } = props
+  const { submission, onEndorse, onApprove } = props
   const { account } = useAccount()
 
   const [assignment, setAssignment] = useState(null)
@@ -35,6 +36,8 @@ function SubmissionSection(props) {
   const [form, setForm] = useState(createFormState())
   const [formError, setFormError] = useState('')
 
+  const [faculty, setFaculty] = useState([])
+
   const canEndorse = () => {
     const inRole = checkAccount(account, 'faculty.adviser')
     const isAdviser = group && group.advisers.map(e => e.id).includes(account.info.id)
@@ -44,13 +47,17 @@ function SubmissionSection(props) {
 
   const canApprove = () => {
     const inRole = checkAccount(account, 'faculty.coordinator')
-    const isApproved = !!submission.info.approvalBy
+    const isInGroup = group && (group.advisers.map(e => e.id).includes(account.info.id) || group.panelists.map(e => e.id).includes(account.info.id))
+    const isApproved = submission.info.approvals.some(e => e.by === account.info.id)
     const endorsedByAll = group && group.advisers.every(e => submission.info.endorsements.some(e2 => e2.by === e.id))
-    return !isApproved && endorsedByAll && inRole
+    return !isApproved && (isInGroup || inRole) && endorsedByAll 
   }
 
   const findMember = (group, id) => group ? group.members.find(e => e.id === id) : {}
   const findAdviser = (group, id) => group ? group.advisers.find(e => e.id === id) : {}
+  const findFaculty = (id) => {
+    return faculty ? (faculty.find(e => e._id === id) || {}) : {}
+  }
 
   const load = async () => {
     if (!submission) return
@@ -60,6 +67,8 @@ function SubmissionSection(props) {
       const entry2 = await AssignmentService.getAssignment(submission.info.assignment)
       setAssignment(entry2)
       setSubmitter(findMember(groupEntry, submission.info.submitter))
+      const entries = await UserService.getUsers('faculty')
+      setFaculty(entries)
     } catch (error) {
 
     }
@@ -124,14 +133,15 @@ function SubmissionSection(props) {
       switch (form.type) {
         case 'endorse':
           await endorseSubmission()
+          onEndorse && onEndorse()
           break
         case 'approve':
           await approveSubmission()
+          onApprove && onApprove()
           break
         default: return
       }
 
-      await load()
       closeModal()
     } catch (error) {
       setFormError(error.message)
@@ -201,13 +211,21 @@ function SubmissionSection(props) {
                   </>
                 }
                 {
-                  (submission.info.approvalBy || canApprove()) && <>
+                  (submission.info.approvals || canApprove()) && <>
                     <h3>Approvals</h3>
-                    {
-                      submission.info.approvalBy && <>
-                        <p>{`${submission.info.approvalBy.firstName} ${submission.info.approvalBy.lastName} on ${submission.info.approvalDate}`}</p>
-                      </>
-                    }
+                    <ul>
+                      {
+                        submission.info.approvals && submission.info.approvals.map(e => {
+                          const fac = findFaculty(e.by)
+                          return (
+                            <li key={`approver-${e.by}`}>
+                              {`${fac.firstName} ${fac.lastName} on ${e.when}`}
+                            </li>
+                          )
+                        })
+                        
+                      }
+                    </ul>
                     {
                       canApprove() && <>
                         <Button onClick={() => openModal('approve')}>Approve</Button>

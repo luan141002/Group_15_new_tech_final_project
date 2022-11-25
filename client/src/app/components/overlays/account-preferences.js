@@ -1,6 +1,6 @@
 import person2 from '../../../assets/images/person2.jpg'
 
-const AccountPreferencesOverlay = (props) => {
+function AccountPreferencesOverlay(props) {
   const { onClose, className, overlayName, ...otherProps } = props
 
   const close = () => {

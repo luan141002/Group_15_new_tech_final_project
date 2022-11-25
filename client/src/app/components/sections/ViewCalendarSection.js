@@ -2,7 +2,9 @@ import { useEffect, useState } from "react"
 import ScheduleService from "../../services/ScheduleService"
 import Calendar from "../calendar"
 
-function ViewCalendarSection() {
+function ViewCalendarSection(props) {
+  const mySchedules = props.schedules
+
   const currentDate = new Date()
   const [schedules, setSchedules] = useState([])
   const [year, setYear] = useState(currentDate.getFullYear())
@@ -27,14 +29,16 @@ function ViewCalendarSection() {
   }
   
   useEffect(() => {
-    load()
-  }, [])
+    if (!mySchedules) load()
+  }, [mySchedules])
+
+  const schedulesToRender = mySchedules || schedules
 
   return (
     <>
       <div className='tm-group'>
         <h2 className="tm-group-name">Calendar</h2>
-        <Calendar year={year} month={month} onChange={onChange} events={schedules} onClickEvent={onClickEvent} />
+        <Calendar year={year} month={month} onChange={onChange} events={schedulesToRender} onClickEvent={onClickEvent} />
       </div>
     </>
   )

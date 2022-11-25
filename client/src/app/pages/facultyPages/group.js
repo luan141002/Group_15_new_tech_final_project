@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react"
 import { Helmet } from "react-helmet"
-import UserService from '../../services/UserService'
-import { Alert, Button, Col, FormGroup, Input, Label, Modal, ModalBody, ModalFooter, ModalHeader, Row, Table } from 'reactstrap'
-import { clone, cloneDeep, merge } from "lodash"
+import { Table } from 'reactstrap'
 import GroupService from "../../services/GroupService"
 import SubmissionService from "../../services/SubmissionService"
 import { useParams } from "react-router"
@@ -60,7 +58,7 @@ function GroupPage() {
               </tbody>
             </Table>
           </div>
-          <SubmissionBoxesSection readonly getLink={sub => `/faculty/group/${id}/assignment/${sub._id}`} />
+          <SubmissionBoxesSection readonly getLink={sub => `/faculty/assignment/${sub._id}`} />
         </div>
         <div className='tm-column'>
           <GroupInfoSection group={group} />

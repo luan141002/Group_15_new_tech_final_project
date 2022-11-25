@@ -19,10 +19,11 @@ const FacultyLayout = (props) => {
       <div className="page">
         <Sidebar entries={[
           { title: 'Overview', to: '/faculty', exact: true },
-          { title: 'Documents', to: '/faculty/documents' },
           { title: 'Defense week', to: '/faculty/defense' },
-          { title: 'Students', to: '/faculty/students' },
+          { title: 'Documents', to: '/faculty/documents' },
           { title: 'Groups', to: '/faculty/groups' },
+          { title: 'Schedule', to: '/faculty/schedule' },
+          { title: 'Students', to: '/faculty/students' },
           { title: 'Submissions', to: '/faculty/submissions' },
         ]} />
         <div className='content-pane'>

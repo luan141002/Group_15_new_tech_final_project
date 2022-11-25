@@ -15,6 +15,25 @@ const GroupSchema = new mongoose.Schema({
         type: [Schema.Types.ObjectId],
         ref: 'Faculty',
         required: true
+    },
+    panelists: {
+        type: [Schema.Types.ObjectId],
+        ref: 'Faculty',
+        required: true
+    },
+    grades: [{
+        value: { type: String, required: true },
+        process: { type: Schema.Types.ObjectId, ref: 'Process', required: true },
+        by: { type: Schema.Types.ObjectId, ref: 'Account', required: true }
+    }],
+    currentProcess: {
+        type: Schema.Types.ObjectId,
+        ref: 'Process'
+    },
+    active: {
+        type: Boolean,
+        required: true,
+        default: true
     }
 })
 
