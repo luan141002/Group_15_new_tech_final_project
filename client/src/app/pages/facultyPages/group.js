@@ -7,6 +7,7 @@ import { useParams } from "react-router"
 import SubmissionBoxesSection from "../../components/sections/SubmissionBoxesSection"
 import { Link } from "react-router-dom"
 import GroupInfoSection from "../../components/sections/GroupInfoSection"
+import dayjs from 'dayjs'
 
 function GroupPage() {
   const { id } = useParams()
@@ -51,7 +52,7 @@ function GroupPage() {
                   submissions.map(e => (
                     <tr>
                       <td><Link to={`/faculty/submissions/${e._id}`}>{e.assignment.name}</Link></td>
-                      <td>{e.submitDate}</td>
+                      <td>{dayjs(e.submitDate).format('lll')}</td>
                     </tr>
                   ))
                 }

@@ -3,7 +3,7 @@ import { Helmet } from 'react-helmet'
 import Overlay from '../../components/overlay'
 
 import person2 from '../../../assets/images/person2.jpg'
-import AccountPreferencesOverlay from '../../components/overlays/account-preferences'
+import AccountPreferences from '../../components/overlays/AccountPreferences'
 import NotificationsOverlay from '../../components/overlays/notifications'
 import Sidebar from '../../components/sidebar/sidebar'
 import Calendar from '../../components/calendar'
@@ -137,7 +137,7 @@ function DashboardPage() {
             <Calendar events={schedules} />
           </div>
           <div className="tm-group">
-            <h2 className="dashboard_text"> Documents </h2>
+            <h2 className="dashboard_text">Documents</h2>
             <div className='tm-row'>
               <div className="tm-column" style={{ width: '55%', padding: '0' }}>
                 <a href='/' className="dashboard_elementNames"> Document Title </a>

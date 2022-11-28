@@ -1,8 +1,10 @@
 import WebService from "./WebService"
 
 const AssignmentService = {
-  getAssignments: async () => {
-    const response = await WebService.get('/assignment')
+  getAssignments: async (all) => {
+    const queries = {}
+    if (all) queries.all = '1'
+    const response = await WebService.get('/assignment', queries)
     const result = await response.json()
     return result
   },

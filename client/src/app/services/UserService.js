@@ -25,6 +25,17 @@ const UserService = {
   verifyUser: async (username, code) => {
     const response = await WebService.postJson('/account/verify', { username, verifyCode: code })
     return await response.json()
+  },
+
+  updateUserPrefs: async (data) => {
+    const { current, password, confirm, photo } = data
+    const form = new FormData()
+    if (current) form.append('current', current)
+    if (password) form.append('password', password)
+    if (confirm) form.append('confirm', confirm)
+    if (photo) form.append('photo', photo)
+    const response = await WebService.postForm('/account/update', form)
+    return await response.json()
   }
 }
 

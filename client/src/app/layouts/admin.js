@@ -1,21 +1,37 @@
 import { useState } from "react"
 import { Outlet, useNavigate } from "react-router"
 import { Dropdown, DropdownItem, DropdownMenu, DropdownToggle } from "reactstrap"
+import AccountPreferences from "../components/overlays/AccountPreferences"
 import Sidebar from "../components/sidebar/sidebar"
-import AccountContext, { EMPTY_ACCOUNT } from "../providers/account"
+import AccountContext, { EMPTY_ACCOUNT, useAccount } from "../providers/account"
 import AuthService from "../services/AuthService"
 import './default.css'
+import defaultPhoto from '../../assets/images/person_110935.png'
 
 const AdminLayout = (props) => {
+  const { account } = useAccount()
+
   const [accountDropdown, setAccountDropdown] = useState(false)
   const navigate = useNavigate()
 
-  const onAccountPrefs = () => {
+  const [accountPrefsOpen, setAccountPrefsOpen] = useState(false)
 
+  const onAccountPrefs = () => {
+    setAccountPrefsOpen(true)
+  }
+
+  const getPhoto = () => {
+    const { info } = account
+    const { photo, photoType } = info
+    if (photo && photoType) {
+      return `data:${photoType};base64,${photo}`
+    }
+    return defaultPhoto
   }
 
   return (
     <>
+      <AccountPreferences isOpen={accountPrefsOpen} onClose={() => setAccountPrefsOpen(false)} />
       <div className="page">
         <Sidebar entries={[
           { title: 'Overview', to: '/admin', exact: true },
@@ -35,6 +51,7 @@ const AdminLayout = (props) => {
                     <Dropdown isOpen={accountDropdown} toggle={() => setAccountDropdown(!accountDropdown)}>
                       <DropdownToggle data-toggle='dropdown' tag='div' style={{ cursor: 'pointer' }}>
                         <div>
+                          <img width={48} height={48} src={getPhoto()} className='rounded' alt='Profile' />
                           <button className="account_text" style={{ right: '35px', backgroundColor: 'transparent', border: 'none' }} id="account_button">
                             {`${account.info.firstName} ${account.info.lastName}`}
                           </button>
@@ -42,7 +59,7 @@ const AdminLayout = (props) => {
                         </div>
                       </DropdownToggle>
                       <DropdownMenu>
-                        {/*<DropdownItem onClick={onAccountPrefs}>Account</DropdownItem>*/}
+                        <DropdownItem onClick={onAccountPrefs}>Account</DropdownItem>
                         <DropdownItem onClick={() => {
                           AuthService.logout()
                           setAccount(EMPTY_ACCOUNT)

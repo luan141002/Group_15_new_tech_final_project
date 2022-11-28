@@ -32,7 +32,6 @@ function SubmissionBoxPage() {
       setFiles(prev => {
         const next = clone(prev)
         next.push(file)
-        console.log(next)
         return next
       })
     }

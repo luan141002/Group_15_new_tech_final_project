@@ -12,8 +12,10 @@ const router = express.Router()
  * Get all assignments
  */
 router.get('/', readToken, async (req, res) => {
+    const { all } = req.query
     try {
-        const assignments = await Assignment.find({})
+        const filter = all === '1' ? {} : { published: true }
+        const assignments = await Assignment.find(filter)
         return res.json(assignments)
     } catch (err) {
         console.log(err)

@@ -15,7 +15,7 @@ function GroupsPage() {
         <div className='tm-column'>
           <GroupsSection getLink={group => `/faculty/group/${group.id}`} />
           <MyGroupsSection getLink={group => `/faculty/group/${group.id}`} />
-          <EditGroupsSection />
+          <EditGroupsSection getLink={group => `/faculty/group/${group.id}`} />
         </div>
       </div>
     </>

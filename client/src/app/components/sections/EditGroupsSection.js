@@ -233,8 +233,8 @@ function EditGroupsSection(props) {
                   }
                 </Input>
               </Col>
-              <Col sm={2}><Button onClick={addAdviser} disabled={!selectedFaculty}>Adviser</Button></Col>
-              <Col sm={2}><Button onClick={addPanelist} disabled={!selectedFaculty}>Panelist</Button></Col>
+              <Col sm={2}><Button onClick={addAdviser} disabled={form.advisers.length >= 2 || !selectedFaculty}>Adviser</Button></Col>
+              <Col sm={2}><Button onClick={addPanelist} disabled={form.advisers.length >= 5 || !selectedFaculty}>Panelist</Button></Col>
             </Row>
           </FormGroup>
           <h3>Advisers</h3>
@@ -306,7 +306,7 @@ function EditGroupsSection(props) {
           <tbody>
             {
               groups.map(e => (
-                <tr key={`group-${e._id}`}>
+                <tr key={`group-${e.id}`}>
                   <td><Link to={doGetLink(e) || '#'}>{e.name}</Link></td>
                   {
                     accountCanEdit && <td>

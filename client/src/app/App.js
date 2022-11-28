@@ -34,6 +34,9 @@ import VerifyPage from './pages/VerifyPage'
 import AccountContext from './providers/account'
 import AuthService from './services/AuthService'
 import AdminProcessPage from './pages/adminPages/ProcessPage';
+import dayjs from 'dayjs'
+import localizedFormat from 'dayjs/plugin/localizedFormat'
+dayjs.extend(localizedFormat)
 
 function App() {
   const [account, setAccount] = useState({ token: null, info: null })

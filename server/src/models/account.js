@@ -1,5 +1,6 @@
 const bcrypt = require('bcrypt')
 const mongoose = require('mongoose')
+const ServerError = require('../error')
 const Schema = mongoose.Schema
 
 const options = { discriminatorKey: 'kind' }
@@ -42,6 +43,7 @@ const AccountSchema = new Schema({
         required: true
     },
     photo: Buffer,
+    photoType: String,
     joined: {
         type: Date,
         required: true,
@@ -88,14 +90,14 @@ AccountSchema.statics.authenticate = async function(username, password) {
 
     try {
         const account = await User.findOne(query)
-        if (!account) throw 'Invalid username/password'
+        if (!account) throw new ServerError(401, 'Invalid username/password')
         
         if (await bcrypt.compare(password, account.passwordEnc)) {
-            if (!account.verified) throw 'Account is not verified'
+            if (!account.verified) throw new ServerError(401, 'Account is not verified')
             return account
         }
         
-        throw 'Invalid username/password'
+        throw new ServerError(401, 'Invalid username/password')
     } catch (error) {
         throw error
     }

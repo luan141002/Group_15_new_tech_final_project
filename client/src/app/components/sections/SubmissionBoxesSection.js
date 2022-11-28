@@ -4,6 +4,7 @@ import { Link } from "react-router-dom"
 import { Alert, Button, Col, FormGroup, Input, Label, Modal, ModalBody, ModalFooter, ModalHeader, Row, Table } from 'reactstrap'
 import { useAccount, checkAccount } from "../../providers/account"
 import AssignmentService from '../../services/AssignmentService'
+import dayjs from 'dayjs'
 
 const createFormState = () => {
   return {
@@ -27,7 +28,7 @@ const dateToString = (date) => {
 }
 
 function SubmissionBoxesSection(props) {
-  const { readonly, getLink } = props
+  const { readonly, getLink, viewAll } = props
 
   const { account } = useAccount()
   const accountCanEdit = checkAccount(account, [ 'faculty.coordinator', 'administrator' ]) && !readonly
@@ -107,9 +108,11 @@ function SubmissionBoxesSection(props) {
     }))
   }
 
+  const canEdit = () => viewAll && accountCanEdit
+
   const load = async() => {
     try {
-      const entryList = await AssignmentService.getAssignments()
+      const entryList = await AssignmentService.getAssignments(canEdit())
       setEntries(entryList.map(e => ({
         ...e,
         dueDate: getDate(e.due),
@@ -240,8 +243,8 @@ function SubmissionBoxesSection(props) {
             <tr>
               <th>Name</th>
               <th>Due</th>
-              <th>Published</th>
-              { accountCanEdit && <th>Actions</th> }
+              { canEdit() && <th>Published</th> }
+              { canEdit() && <th>Actions</th> }
             </tr>
           </thead>
           <tbody>
@@ -250,10 +253,10 @@ function SubmissionBoxesSection(props) {
                 return (
                   <tr>
                     <td><Link to={doGetLink(e) || '#'}>{e.name}</Link></td>
-                    <td>{e.due}</td>
-                    <td>{e.published ? 'Yes' : 'No'}</td>
+                    <td>{dayjs(e.due).format('lll')}</td>
+                    { canEdit() && <td>{e.published ? 'Yes' : 'No'}</td> }
                     {
-                      accountCanEdit && <td>
+                      canEdit() && <td>
                         <Button onClick={openModal(e)} size='sm' className='me-1'>Edit</Button>
                         <Button onClick={openDeleteModal(e._id)} color='danger' size='sm'>Delete</Button>
                       </td>

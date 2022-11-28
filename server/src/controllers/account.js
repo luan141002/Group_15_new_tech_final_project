@@ -9,8 +9,16 @@ const { generateName } = require('../utility/name')
 const ServerError = require('../error')
 const jwt = require('jsonwebtoken')
 const isInRole = require('../utility/isInRole')
+const multer = require('multer')
+const bcrypt = require('bcrypt')
 
 const router = express.Router()
+
+const upload = multer({
+    limits: {
+        fileSize: 50 * 1024 * 1024
+    }
+})
 
 function generateAccessToken(account) {
     const hasher = crypto.createHash('sha256')
@@ -31,6 +39,11 @@ function generateVerifyToken(text) {
 async function getTokenAccount(token) {
     const { account, id, kind, roles, issuedAt, expiresAt } = token
     const accountDetails = await Account.User.findById(account)
+
+    let photo = ''
+    if (accountDetails.photo) {
+        photo = accountDetails.photo.toString('base64')
+    }
     return {
         id, kind, roles, issuedAt, expiresAt,
         account: {
@@ -40,7 +53,9 @@ async function getTokenAccount(token) {
             firstName: accountDetails.firstName,
             middleName: accountDetails.middleName,
             email: accountDetails.email,
-            username: accountDetails.username
+            username: accountDetails.username,
+            photo: photo,
+            photoType: accountDetails.photoType
         }
     }
 }
@@ -49,6 +64,7 @@ router.post('/login', async (req, res) => {
     const { username, password } = req.body
     try {
         const account = await User.authenticate(username, password)
+
         const now = Date.now()
         const expiresIn = Number.parseInt(process.env.JWT_DURATION) || 86400
 
@@ -81,6 +97,13 @@ router.post('/login', async (req, res) => {
 
         return res.json(tokenInfo)
     } catch (error) {
+        if (error instanceof ServerError) {
+            return res.status(error.status).json({
+                message: error.message,
+                details: res.details
+            })
+        }
+
         console.log(error)
         res.status(401).json({ message: 'Cannot log in' })
     }
@@ -475,7 +498,9 @@ router.get('/users', readToken, async (req, res) => {
         email: e.email,
         verified: isAdmin ? e.verified : undefined,
         verifyCode: isAdmin ? e.verifyCode : undefined,
-        username: e.username
+        username: e.username,
+        photo: e.photo,
+        photoType: accountDetails.photoType
     })))
 })
 
@@ -514,6 +539,46 @@ router.post('/verify', async (req, res) => {
         }
     } catch (error) {
         return res.status(500).json({ message: 'Cannot verify user', details: error })
+    }
+})
+
+router.post('/update', readToken, upload.single('photo'), async (req, res) => {
+    const { current, password, confirm } = req.body
+    const photo = req.file
+
+    try {
+        const account = await Account.User.findById(req.token.account)
+
+        if (password) {
+            if (!current) throw new ServerError(400, 'You need to provide your current password')
+            if (!confirm) throw new ServerError(400, 'You need to type your new password twice to confirm')
+            if (password !== confirm) throw new ServerError(400, 'Password and confirmation password do not match')
+            if (!await bcrypt.compare(current, account.passwordEnc)) {
+                throw new ServerError(401, 'You must type your password correctly.')
+            }
+
+            account.passwordEnc = password
+        }
+
+        if (photo) {
+            account.photo = photo.buffer
+            account.photoType = photo.mimetype
+        }
+
+        await account.save()
+        return res.json({
+            message: 'Account updated'
+        })
+    } catch (error) {
+        if (err instanceof ServerError) {
+            return res.status(err.status).json({
+                message: err.message,
+                details: res.details
+            })
+        }
+
+        console.log(error)
+        return res.status(500).json({ message: 'Could not update account information'})
     }
 })
 

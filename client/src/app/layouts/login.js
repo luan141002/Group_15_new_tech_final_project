@@ -19,12 +19,6 @@ const LoginLayout = (props) => {
         <div class="container">
           { children ? children : <Outlet /> }
         </div>
-        <div>
-          <button style={{width:'auto', padding: '.75rem', color: '#ffffff', border:'none',
-                          outline: 'none', background: 'var(--color-primary)'}}>
-            <NavLink to="/admin" style={{color:'white'}} activeStyle={{ color: 'red' }}>Temporary Link to access ADMIN dashboard</NavLink>
-          </button>
-        </div>
       </div>
     </>
   )
