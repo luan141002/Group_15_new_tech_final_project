@@ -40,7 +40,7 @@ const DefaultLayout = (props) => {
                         </div>
                       </DropdownToggle>
                       <DropdownMenu>
-                        <DropdownItem onClick={onAccountPrefs}>Account</DropdownItem>
+                        {/*<DropdownItem onClick={onAccountPrefs}>Account</DropdownItem>*/}
                         <DropdownItem onClick={() => {
                           AuthService.logout()
                           setAccount(EMPTY_ACCOUNT)

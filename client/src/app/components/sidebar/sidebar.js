@@ -14,7 +14,6 @@ const Sidebar = (props) => {
             return <NavLink className='sidebar-button' to={to} exact={exact ? true : false}>{title}</NavLink>
           })
         }
-        <button className="sidebar-button">Upload Document</button>
       </div>
     </div>
   )

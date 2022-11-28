@@ -20,7 +20,6 @@ const FacultyLayout = (props) => {
         <Sidebar entries={[
           { title: 'Overview', to: '/faculty', exact: true },
           { title: 'Defense week', to: '/faculty/defense' },
-          { title: 'Documents', to: '/faculty/documents' },
           { title: 'Groups', to: '/faculty/groups' },
           { title: 'Schedule', to: '/faculty/schedule' },
           { title: 'Students', to: '/faculty/students' },
@@ -43,7 +42,7 @@ const FacultyLayout = (props) => {
                         </div>
                       </DropdownToggle>
                       <DropdownMenu>
-                        <DropdownItem onClick={onAccountPrefs}>Account</DropdownItem>
+                        {/*<DropdownItem onClick={onAccountPrefs}>Account</DropdownItem>*/}
                         <DropdownItem onClick={() => {
                           AuthService.logout()
                           setAccount(EMPTY_ACCOUNT)

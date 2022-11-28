@@ -45,7 +45,8 @@ const scheduleToJson = (schedule) => {
         startPeriod: dateToString(schedule.period.from),
         endPeriod: schedule.period.to && dateToString(schedule.period.to),
         startTime: numberToTime(schedule.time.from),
-        endTime: numberToTime(schedule.time.to)
+        endTime: numberToTime(schedule.time.to),
+        group: schedule.group
     }
 }
 
@@ -205,13 +206,14 @@ function scheduleConflictsWithPeriod(period, schedule) {
     }
 }
 
-function generateRandomSchedule(groupIDs, freeSlotsInfo, attempts) {
+function generateRandomSchedule(groups, freeSlotsInfo, attempts) {
     if (attempts === undefined || attempts === null) return generateRandomSchedule(groups, freeSlotsInfo, 1)
     if (attempts < 1) return null
 
     const takenSchedules = {}
-    const groupsSchedules = groupIDs.map(id => ({
+    const groupsSchedules = groups.map(({ id, name }) => ({
         id,
+        name,
         availableSlots: freeSlotsInfo.filter(({ free }) => free.includes(id)).map(e => ({
             id: e.id,
             start: e.start,
@@ -224,7 +226,7 @@ function generateRandomSchedule(groupIDs, freeSlotsInfo, attempts) {
     groupsSchedules.sort((a, b) => b.availableSlots.length - a.availableSlots.length)
     while (groupsSchedules.length > 0) {
         const groupInfo = groupsSchedules.pop()
-        const { id, availableSlots } = groupInfo
+        const { id, name, availableSlots } = groupInfo
         if (availableSlots.every(e => !!takenSchedules[e.id])) {
             break // One group could not be assigned a schedule
         }
@@ -240,6 +242,7 @@ function generateRandomSchedule(groupIDs, freeSlotsInfo, attempts) {
         tentativeSchedule.push({
             id: slot.id,
             group: id,
+            title: name,
             start: slot.start,
             end: slot.end
         })
@@ -250,7 +253,7 @@ function generateRandomSchedule(groupIDs, freeSlotsInfo, attempts) {
         return tentativeSchedule
     }
     
-    return generateRandomSchedule(groupIDs, freeSlotsInfo, attempts - 1)
+    return generateRandomSchedule(groups, freeSlotsInfo, attempts - 1)
 }
 
 // schema
@@ -316,7 +319,7 @@ router.post('/generate', readToken, checkRole('faculty.coordinator'), async (req
             }
         }).filter(e => e.free.length > 0)
 
-        const randomSchedule = generateRandomSchedule(groups.map(e => e._id.toString()), freeSlotsInfo, 10)
+        const randomSchedule = generateRandomSchedule(groups.map(e => ({ id: e._id.toString(), name: e.name })), freeSlotsInfo, 10)
 
         return res.json({
             freeSlotsInfo,
@@ -325,6 +328,36 @@ router.post('/generate', readToken, checkRole('faculty.coordinator'), async (req
     } catch (err) {
         console.log(err)
         return res.status(500).json({ message: 'Could not generate defense schedule' })
+    }
+})
+
+router.post('/applysched', readToken, checkRole('faculty.coordinator'), async (req, res) => {
+    const schedule = req.body
+    const author = req.token.account
+
+    // format: [{ date: "YYYY-MM-DD", start: "HH:MM", end: "HH:MM", group: id }]
+    try {
+        const groupIDsToReserve = schedule.map(e => e.group)
+        const groupsToReserve = await Group.find({ _id: { $in: groupIDsToReserve }})
+        
+        await Schedule.insertMany(schedule.map(e => ({
+            name: 'Defense',
+            type: 'defense',
+            author,
+            group: e.group,
+            period: { from: e.date },
+            time: {
+                from: timeToNumber(e.start),
+                to: timeToNumber(e.end)
+            }
+        })))
+
+        return res.json({
+            message: 'Defense schedule applied'
+        })
+    } catch (err) {
+        console.log(err)
+        return res.status(500).json({ message: 'Could not apply defense schedule' })
     }
 })
 

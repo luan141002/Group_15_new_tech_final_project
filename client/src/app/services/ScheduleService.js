@@ -29,6 +29,11 @@ const ScheduleService = {
     return await response.json()
   },
 
+  applyDefenseSchedule: async (schedule) => {
+    const response = await WebService.postJson('/schedule/applysched', schedule)
+    return await response.json()
+  },
+
   updateSchedule: async (id, data) => {
     const response = await WebService.postJson(`/schedule/${id}`, data)
     return await response.json()

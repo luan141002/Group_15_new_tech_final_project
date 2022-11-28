@@ -23,7 +23,7 @@ const ScheduleSchema = new mongoose.Schema({
     description: String,
     type: {
         type: String,
-        enum: [ 'personal', 'global', 'class', 'group', 'defense' ]
+        enum: [ 'personal', 'global', 'defense' ]
     },
     group: {
         type: Schema.Types.ObjectId,

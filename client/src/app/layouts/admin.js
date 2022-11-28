@@ -21,10 +21,8 @@ const AdminLayout = (props) => {
           { title: 'Overview', to: '/admin', exact: true },
           { title: 'Announcements', to: '/admin/announcements' },
           { title: 'Defense week', to: '/admin/defense' },
-          { title: 'Documents', to: '/admin/documents' },
           { title: 'Groups', to: '/admin/groups' },
           { title: 'Members', to: '/admin/members' },
-          { title: 'Processes', to: '/admin/processes' },
           { title: 'Schedule', to: '/admin/schedule' },
         ]} />
         <div className='content-pane'>
@@ -44,7 +42,7 @@ const AdminLayout = (props) => {
                         </div>
                       </DropdownToggle>
                       <DropdownMenu>
-                        <DropdownItem onClick={onAccountPrefs}>Account</DropdownItem>
+                        {/*<DropdownItem onClick={onAccountPrefs}>Account</DropdownItem>*/}
                         <DropdownItem onClick={() => {
                           AuthService.logout()
                           setAccount(EMPTY_ACCOUNT)
