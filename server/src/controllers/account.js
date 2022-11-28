@@ -8,6 +8,7 @@ const { checkRole } = require('../middleware/role')
 const { generateName } = require('../utility/name')
 const ServerError = require('../error')
 const jwt = require('jsonwebtoken')
+const isInRole = require('../utility/isInRole')
 
 const router = express.Router()
 
@@ -38,7 +39,8 @@ async function getTokenAccount(token) {
             lastName: accountDetails.lastName,
             firstName: accountDetails.firstName,
             middleName: accountDetails.middleName,
-            email: accountDetails.email
+            email: accountDetails.email,
+            username: accountDetails.username
         }
     }
 }
@@ -439,7 +441,7 @@ router.delete('/delete/student/:id', readToken, checkRole(['faculty.coordinator'
     }
 })
 
-router.get('/users', async (req, res) => {
+router.get('/users', readToken, async (req, res) => {
     const { type } = req.query
 
     let kind = Account.User
@@ -460,7 +462,7 @@ router.get('/users', async (req, res) => {
             return res.json([])
     }
 
-    const isAdmin = isInRole('administrator')
+    const isAdmin = isInRole(req.token, 'administrator')
 
     const list = await kind.find()
     return res.json(list.map(e => ({
@@ -472,7 +474,8 @@ router.get('/users', async (req, res) => {
         middleName: e.middleName,
         email: e.email,
         verified: isAdmin ? e.verified : undefined,
-        verifyCode: isAdmin ? e.verifyCode : undefined
+        verifyCode: isAdmin ? e.verifyCode : undefined,
+        username: e.username
     })))
 })
 

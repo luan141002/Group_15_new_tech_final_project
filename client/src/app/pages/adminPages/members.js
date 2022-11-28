@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Helmet } from "react-helmet"
 import UserService from '../../services/UserService'
 import { Alert, Button, Col, FormGroup, Input, Label, Modal, ModalBody, ModalFooter, ModalHeader, Row, Table } from 'reactstrap'
 import { clone, cloneDeep, merge } from "lodash"
+import { CopyToClipboard } from "react-copy-to-clipboard"
 
 function createFormState() {
   return {
@@ -45,6 +46,8 @@ function MembersPage() {
   const [formId, setFormId] = useState('')
   const [formType, setFormType] = useState('')
   const [formError, setFormError] = useState('')
+  const [copied, setCopied] = useState(false)
+  const verifyRef = useRef(null)
 
   const updateForm = (partial) => {
     setForm(prev => merge(cloneDeep(prev), partial))
@@ -66,7 +69,7 @@ function MembersPage() {
   }
 
   const openModal = (type, data) => () => {
-    console.log(data)
+    setCopied(false)
     setFormId(data ? data._id : '')
     setFormType(type)
     setForm(data || createFormState())
@@ -151,6 +154,10 @@ function MembersPage() {
   useEffect(() => {
     loadAll()
   }, [])
+  
+  const copyVerifyLink = () => {
+    alert('Copied!')
+  }
 
   const rolesList = roles(formType)
   const rolesLayout = rolesList.length > 0 ?
@@ -218,6 +225,13 @@ function MembersPage() {
           { formError && <Alert color='danger'>{formError}</Alert> }
         </ModalBody>
         <ModalFooter>
+          {
+            formType === 'student' && formId && <>
+              <CopyToClipboard text={`${window.location.origin}/verify?username=${encodeURIComponent(form.username)}&verifyCode=${encodeURIComponent(form.verifyCode)}`} onCopy={copyVerifyLink}>
+                <Button>Copy verification link</Button>
+              </CopyToClipboard>
+            </>
+          }
           <Button onClick={onAdd}>{formId ? 'Update' : 'Add'}</Button>
           <Button onClick={closeModal}>Close</Button>
         </ModalFooter>
