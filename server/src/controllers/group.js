@@ -13,23 +13,29 @@ router.get('/my', readToken, checkRole(['faculty.adviser', 'student']), async (r
         const groups = await Group.find({
             $or: [ { members: account }, { advisers: account }, { panelists: account } ] 
         }).populate([ 'members', 'advisers', 'panelists' ])
-        return res.json(groups.map(group => ({
+
+        const mappedGroups = groups.map(group => ({
             id: group._id,
             name: group.name,
             members: group.members.map(e => Account.User.getBasicInfo(e)),
             advisers: group.advisers.map(e => Account.User.getBasicInfo(e)),
             panelists: group.panelists.map(e => Account.User.getBasicInfo(e)),
             grades: group.grades
-        })))
+        }))
+
+        if (mappedGroups.length < 1) return res.json([])
+        return res.json(isInRole(req.token, 'student') ? mappedGroups[0] : mappedGroups)
     } catch (err) {
         console.log(err)
         return res.status(500).json({ message: 'Could not get groups for user' })
     }
 })
 
-router.get('/all', readToken, checkRole(['faculty', 'administrator']), async (req, res) => {
+router.get('/all', readToken, async (req, res) => {
     try {
-        const groups = await Group.find()
+        //const filter = isInRole(req.token, 'student') ? { members: req.token.account } : {}
+        const filter = {}
+        const groups = await Group.find(filter)
         return res.json(groups.map(group => ({
             id: group._id,
             name: group.name,

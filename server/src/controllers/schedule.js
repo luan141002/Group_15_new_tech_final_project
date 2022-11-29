@@ -8,6 +8,7 @@ const { unique, uniq, clone, cloneDeep } = require('lodash')
 const { inspect } = require('util')
 const dayjs = require('dayjs')
 const { RRule, RRuleSet } = require('rrule')
+const isInRole = require('../utility/isInRole')
 
 const router = express.Router()
 
@@ -55,16 +56,30 @@ router.get('/', readToken, async (req, res) => {
     const author = req.token.account
 
     try {
-        const groups = await Group.find({ $or: [ { members: author }, { advisers: author } ] })
-        const query = {
-            $or: [
-                { type: 'personal', author },
-                { type: 'global' },
-                { type: 'defense' }
-            ]
+        let schedules = []
+        if (isInRole(req.token, ['administrator', 'faculty.coordinator'])) {
+            const query = {
+                $or: [
+                    { type: 'personal', author },
+                    { type: 'global' },
+                    { type: 'defense' }
+                ]
+            }
+    
+            schedules = await Schedule.find(query)
+        } else {
+            const groups = await Group.find({ $or: [ { members: author }, { advisers: author }, { panelists: author } ] })
+            const query = {
+                $or: [
+                    { type: 'personal', author },
+                    { type: 'global' },
+                    { type: 'defense', group: { $in: groups.map(e => e._id.toString()) } }
+                ]
+            }
+    
+            schedules = await Schedule.find(query)
         }
 
-        const schedules = await Schedule.find(query)
         return res.json(schedules.map(scheduleToJson))
     } catch (err) {
         console.log(err)

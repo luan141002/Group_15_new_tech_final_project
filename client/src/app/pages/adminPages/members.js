@@ -46,8 +46,6 @@ function MembersPage() {
   const [formId, setFormId] = useState('')
   const [formType, setFormType] = useState('')
   const [formError, setFormError] = useState('')
-  const [copied, setCopied] = useState(false)
-  const verifyRef = useRef(null)
 
   const updateForm = (partial) => {
     setForm(prev => merge(cloneDeep(prev), partial))
@@ -69,7 +67,6 @@ function MembersPage() {
   }
 
   const openModal = (type, data) => () => {
-    setCopied(false)
     setFormId(data ? data._id : '')
     setFormType(type)
     setForm(data || createFormState())

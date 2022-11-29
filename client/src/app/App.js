@@ -14,6 +14,7 @@ import DocumentsPage from './pages/documents'
 import DefensePage from './pages/defense'
 import AdminDashboardPage from './pages/adminPages/dashboard'
 import AdminAnnouncementsPage from './pages/adminPages/announcements'
+import AdminDefensePage from './pages/adminPages/DefensePage'
 import AdminGroupsPage from './pages/adminPages/groups'
 import AdminMembersPage from './pages/adminPages/members'
 import AdminSchedulePage from './pages/adminPages/schedule'
@@ -30,6 +31,7 @@ import SchedulePage from './pages/SchedulePage'
 import SubmissionBoxesPage from './pages/SubmissionBoxesPage'
 import SubmissionBoxPage from './pages/SubmissionBoxPage'
 import SubmissionPage from './pages/SubmissionPage'
+import GroupPage from './pages/GroupPage'
 import VerifyPage from './pages/VerifyPage'
 import AccountContext from './providers/account'
 import AuthService from './services/AuthService'
@@ -68,6 +70,7 @@ function App() {
             <Route path='/admin' element={<PrivateRoute condition={(token) => token.kind === 'administrator'} redirect='/login'><AdminLayout /></PrivateRoute>}>
               <Route path='announcements' element={<AdminAnnouncementsPage />} />
               <Route path='process' element={<AdminProcessPage />} />
+              <Route path='defense' element={<DefensePage />} />
               <Route path='schedule' element={<AdminSchedulePage />} />
               <Route path='members' element={<AdminMembersPage />} />
               <Route path='groups' element={<AdminGroupsPage />} />
@@ -90,6 +93,7 @@ function App() {
               <Route path='assignment' element={<SubmissionBoxesPage />} />
               <Route path='documents' element={<DocumentsPage />} />
               <Route path='defense' element={<DefensePage />} />
+              <Route path='group' element={<GroupPage />} />
               <Route path='schedule' element={<SchedulePage />} />
               <Route path='' element={<DashboardPage />} />
             </Route>

@@ -9,6 +9,7 @@ const DefaultLayout = (props) => {
       <div className="page">
         <Sidebar entries={[
           { title: 'Overview', to: '', exact: true },
+          { title: 'Defense Week', to: '/defense' },
           { title: 'Group', to: '/group' },
           { title: 'Schedule', to: '/schedule' },
           { title: 'Submissions', to: '/assignment' },

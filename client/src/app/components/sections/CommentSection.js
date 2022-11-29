@@ -1,3 +1,4 @@
+import dayjs from "dayjs"
 import { useEffect, useState } from "react"
 import { Alert, Button, Card, CardBody, CardFooter, CardText, CardTitle, FormGroup, Input, Modal, ModalBody, ModalFooter, ModalHeader } from 'reactstrap'
 import { useAccount } from "../../providers/account"
@@ -89,7 +90,7 @@ function CommentSection(props) {
         comments && comments.map(e => (
           <Card className='mt-2' key={`comment-${e.id}`}>
             <CardBody>
-              <CardTitle>{`${e.author.firstName} ${e.author.lastName}`} on {e.date}</CardTitle>
+              <CardTitle>{`${e.author.firstName} ${e.author.lastName}`} on {dayjs(e.date).format('lll')}</CardTitle>
               <CardText>{e.text}</CardText>
             </CardBody>
             {

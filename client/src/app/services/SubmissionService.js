@@ -11,6 +11,12 @@ const SubmissionService = {
     return result
   },
 
+  getMyGroupSubmissions: async () => {
+    const response = await WebService.get(`/submission/group`)
+    const result = await response.json()
+    return result
+  },
+
   getAllGroupSubmissions: async (groupId) => {
     const response = await WebService.get(`/submission/group/${groupId}`)
     const result = await response.json()

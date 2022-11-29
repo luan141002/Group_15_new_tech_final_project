@@ -40,6 +40,23 @@ router.get('/adviser', readToken, checkRole('faculty.adviser'), async (req, res)
     }
 })
 
+// Get all submissions by current group
+router.get('/group', readToken, async (req, res) => {
+    try {
+        const account = req.token.account
+        const group = await Group.findOne({ members: account })
+
+        const submissions = await Submission.find({ group: group._id }).sort({
+            submitDate: 'desc'
+        }).populate('assignment').populate('submitter')
+
+        return res.json(submissions)
+    } catch (err) {
+        console.log(err)
+        return res.status(500).json({ message: 'Could not get submission' })
+    }
+})
+
 // Get all submissions by this group
 router.get('/group/:gid', readToken, async (req, res) => {
     const { gid } = req.params

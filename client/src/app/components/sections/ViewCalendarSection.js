@@ -44,7 +44,6 @@ function ViewCalendarSection(props) {
                 endTime: e.endTime,
                 title
               }
-              console.log(obj)
               return obj
             } else {
               return {

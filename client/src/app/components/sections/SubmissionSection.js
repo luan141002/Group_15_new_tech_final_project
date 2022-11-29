@@ -1,3 +1,4 @@
+import dayjs from "dayjs"
 import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 import { Alert, Button, Modal, ModalBody, ModalFooter, ModalHeader } from 'reactstrap'
@@ -169,7 +170,7 @@ function SubmissionSection(props) {
       {
         submission && <>
           <p className='tm-group-subname'>
-            { submitter && `${submitter.firstName} ${submitter.lastName} submitted on ${submission.info.submitDate}` }
+            { submitter && `${submitter.firstName} ${submitter.lastName} submitted on ${dayjs(submission.info.submitDate).format('lll')}` }
           </p>
           {
             submission.documents && (
@@ -196,7 +197,7 @@ function SubmissionSection(props) {
                           const adviser = findAdviser(group, e.by)
                           return (
                             <li key={`endorser-${e.by}`}>
-                              {`${adviser.firstName} ${adviser.lastName} on ${e.when}`}
+                              {`${adviser.firstName} ${adviser.lastName} on ${dayjs(e.when).format('lll')}`}
                             </li>
                           )
                         })
@@ -219,7 +220,7 @@ function SubmissionSection(props) {
                           const fac = findFaculty(e.by)
                           return (
                             <li key={`approver-${e.by}`}>
-                              {`${fac.firstName} ${fac.lastName} on ${e.when}`}
+                              {`${fac.firstName} ${fac.lastName} on ${dayjs(e.when).format('lll')}`}
                             </li>
                           )
                         })

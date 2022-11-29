@@ -500,7 +500,7 @@ router.get('/users', readToken, async (req, res) => {
         verifyCode: isAdmin ? e.verifyCode : undefined,
         username: e.username,
         photo: e.photo,
-        photoType: accountDetails.photoType
+        photoType: e.photoType
     })))
 })
 

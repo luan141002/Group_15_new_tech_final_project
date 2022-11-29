@@ -4,6 +4,9 @@ import { Helmet } from "react-helmet"
 import { Alert, Button, Col, FormGroup, Input, Label, Modal, ModalBody, ModalFooter, ModalHeader, Row } from "reactstrap"
 import Calendar, { daysOfWeekShort } from "../../components/calendar"
 import ScheduleService from "../../services/ScheduleService"
+import FullCalendar from "@fullcalendar/react"
+import dayGridPlugin from '@fullcalendar/daygrid'
+import interactionPlugin from '@fullcalendar/interaction'
 
 function createFormState() {
   return {
@@ -88,6 +91,14 @@ function ScheduleSection(props) {
 
   const onClickEvent = (scheduleId) => {
     const schedule = schedules.find(e => e.id === scheduleId)
+    if (schedule) {
+      openModal(schedule)()
+    }
+  }
+
+  const onClickEvent2 = (eventInfo) => {
+    const { event } = eventInfo
+    const schedule = schedules.find(e => e.id.toString() === event.id)
     if (schedule) {
       openModal(schedule)()
     }
@@ -293,7 +304,32 @@ function ScheduleSection(props) {
           <div className='tm-group'>
             <h2 className="tm-group-name">Schedule</h2>
             <Button onClick={openModal()}>Add</Button>
-            <Calendar year={year} month={month} onChange={onChange} events={schedules} onClickEvent={onClickEvent} />
+            <FullCalendar
+              contentHeight='60vh'
+              plugins={[dayGridPlugin, interactionPlugin]}
+              selectable
+              eventClick={onClickEvent2}
+              events={schedules ? schedules.map(e => {
+                if (e.repeating) {
+                  const obj = {
+                    id: e.id || e._id,
+                    daysOfWeek: e.repeat.split('').map(e => Number.parseInt(e)),
+                    startRecur: new Date(`${e.startPeriod}T00:00:00`),
+                    endRecur: new Date(`${e.endPeriod}T23:59:59`),
+                    startTime: e.startTime,
+                    endTime: e.endTime,
+                    title: e.name
+                  }
+                  return obj
+                } else {
+                  return {
+                    id: e.id || e._id,
+                    start: new Date(`${e.startPeriod}T${e.startTime}:00`),
+                    end: new Date(`${e.startPeriod}T${e.startTime}:00`),
+                    title: e.name
+                  }
+                }
+              }) : []} />
           </div>
         </div>
       </div>

@@ -1,5 +1,6 @@
+import dayjs from "dayjs"
 import { useEffect, useState } from "react"
-import { Card, CardBody, CardText, CardTitle } from 'reactstrap'
+import { Card, CardBody, CardSubtitle, CardText, CardTitle } from 'reactstrap'
 import AnnouncementService from "../../services/AnnouncementService"
 
 function ViewAnnouncementsSection() {
@@ -27,6 +28,7 @@ function ViewAnnouncementsSection() {
             <Card className='mt-2'>
               <CardBody>
                 <CardTitle>{e.title}</CardTitle>
+                <CardSubtitle>{dayjs(e.uploadDate).format('lll')}</CardSubtitle>
                 <CardText>{e.message}</CardText>
               </CardBody>
             </Card>

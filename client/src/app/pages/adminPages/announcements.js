@@ -3,6 +3,7 @@ import { useEffect, useState } from "react"
 import { Helmet } from "react-helmet"
 import { Alert, Button, FormGroup, Input, Label, Modal, ModalBody, ModalFooter, ModalHeader, Table } from "reactstrap"
 import AnnouncementService from "../../services/AnnouncementService"
+import dayjs from 'dayjs'
 
 function createFormState() {
   return {
@@ -133,7 +134,7 @@ function AnnouncementsPage() {
                   announcements.map(e => (
                     <tr key={`group-${e._id}`}>
                       <td>{e.title}</td>
-                      <td>{e.uploadDate}</td>
+                      <td>{dayjs(e.uploadDate).format('lll')}</td>
                       <td>
                         <Button onClick={openDeleteModal(e._id)} color='danger' size='sm'>Delete</Button>
                       </td>

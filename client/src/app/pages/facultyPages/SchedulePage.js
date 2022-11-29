@@ -1,20 +1,7 @@
-import { useEffect } from "react"
 import { Helmet } from "react-helmet"
 import ScheduleSection from '../../components/sections/ScheduleSection'
 
 function SchedulePage() {
-  const load = async () => {
-    try {
-
-    } catch (error) {
-
-    }
-  }
-
-  useEffect(() => {
-    load()
-  }, [])
-
   return (
     <>
       <Helmet>
