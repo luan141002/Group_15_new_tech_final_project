@@ -1,17 +1,12 @@
-const bcrypt = require('bcrypt')
-const mongoose = require('mongoose')
-const ServerError = require('../error')
-const Schema = mongoose.Schema
+const bcrypt = require('bcrypt');
+const mongoose = require('mongoose');
+const ServerError = require('../utility/error');
+const Schema = mongoose.Schema;
 
-const options = { discriminatorKey: 'kind' }
+const options = { discriminatorKey: 'kind' };
 
 const AccountSchema = new Schema({
     idnum: {
-        type: String,
-        required: true,
-        unique: true
-    },
-    username: {
         type: String,
         required: true,
         unique: true
@@ -30,18 +25,7 @@ const AccountSchema = new Schema({
         required: true,
         unique: true
     },
-    passwordEnc: {
-        type: String,
-        required: true
-    },
-    startDate: {
-        type: Date,
-        required: true
-    },
-    endDate: {
-        type: Date,
-        required: true
-    },
+    password: String,
     photo: Buffer,
     photoType: String,
     joined: {
@@ -49,98 +33,62 @@ const AccountSchema = new Schema({
         required: true,
         default: Date.now
     },
-    verified: {
+    activated: {
         type: Boolean,
-        required: true,
+        required: false,
         default: false
     },
-    verifyCode: {
-        type: String,
-        required: true
-    }
-}, options)
+    status: String
+}, options);
 
 AccountSchema.pre('save', function(next) {
-    const account = this
-    if (this.isModified('passwordEnc') || this.isNew) {
-        bcrypt.hash(account.passwordEnc, 10, function(err, hash) {
-            if (err) return next(err)
-            account.passwordEnc = hash
-            next()
-        })
+    const account = this;
+    if (account.password && (this.isModified('password') || this.isNew)) {
+        bcrypt.hash(account.password, 10, function(err, hash) {
+            if (err) return next(err);
+            account.password = hash;
+            next();
+        });
     } else {
-        return next()
+        return next();
     }
-})
+});
 
-AccountSchema.statics.getBasicInfo = function(account) {
-    return {
-        id: account._id,
-        idnum: account.idnum,
-        lastName: account.lastName,
-        firstName: account.firstName,
-        middleName: account.middleName
-    }
+AccountSchema.statics.hashPassword = async function(rawPassword) {
+    return await bcrypt.hash(rawPassword, 10)
 }
 
-AccountSchema.statics.authenticate = async function(username, password) {
-    const query = {
-        username: { $regex: new RegExp(`^${username}$`, 'i') }
-    }
+AccountSchema.statics.verifyPassword = async function(inputPassword, encodedPassword) {
+    return await bcrypt.compare(inputPassword, encodedPassword)
+}
+
+AccountSchema.statics.authenticate = async function(idnum, password) {
+    const query = { idnum };
 
     try {
-        const account = await User.findOne(query)
-        if (!account) throw new ServerError(401, 'Invalid username/password')
+        const account = await User.findOne(query);
+        if (!account) throw new ServerError(401, 'Invalid user ID/password');
         
-        if (await bcrypt.compare(password, account.passwordEnc)) {
-            if (!account.verified) throw new ServerError(401, 'Account is not verified')
-            return account
+        if (await bcrypt.compare(password, account.password)) {
+            if (!account.activated) throw new ServerError(401, 'Account is not activated');
+            return account;
         }
         
-        throw new ServerError(401, 'Invalid username/password')
+        throw new ServerError(401, 'Invalid user ID/password');
     } catch (error) {
-        throw error
+        throw error;
     }
 }
 
-const User = mongoose.model('Account', AccountSchema)
+const User = mongoose.model('Account', AccountSchema);
 
-const Student = User.discriminator('Student', new mongoose.Schema({
-    group: {
-        type: Schema.Types.ObjectId,
-        ref: 'Group'
-    },
-    roles: {
-        type: [String],
-        enum: ['proponent']
-    },
-    process: {
-        type: Number,
-        default: 1
-    }
-}))
-
-const Faculty = User.discriminator('Faculty', new mongoose.Schema({
-    roles: {
-        type: [String],
-        enum: ['panelist', 'adviser', 'coordinator']
-    }
-}))
-
-const Administrator = User.discriminator('Administrator', new mongoose.Schema({
-    roles: {
-        type: [String],
-        enum: ['chair', 'secretary']
-    },
-    superadmin: {
-        type: Boolean,
-        default: false
-    }
-}))
+const Student = User.discriminator('Student', AccountSchema);
+const Faculty = User.discriminator('Faculty', AccountSchema);
+const Administrator = User.discriminator('Administrator', AccountSchema);
 
 module.exports = {
     User,
     Student,
     Faculty,
     Administrator
-}
+};

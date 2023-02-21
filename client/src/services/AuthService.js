@@ -1,0 +1,73 @@
+import WebService from "./WebService"
+
+const AuthService = {
+  findRedirectUrl: kind => {
+    if (!kind) return '';
+    let nextUrl = '/';
+    switch (kind) {
+      case 'faculty':
+        nextUrl = '/faculty';
+        break;
+      case 'administrator':
+        nextUrl = '/admin';
+        break;
+      default:
+        break;
+    }
+
+    return nextUrl;
+  },
+
+  login: async (userID, password, nextUrl) => {
+    const body = { userID, password };
+    const response = await WebService.postJson('/auth/login', body);
+
+    if (response.ok) {
+      const token = await response.json();
+      localStorage.setItem('token', token.token);
+      if (!nextUrl) {
+        nextUrl = '/';
+      }
+
+      token.nextUrl = nextUrl;
+      return token;
+    }
+    
+    return null;
+  },
+
+  register: async (userID, email) => {
+    const body = { userID, email };
+    await WebService.postJson('/auth/register', body);
+  },
+
+  verify: async (token, password, repeat) => {
+    const body = { token, password, repeat };
+    await WebService.postJson('/auth/verify', body);
+  },
+
+  logout: () => {
+    localStorage.removeItem('token');
+  },
+
+  getTokenInfo: async () => {
+    const result = await WebService.post('/auth/token');
+    const token = await result.json();
+    const nextUrl = AuthService.findRedirectUrl(token.kind);
+    token.nextUrl = nextUrl;
+    return token;
+  },
+
+  getHeader: () => {
+    const token = AuthService.getToken();
+    return token
+      ? { 'Authorization': `Bearer ${token}` }
+      : { 'Authorization': '' };
+  },
+
+  getToken: () => {
+    return localStorage.getItem('token');
+  }
+};
+
+export default AuthService;
