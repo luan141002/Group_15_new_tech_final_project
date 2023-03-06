@@ -6,8 +6,22 @@ import reportWebVitals from './reportWebVitals';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import dayjs from 'dayjs';
 import localizedFormatPlugin from 'dayjs/plugin/localizedFormat';
+import relativeTimePlugin from 'dayjs/plugin/relativeTime';
+import i18next from 'i18next';
+import { initReactI18next } from "react-i18next";
+import en from './translations/en';
+
+i18next
+  .use(initReactI18next)
+  .init({
+  resources: {
+    en: { translation: en },
+  },
+  lng: 'en'
+});
 
 dayjs.extend(localizedFormatPlugin);
+dayjs.extend(relativeTimePlugin);
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(

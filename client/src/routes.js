@@ -9,7 +9,7 @@ import ThesisPage from "./pages/ThesisPage";
 import SubmissionPage from "./pages/SubmissionPage";
 import EditThesisPage from "./pages/EditThesisPage";
 import SettingsPage from "./pages/account/SettingsPage";
-import AccountPage from "./pages/account/AccountPage";
+import AccountPage from "./pages/AccountPage";
 
 const routes = [
   {

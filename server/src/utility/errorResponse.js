@@ -5,6 +5,7 @@ function errorResponse(err, message, details) {
 
     if (err instanceof ServerError) {
         return res.status(err.status).json({
+            code: err.code,
             message: err.message,
             details: err.details
         })
@@ -12,7 +13,7 @@ function errorResponse(err, message, details) {
 
     console.log(err);
     if (typeof message === 'string') {
-        return res.status(500).json({ message, details })
+        return res.status(500).json({ code: 'error.unknown', message, details })
     } else {
         return res.status(500).json(message)
     }

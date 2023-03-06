@@ -6,11 +6,6 @@ const Schema = mongoose.Schema;
 const options = { discriminatorKey: 'kind' };
 
 const AccountSchema = new Schema({
-    idnum: {
-        type: String,
-        required: true,
-        unique: true
-    },
     lastName: {
         type: String,
         required: true
@@ -62,19 +57,19 @@ AccountSchema.statics.verifyPassword = async function(inputPassword, encodedPass
     return await bcrypt.compare(inputPassword, encodedPassword)
 }
 
-AccountSchema.statics.authenticate = async function(idnum, password) {
-    const query = { idnum };
+AccountSchema.statics.authenticate = async function(email, password) {
+    const query = { email };
 
     try {
         const account = await User.findOne(query);
-        if (!account) throw new ServerError(401, 'Invalid user ID/password');
+        if (!account) throw new ServerError(401, 'error.auth.invalid_credentials', 'Invalid email/password');
         
         if (await bcrypt.compare(password, account.password)) {
-            if (!account.activated) throw new ServerError(401, 'Account is not activated');
+            if (!account.activated) throw new ServerError(401, 'error.auth.not_activated', 'Account is not activated');
             return account;
         }
         
-        throw new ServerError(401, 'Invalid user ID/password');
+        throw new ServerError(401, 'error.auth.invalid_credentials', 'Invalid email/password');
     } catch (error) {
         throw error;
     }

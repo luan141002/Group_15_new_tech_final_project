@@ -10,8 +10,10 @@ import ThesisService from '../../services/ThesisService';
 import dayjs from 'dayjs';
 import { Link } from 'react-router-dom';
 import { LinkContainer } from 'react-router-bootstrap';
+import { useTranslation } from 'react-i18next';
 
 function DashboardPage() {
+  const { t } = useTranslation();
   const [theses, setTheses] = useState([]);
   /*const [students, setStudents] = useState([]);
   const [selectedStudent, setSelectedStudent] = useState('');
@@ -124,9 +126,9 @@ function DashboardPage() {
                           theses[0].submissions.map((e, i) => (
                             <tr>
                               <td><Link to={`/thesis/${theses[0]._id}/submission/${e._id}`}>{theses[0].submissions.length - i}</Link></td>
-                              <td><Link to={`/thesis/${theses[0]._id}/submission/${e._id}`}>{renderName(findMember(theses[0], e.submitter))}</Link></td>
+                              <td><Link to={`/thesis/${theses[0]._id}/submission/${e._id}`}>{t('values.full_name', findMember(theses[0], e.submitter))}</Link></td>
                               <td><Link to={`/thesis/${theses[0]._id}/submission/${e._id}`}>{dayjs(e.submitted).format('LLL')}</Link></td>
-                              <td>For checking</td>
+                              <td>{i === 0 ? t(`values.thesis_status.${theses[0].status}`) : ''}</td>
                             </tr>
                           ))
                         }

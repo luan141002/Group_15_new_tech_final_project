@@ -25,6 +25,11 @@ const ThesisSchema = new Schema({
         required: true,
         default: false
     },
+    phase: {
+        type: Number,
+        required: true,
+        default: 1
+    },
     grades: [{
         value: {
             type: Number,
@@ -34,13 +39,27 @@ const ThesisSchema = new Schema({
             type: Date,
             required: true,
             default: Date.now
+        },
+        phase: {
+            type: Number,
+            required: true
+        },
+        remarks: String,
+        by: {
+            type: Schema.Types.ObjectId,
+            ref: 'User',
+            required: true
         }
     }],
+    remarks: String,
     status: {
         type: String,
         enum: [
             'for_checking',
-            'approved'
+            'endorsed',
+            'redefense',
+            'pass',
+            'fail',
         ],
         default: 'for_checking'
     }

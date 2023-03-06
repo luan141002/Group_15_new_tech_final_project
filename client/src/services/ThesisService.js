@@ -33,7 +33,21 @@ const ThesisService = {
     for (const adviser of thesis.advisers) form.append('advisers', adviser._id);
     for (const attachment of thesis.attachments) form.append('files', attachment);
 
-    await WebService.postForm('/thesis', form);
+    return await WebService.postForm('/thesis', form);
+  },
+
+  /**
+   * Updates the status of a thesis.
+   * @param {string} tid
+   * @param {{password: string, status: string, grade: number?, remarks: string?}} data
+   */
+  updateStatus: async (tid, data) => {
+    const { password, ...rest } = data;
+    await WebService.postJson(`/thesis/${tid}/status`, rest, {
+      headers: {
+        'X-Password-Reentry': password
+      }
+    });
   },
 };
 

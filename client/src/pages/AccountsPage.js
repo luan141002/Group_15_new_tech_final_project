@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import Button from 'react-bootstrap/Button';
 import Form from 'react-bootstrap/Form';
-import Image from 'react-bootstrap/Image';
 import Modal from 'react-bootstrap/Modal';
 import Table from 'react-bootstrap/Table';
 import Row from 'react-bootstrap/Row';
@@ -13,10 +12,9 @@ import { LinkContainer } from 'react-router-bootstrap';
 import ExcelJS from 'exceljs';
 import { useTranslation } from 'react-i18next';
 import { DatatableWrapper, Pagination, PaginationOptions, TableBody, TableHeader } from 'react-bs-datatable';
-import defaultProfile from '../../default-profile-photo.jpg';
 import ProfileImage from '../../components/ProfileImage';
 
-function DashboardPage() {
+function AccountsPage() {
   const { t } = useTranslation();
   const [accounts, setAccounts] = useState([]);
   const [type, setType] = useState('');
@@ -203,4 +201,4 @@ function DashboardPage() {
   );
 }
 
-export default DashboardPage;
+export default AccountsPage;

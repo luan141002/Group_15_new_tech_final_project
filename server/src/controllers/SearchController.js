@@ -36,7 +36,8 @@ SearchController.get('/', requireToken, async (req, res) => {
                             lastName: e2.lastName,
                             firstName: e2.firstName,
                             middleName: e2.middleName
-                        }))
+                        })),
+                        status: e.status
                     }
                 }));
             

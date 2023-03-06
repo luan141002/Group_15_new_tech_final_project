@@ -3,7 +3,9 @@ import AuthService from './AuthService';
 const API_URL = process.env.REACT_APP_API;
 
 class WebError {
-  constructor(message, details) {
+  constructor(status, code, message, details) {
+    this.status = status;
+    this.code = code;
     this.message = message;
     this.details = details;
   }
@@ -17,12 +19,12 @@ const WebService = {
       const result = await fetch(`${API_URL}${endpoint}`, { headers: authHeaders, ...initRest });
       if (!result.ok) {
         const reason = await result.json();
-        throw new WebError(reason.message, reason.details);
+        throw new WebError(result.status, reason.code, reason.message, reason.details);
       }
       return result;
     } catch (error) {
       if (error instanceof WebError) throw error;
-      throw new WebError('Could not connect to remote server', error);
+      throw new WebError(0, 'Could not connect to remote server', error);
     }
   },
 
@@ -51,17 +53,6 @@ const WebService = {
     });
   },
 
-  putJson: async (endpoint, body, init) => {
-    const { headers, ...rest } = init || {};
-    const jsonHeaders = { ...headers, ...{ 'Content-Type': 'application/json' } };
-    return await WebService.request(endpoint, {
-      body: JSON.stringify(body),
-      headers: jsonHeaders,
-      method: 'PUT',
-      ...rest
-    });
-  },
-
   postForm: async (endpoint, form, init) => {
     const { headers, ...rest } = init || {};
     const jsonHeaders = { ...headers };
@@ -73,11 +64,33 @@ const WebService = {
     });
   },
 
+  putJson: async (endpoint, body, init) => {
+    const { headers, ...rest } = init || {};
+    const jsonHeaders = { ...headers, ...{ 'Content-Type': 'application/json' } };
+    return await WebService.request(endpoint, {
+      body: JSON.stringify(body),
+      headers: jsonHeaders,
+      method: 'PUT',
+      ...rest
+    });
+  },
+
   patchJson: async (endpoint, body, init) => {
     const { headers, ...rest } = init || {};
     const jsonHeaders = { ...headers, ...{ 'Content-Type': 'application/json' } };
     return await WebService.request(endpoint, {
       body: JSON.stringify(body),
+      headers: jsonHeaders,
+      method: 'PATCH',
+      ...rest
+    });
+  },
+
+  patchForm: async (endpoint, form, init) => {
+    const { headers, ...rest } = init || {};
+    const jsonHeaders = { ...headers };
+    return await WebService.request(endpoint, {
+      body: form,
       headers: jsonHeaders,
       method: 'PATCH',
       ...rest
@@ -95,3 +108,4 @@ const WebService = {
 }
 
 export default WebService;
+export { WebError };

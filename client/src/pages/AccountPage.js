@@ -6,8 +6,8 @@ import Image from 'react-bootstrap/Image';
 import Spinner from 'react-bootstrap/Spinner';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useEffect, useRef, useState } from 'react';
-import AccountService from '../../services/AccountService';
-import defaultProfile from '../../default-profile-photo.jpg';
+import AccountService from '../services/AccountService';
+import defaultProfile from '../default-profile-photo.jpg';
 
 function AccountPage() {
   const { aid } = useParams();
@@ -89,12 +89,6 @@ function AccountPage() {
         <Row>
           <Col md={isNew ? 12 : 8}>
             <Row>
-              <Col md={4}>
-                <Form.Group className="mb-3" controlId="formIDNumber">
-                  <Form.Label>ID number</Form.Label>
-                  <Form.Control type="text" value={idNumber} onChange={e => setIDNumber(e.currentTarget.value)} readOnly={!isNew} />
-                </Form.Group>
-              </Col>
               <Col md={4}>
                 <Form.Group className="mb-3" controlId="formEmail">
                   <Form.Label>Email</Form.Label>

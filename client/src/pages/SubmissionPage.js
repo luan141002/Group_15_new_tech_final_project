@@ -43,7 +43,7 @@ function SubmissionPage() {
           {
             (submission.attachments && submission.attachments.length > 0) &&
               <>
-                <h5>Attachments</h5>
+                <h5>Media and Files</h5>
                 <Table striped bordered hover size="sm">
                   <thead>
                     <tr>

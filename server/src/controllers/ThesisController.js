@@ -1,9 +1,11 @@
 const express = require('express');
 const requireToken = require('../middleware/requireToken');
+const requirePass = require('../middleware/requirePass');
 const Thesis = require('../models/Thesis');
 const multer = require('multer');
 const Submission = require('../models/Submission');
 const ServerError = require('../utility/error');
+const { init } = require('../models/Thesis');
 
 const ThesisController = express.Router();
 
@@ -67,6 +69,7 @@ ThesisController.get('/thesis', requireToken, async (req, res) => {
                 firstName: e2.firstName,
                 middleName: e2.middleName
             })),
+            status: e.status,
             submission: e.submission,
             submissions: e.submissions
         })));
@@ -97,6 +100,9 @@ ThesisController.get('/thesis/:id', requireToken, async (req, res) => {
             }));
         }
 
+        const grades = result.grades || [];
+        grades.sort((a, b) => -(a.when.getTime() - b.when.getTime()));
+
         return res.json({
             _id: result._id,
             title: result.title,
@@ -113,8 +119,71 @@ ThesisController.get('/thesis/:id', requireToken, async (req, res) => {
                 firstName: e2.firstName,
                 middleName: e2.middleName
             })),
+            grade: grades[0] ? grades[0].value : undefined,
+            status: result.status,
+            remarks: grades[0] ? grades[0].remarks : undefined,
             submissions: result.submissions
         });
+    } catch (error) {
+        return res.error(error);
+    }
+});
+
+const transitions = [
+    [ 'for_checking', 'endorsed' ],
+    [ 'endorsed', 'pass' ],
+    [ 'endorsed', 'fail' ],
+    [ 'endorsed', 'redefense' ],
+    [ 'redefense', 'endorsed' ],
+    [ 'pass', 'for_checking' ],
+    [ 'fail', 'for_checking' ],
+];
+
+const isValidTransition = (prev, next) => {
+    for (const [p, n] of transitions) {
+        if (p === prev && n === next) return true;
+    }
+
+    return false;
+};
+
+ThesisController.post('/thesis/:tid/status', requireToken, requirePass, async (req, res) => {
+    const { tid } = req.params;
+    const { accountID, kind } = req.token;
+    const { status, grade, remarks } = req.body;
+
+    try {
+        if (kind === 'student') throw new ServerError(403, 'Cannot change status.');
+        
+        const thesis = await Thesis.findById(tid);
+        if (!thesis) throw new ServerError(404, 'Thesis not found.');
+
+        if (thesis.locked) throw new ServerError(403, 'Thesis is locked and cannot be edited.');
+
+        if (!status) throw new ServerError(400, 'Status required.');
+
+        const initialStatus = thesis.status;
+        const nextStatus = status;
+        if (!isValidTransition(initialStatus, nextStatus)) throw new ServerError(400, 'Invalid status.');
+
+        let newGrade = 0.0;
+        if (status === 'pass') {
+            if (!grade) throw new ServerError(400, 'Grade required.');
+            newGrade = grade;
+        }
+
+        thesis.status = nextStatus;
+        if (status === 'pass' || status === 'fail') {
+            thesis.grades.push({
+                value: newGrade,
+                phase: thesis.phase,
+                remarks: remarks ? remarks.trim() : null,
+                by: accountID
+            });
+        }
+
+        await thesis.save();
+        return res.sendStatus(204);
     } catch (error) {
         return res.error(error);
     }

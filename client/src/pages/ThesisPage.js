@@ -19,7 +19,7 @@ function ThesisPage() {
 
   return (
     <>
-      { thesis && <ThesisView thesis={thesis} /> }
+      { thesis && <ThesisView thesis={thesis} onUpdate={onLoad} /> }
     </>
   );
 }

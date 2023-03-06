@@ -13,20 +13,20 @@ function buildTokenInfo(account) {
         exp: Math.floor(Date.now() / 1000) + (60 * validity),
         data: {
             accountID: account._id.toString(),
-            userID: account.idnum,
+            /*userID: account.idnum,*/
             kind: account.kind
         }
     };
 }
 
 AccountController.post('/auth/login', async (req, res) => {
-    const { userID, password } = req.body;
+    const { email, password } = req.body;
 
     try {
-        if (!userID) throw new ServerError(400, 'User ID required');
-        if (!password) throw new ServerError(400, 'Password required');
+        if (!email) throw new ServerError(400, 'error.validation.email', 'Email required', { field: 'email' });
+        if (!password) throw new ServerError(400, 'error.validation.password', 'Password required', { field: 'password' });
 
-        const user = await Account.User.authenticate(userID, password);
+        const user = await Account.User.authenticate(email, password);
         const tokenInfo = buildTokenInfo(user);
         const token = jwt.sign(tokenInfo, 'secret'); // TODO: change secret
 
@@ -47,10 +47,10 @@ AccountController.post('/auth/register', async (req, res) => {
     const { userID, email } = req.body;
 
     try {
-        if (!userID) throw new ServerError(400, 'User ID required');
-        if (!email) throw new ServerError(400, 'Email required');
+        /*if (!userID) throw new ServerError(400, 'User ID required');*/
+        if (!email) throw new ServerError(400, 'error.validation.email', 'Email required', { field: 'email' });
 
-        const user = await Account.User.findOne({ idnum: userID, email });
+        const user = await Account.User.findOne({ /*idnum: userID,*/ email });
         if (user) {
             const validity = Number.parseInt(process.env.VERIFICATION_VALIDITY || 10);
             const token = jwt.sign({
@@ -75,13 +75,13 @@ AccountController.post('/auth/verify', async (req, res) => {
     const { password, repeat, token } = req.body;
     
     try {
-        if (!token) throw new ServerError(400, 'Token required');
-        if (!password) throw new ServerError(400, 'Password required');
-        if (password !== repeat) throw new ServerError(400, 'Password mismatch');
+        if (!token) throw new ServerError(400, 'error.auth.no_token', 'Token required');
+        if (!password) throw new ServerError(400, 'error.validation.password', 'Password required', { field: 'password' });
+        if (password !== repeat) throw new ServerError(400, 'error.validation.password_mismatch', 'Password mismatch', { field: 'repeat' });
 
         const { data } = jwt.verify(token, 'secret'); // TODO: change secret
-        const user = await Account.User.findOne({ idnum: data.userID, email: data.email });
-        if (!user) throw new ServerError(401, 'User does not exist');
+        const user = await Account.User.findOne({ /*idnum: data.userID,*/ email: data.email });
+        if (!user) throw new ServerError(401, 'error.auth.verify_not_present', 'User does not exist');
 
         user.password = password;
         user.activated = true;

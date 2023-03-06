@@ -7,8 +7,8 @@ import { Link } from 'react-router-dom';
 import WebService from '../../services/WebService';
 
 function RegisterPage() {
-  const [idNumber, setIDNumber] = useState('');
-  /*const [lastName, setLastName] = useState('');
+  /*const [idNumber, setIDNumber] = useState('');
+  const [lastName, setLastName] = useState('');
   const [firstName, setFirstName] = useState('');
   const [middleName, setMiddleName] = useState('');*/
   const [email, setEmail] = useState('');
@@ -18,7 +18,7 @@ function RegisterPage() {
   const handleRegister = async (event) => {
     event.preventDefault();
     setError('');
-    await WebService.postJson('/auth/register', { userID: idNumber, email });
+    await WebService.postJson('/auth/register', { email });
     setShowNew(true);
   };
 
@@ -30,11 +30,11 @@ function RegisterPage() {
             <p>An email will be sent to the email address you entered if it is registered.</p> :
             <Form onSubmit={handleRegister}>
               <h1 className='display-5'>Register</h1>
-              <Form.Group className='mb-3' controlId='formUserID'>
+              {/*<Form.Group className='mb-3' controlId='formUserID'>
                 <Form.Label>ID number</Form.Label>
                 <Form.Control type='text' value={idNumber} onChange={e => setIDNumber(e.target.value)} />
               </Form.Group>
-              {/*<Form.Group className='mb-3' controlId='formLastName'>
+              <Form.Group className='mb-3' controlId='formLastName'>
                 <Form.Label>Last name</Form.Label>
                 <Form.Control type='text' value={lastName} onChange={e => setLastName(e.target.value)} />
               </Form.Group>

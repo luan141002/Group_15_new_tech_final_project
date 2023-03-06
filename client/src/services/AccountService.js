@@ -6,6 +6,11 @@ const AccountService = {
     return await response.json();
   },
 
+  getAccountImage: async (accountID, queries) => {
+    const response = await WebService.get(`/account/${accountID}/image`, queries);
+    return await response.blob();
+  },
+
   getAccounts: async (type, queries) => {
     let _queries = { ...queries };
     if (type) _queries.type = type;
@@ -27,8 +32,18 @@ const AccountService = {
     return await response.json();
   },
 
+  createAccounts: async (values) => await AccountService.createAccount(values),
+
   updateAccount: async (accountID, values) => {
-    await WebService.putJson(`/account/${accountID}`, values);
+    const form = new FormData();
+    if (values.newPassword) form.append('newPassword', values.newPassword);
+    if (values.currentPassword) form.append('currentPassword', values.currentPassword);
+    if (values.retypePassword) form.append('retypePassword', values.retypePassword);
+    if (values.photo) {
+      form.append('photo', values.photo);
+    }
+    
+    await WebService.patchForm(`/account/${accountID}`, form);
   },
 };
 

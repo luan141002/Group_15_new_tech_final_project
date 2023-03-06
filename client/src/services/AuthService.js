@@ -18,8 +18,8 @@ const AuthService = {
     return nextUrl;
   },
 
-  login: async (userID, password, nextUrl) => {
-    const body = { userID, password };
+  login: async (email, password, nextUrl) => {
+    const body = { email, password };
     const response = await WebService.postJson('/auth/login', body);
 
     if (response.ok) {
@@ -36,8 +36,8 @@ const AuthService = {
     return null;
   },
 
-  register: async (userID, email) => {
-    const body = { userID, email };
+  register: async (email) => {
+    const body = { email };
     await WebService.postJson('/auth/register', body);
   },
 
