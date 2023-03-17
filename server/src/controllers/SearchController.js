@@ -21,6 +21,7 @@ SearchController.get('/', requireToken, async (req, res) => {
             const theses = (await Thesis.find(query).populate('authors').populate('advisers'))
                 .map(e => ({
                     type: 'thesis',
+                    key: e.title,
                     value: {
                         _id: e._id,
                         title: e.title,
@@ -54,6 +55,7 @@ SearchController.get('/', requireToken, async (req, res) => {
             const accounts = (await Account.User.find(query))
                 .map(e => ({
                     type: 'account',
+                    key: `${e.lastName}, ${e.firstName}`,
                     value: {
                         _id: e._id,
                         lastName: e.lastName,

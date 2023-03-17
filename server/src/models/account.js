@@ -33,6 +33,10 @@ const AccountSchema = new Schema({
         required: false,
         default: false
     },
+    locked: {
+        type: Boolean,
+        default: false
+    },
     status: String
 }, options);
 

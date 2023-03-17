@@ -1,22 +1,21 @@
 import React, { useEffect, useState } from 'react';
 import Button from 'react-bootstrap/Button';
-import Col from 'react-bootstrap/Col';
 import Form from 'react-bootstrap/Form';
 import Modal from 'react-bootstrap/Modal';
-import Row from 'react-bootstrap/Row';
 import Table from 'react-bootstrap/Table';
+import Row from 'react-bootstrap/Row';
+import Col from 'react-bootstrap/Col';
+import AccountService from '../../services/AccountService';
+import renderName from '../../utility/renderName';
 import { Pencil, Trash } from 'react-bootstrap-icons';
-import { DatatableWrapper, Pagination, PaginationOptions, TableBody, TableHeader } from 'react-bs-datatable';
-import { useTranslation } from 'react-i18next';
 import { LinkContainer } from 'react-router-bootstrap';
-import { useNavigate } from 'react-router-dom';
 import ExcelJS from 'exceljs';
-import ProfileImage from '../components/ProfileImage';
-import AccountService from '../services/AccountService';
+import { useTranslation } from 'react-i18next';
+import { DatatableWrapper, Pagination, PaginationOptions, TableBody, TableHeader } from 'react-bs-datatable';
+import ProfileImage from '../../components/ProfileImage';
 
-function AccountsPage() {
+function ImportAccountsPage() {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const [accounts, setAccounts] = useState([]);
   const [type, setType] = useState('');
   const [importedAccounts, setImportedAccounts] = useState([]);
@@ -137,13 +136,12 @@ function AccountsPage() {
       >
         <Row className='mb-2'>
           <Col>
-            <h3>Accounts</h3>
+            <h3>Account</h3>
           </Col>
           <Col className='d-flex flex-column align-items-end'>
             <div>
               <Button className='me-2' onClick={() => setImportAccountDialogOpen(true)}>Add accounts from file...</Button>
-              <LinkContainer to='/account/new'><Button className='me-2' as='a'>Add account</Button></LinkContainer>
-              <Button variant='secondary' onClick={() => navigate(-1)}>Back</Button>
+              <LinkContainer to='/account/new'><Button as='a'>Add account</Button></LinkContainer>
             </div>
           </Col>
         </Row>
@@ -182,7 +180,7 @@ function AccountsPage() {
               {
                 importedAccounts.map((e, i) => (
                   <tr>
-                    <td>{t('values.full_name', e)}</td>
+                    <td>{renderName(e)}</td>
                     <td>{e.email}</td>
                     <td>{t(`values.account_kind.${e.kind}`)}</td>
                     <td>
@@ -203,4 +201,4 @@ function AccountsPage() {
   );
 }
 
-export default AccountsPage;
+export default ImportAccountsPage;

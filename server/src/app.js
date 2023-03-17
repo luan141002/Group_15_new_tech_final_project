@@ -26,6 +26,8 @@ async function main(port) {
     app.use(require('./controllers/AccountController'));
     app.use(require('./controllers/AuthController'));
     app.use(require('./controllers/ThesisController'));
+    app.use(require('./controllers/DefenseController'));
+    app.use(require('./controllers/AnnouncementController'));
 
     app.listen(port, () => {
         console.log(`Now listening on port ${PORT}`);

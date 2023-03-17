@@ -6,6 +6,7 @@ const multer = require('multer');
 const sharp = require('sharp');
 const randomjs = require('random-js');
 const crypto = require('crypto');
+const isQueryTrue = require('../utility/isQueryTrue');
 
 const AccountController = express.Router();
 const upload = multer();
@@ -112,7 +113,7 @@ AccountController.get('/account/:id/image', requireToken, async (req, res) => {
         let nSize = Number.parseInt(size);
         
         if (!nSize) {
-            nSize = thumbnail ? 48 : 216;
+            nSize = isQueryTrue(thumbnail) ? 48 : 216;
         }
         
         if (!nWidth || !nHeight) {
@@ -179,7 +180,10 @@ AccountController.get('/account/:id/image', requireToken, async (req, res) => {
             }
         }
         
-        return res.header('Content-Type', mime).send(photo);
+        return res
+            .header('Content-Type', mime)
+            .header('Cache-Control', 'public, max-age=3600')
+            .send(photo);
     } catch (error) {
         return res.error(error, 'Cannot get account');
     }

@@ -8,6 +8,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useEffect, useRef, useState } from 'react';
 import AccountService from '../services/AccountService';
 import defaultProfile from '../default-profile-photo.jpg';
+import ProfileImage from '../components/ProfileImage';
 
 function AccountPage() {
   const { aid } = useParams();
@@ -19,6 +20,7 @@ function AccountPage() {
   const [firstName, setFirstName] = useState('');
   const [middleName, setMiddleName] = useState('');
   const [type, setType] = useState('');
+  const [locked, setLocked] = useState(false);
   const [saving, setSaving] = useState(false);
   /* const [image, setImage] = useState(null);
   const imageRef = useRef(); */
@@ -33,6 +35,7 @@ function AccountPage() {
       setFirstName(account.firstName);
       setMiddleName(account.middleName);
       setType(account.kind);
+      setLocked(!!account.locked);
     }
   }, [account]);
 
@@ -83,57 +86,49 @@ function AccountPage() {
             <div className='d-flex flex-row align-items-center'>
               { saving && <Spinner className='me-2' /> }
               <Button type='submit' className='ms-auto d-inline' disabled={saving}>Save</Button>
+              <Button variant='secondary' className='ms-2 d-inline' onClick={() => navigate(-1)}>Back</Button>
             </div>
           </Col>
         </Row>
         <Row>
           <Col md={isNew ? 12 : 8}>
-            <Row>
-              <Col md={4}>
-                <Form.Group className="mb-3" controlId="formEmail">
-                  <Form.Label>Email</Form.Label>
-                  <Form.Control type="text" value={email} onChange={e => setEmail(e.currentTarget.value)} readOnly={!isNew} />
-                </Form.Group>
-              </Col>
-              <Col md={4}>
-                <Form.Group className="mb-3" controlId="formType">
-                  <Form.Label>Type</Form.Label>
-                  <Form.Select value={type} onChange={e => setType(e.currentTarget.value)} disabled={!isNew}>
-                    <option value=''>--- Select type ---</option>
-                    <option value='student'>Student</option>
-                    <option value='faculty'>Faculty</option>
-                    <option value='administrator'>Administrator</option>
-                  </Form.Select>
-                </Form.Group>
-              </Col>
-            </Row>
-            <Row>
-              <Col md={4}>
-                <Form.Group className="mb-3" controlId="formLastName">
-                  <Form.Label>Last Name</Form.Label>
-                  <Form.Control type="text" value={lastName} onChange={e => setLastName(e.currentTarget.value)} />
-                </Form.Group>
-              </Col>
-              <Col md={4}>
-                <Form.Group className="mb-3" controlId="formFirstName">
-                  <Form.Label>First Name</Form.Label>
-                  <Form.Control type="text" value={firstName} onChange={e => setFirstName(e.currentTarget.value)} />
-                </Form.Group>
-              </Col>
-              <Col md={4}>
-                <Form.Group className="mb-3" controlId="formMiddleName">
-                  <Form.Label>Middle Name</Form.Label>
-                  <Form.Control type="text" value={middleName} onChange={e => setMiddleName(e.currentTarget.value)} />
-                </Form.Group>
-              </Col>
-            </Row>
+            <Form.Group className="mb-3" controlId="formEmail">
+              <Form.Label>Email</Form.Label>
+              <Form.Control type="text" value={email} onChange={e => setEmail(e.currentTarget.value)} readOnly={!isNew} />
+            </Form.Group>
+            <Form.Group className="mb-3" controlId="formType">
+              <Form.Label>Type</Form.Label>
+              <Form.Select value={type} onChange={e => setType(e.currentTarget.value)} disabled={!isNew}>
+                <option value=''>--- Select type ---</option>
+                <option value='student'>Student</option>
+                <option value='faculty'>Faculty</option>
+                <option value='administrator'>Administrator</option>
+              </Form.Select>
+            </Form.Group>
+            <Form.Group className="mb-3" controlId="formLastName">
+              <Form.Label>Last Name</Form.Label>
+              <Form.Control type="text" value={lastName} onChange={e => setLastName(e.currentTarget.value)} />
+            </Form.Group>
+            <Form.Group className="mb-3" controlId="formFirstName">
+              <Form.Label>First Name</Form.Label>
+              <Form.Control type="text" value={firstName} onChange={e => setFirstName(e.currentTarget.value)} />
+            </Form.Group>
+            <Form.Group className="mb-3" controlId="formMiddleName">
+              <Form.Label>Middle Name</Form.Label>
+              <Form.Control type="text" value={middleName} onChange={e => setMiddleName(e.currentTarget.value)} />
+            </Form.Group>
+            <Form.Group className="mb-3" controlId="formActive">
+              <Form.Check type='checkbox' checked={!locked} onChange={e => setLocked(!e.currentTarget.checked)} label='Active' />
+            </Form.Group>
           </Col>
           {
-            !isNew && (
+            !isNew && account && (
               <Col md={4} className='d-flex flex-column align-items-end'>
-                <Image width='288px' rounded src={/* image || */ defaultProfile} /*  onClick={() => {imageRef.current.click()}} */ />
-                {/* <input hidden type='file' onChange={handleImage} ref={imageRef} />
-                <Button variant='secondary' className='mt-2' onClick={() => {imageRef.current.click()}}>Change photo...</Button> */}
+                <ProfileImage
+                  width='288px'
+                  rounded
+                  accountID={account.accountID}
+                />
               </Col>
             )
           }

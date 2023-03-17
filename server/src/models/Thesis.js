@@ -44,6 +44,10 @@ const ThesisSchema = new Schema({
             type: Number,
             required: true
         },
+        term: {
+            type: String,
+            required: true
+        },
         remarks: String,
         by: {
             type: Schema.Types.ObjectId,
@@ -55,7 +59,9 @@ const ThesisSchema = new Schema({
     status: {
         type: String,
         enum: [
+            'new',
             'for_checking',
+            'checked',
             'endorsed',
             'redefense',
             'pass',

@@ -1,27 +1,40 @@
-import Container from 'react-bootstrap/Container';
-import Form from 'react-bootstrap/Form';
+import React, { useEffect, useState } from 'react';
 import Button from 'react-bootstrap/Button';
+import Col from 'react-bootstrap/Col';
+import Container from 'react-bootstrap/Container';
+import Dropdown from 'react-bootstrap/Dropdown';
+import Form from 'react-bootstrap/Form';
 import Nav from 'react-bootstrap/Nav';
 import NavDropdown from 'react-bootstrap/NavDropdown';
+import NavItem from 'react-bootstrap/NavItem';
+import NavLink from 'react-bootstrap/NavLink';
 import Navbar from 'react-bootstrap/Navbar';
+import Offcanvas from 'react-bootstrap/Offcanvas';
+import Row from 'react-bootstrap/Row';
 import Toast from 'react-bootstrap/Toast';
 import ToastContainer from 'react-bootstrap/ToastContainer';
+import { Search } from 'react-bootstrap-icons';
+import { AsyncTypeahead, Highlighter, Menu, MenuItem } from 'react-bootstrap-typeahead';
+import { useTranslation } from 'react-i18next';
 import { LinkContainer } from 'react-router-bootstrap';
 import { Outlet, useNavigate } from 'react-router-dom';
-import AuthService from '../services/AuthService';
-import { AsyncTypeahead, Highlighter, Menu, MenuItem } from 'react-bootstrap-typeahead';
-import React, { useEffect, useState } from 'react';
 import dayjs from 'dayjs';
-import SearchService from '../services/SearchService';
+import ProfileImage from '../components/ProfileImage';
 import NotificationContext from '../contexts/NotificationContext';
+import { useAccount } from '../providers/account';
+import AuthService from '../services/AuthService';
+import SearchService from '../services/SearchService';
 
 function MainLayout() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
+  const { account } = useAccount();
   const [selected, setSelected] = useState([]);
   const [options, setOptions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [toastTimer, setToastTimer] = useState(0);
+  const [showSearch, setShowSearch] = useState(false);
 
   const handleLogout = async () => {
     await AuthService.logout();
@@ -54,8 +67,6 @@ function MainLayout() {
     }
   };
 
-  const renderName = (person) => `${person.lastName}, ${person.firstName}`;
-
   const renderSearchMenu = (
     results,
     {
@@ -85,7 +96,7 @@ function MainLayout() {
           <MenuItem key={thesis._id} option={thesis} position={index}>
             <Highlighter search={state.name}>{thesis.title}</Highlighter>
             <div>
-              <small>{thesis.authors.map(renderName).join('; ')}</small>
+              <small>{thesis.authors.map(e => t('values.full_name', e)).join('; ')}</small>
             </div>
           </MenuItem>
         );
@@ -129,6 +140,41 @@ function MainLayout() {
 
   return (
     <>
+      <Offcanvas
+        show={showSearch}
+        onHide={() => setShowSearch(false)}
+        placement='top'
+        style={{
+          height: '128px'
+        }}
+      >
+        <Container>
+          <Offcanvas.Header closeButton>
+            <Offcanvas.Title>Search</Offcanvas.Title>
+          </Offcanvas.Header>
+          <Offcanvas.Body>
+            <Form className="d-flex ms-auto w-100">
+              <AsyncTypeahead
+                id='formSearch'
+                className="mx-2 w-100"
+                filterBy={() => true}
+                isLoading={loading}
+                labelKey='title'
+                renderMenu={renderSearchMenu}
+                onSearch={handleSearch}
+                options={options}
+                aria-label="Search"
+                placeholder="Search..."
+                selected={selected}
+                onChange={setSelected}
+                onKeyDown={handleSearchKey}
+                selectHint={false}
+              />
+              <Button variant="outline-success">Search</Button>
+            </Form>
+          </Offcanvas.Body>
+        </Container>
+      </Offcanvas>
       <NotificationContext.Provider value={{ notifications, pushNotification }}>
         <ToastContainer id={`toast-${toastTimer}`} className='position-fixed bottom-0 end-0 mb-4 me-4' style={{ zIndex: 11 }}>
           {
@@ -155,33 +201,26 @@ function MainLayout() {
               </Nav>
             </Navbar.Collapse>
             <Navbar.Collapse className="justify-content-end w-100">
-              <Form className="d-flex ms-auto w-100">
-                <AsyncTypeahead
-                  id='formSearch'
-                  className="mx-2 w-100"
-                  filterBy={() => true}
-                  isLoading={loading}
-                  labelKey='title'
-                  renderMenu={renderSearchMenu}
-                  onSearch={handleSearch}
-                  options={options}
-                  aria-label="Search"
-                  placeholder="Search..."
-                  selected={selected}
-                  onChange={setSelected}
-                  onKeyDown={handleSearchKey}
-                  selectHint={false}
-                />
-                <Button variant="outline-success">Search</Button>
-              </Form>
               <Nav className="ms-3">
-                <NavDropdown title="Account" id="account-dropdown">
-                  <LinkContainer to='/settings'>
-                    <NavDropdown.Item>Settings</NavDropdown.Item>
-                  </LinkContainer>
-                  <NavDropdown.Divider />
-                  <NavDropdown.Item onClick={handleLogout}>Sign out</NavDropdown.Item>
-                </NavDropdown>
+                <Button className='me-2' variant='link' onClick={() => setShowSearch(true)}><Search /></Button>
+                <Dropdown as={NavItem} id="account-dropdown">
+                  <Dropdown.Toggle as={NavLink}>
+                    <ProfileImage
+                      roundedCircle
+                      thumbnail
+                      className='me-1'
+                      accountID={account.accountID}
+                      width={30}
+                    />
+                  </Dropdown.Toggle>
+                  <Dropdown.Menu>
+                    <LinkContainer to='/settings'>
+                      <NavDropdown.Item>Settings</NavDropdown.Item>
+                    </LinkContainer>
+                    <NavDropdown.Divider />
+                    <NavDropdown.Item onClick={handleLogout}>Sign out</NavDropdown.Item>
+                  </Dropdown.Menu>
+                </Dropdown>
               </Nav>
             </Navbar.Collapse>
           </Container>

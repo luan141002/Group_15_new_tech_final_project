@@ -10,6 +10,10 @@ import SubmissionPage from "./pages/SubmissionPage";
 import EditThesisPage from "./pages/EditThesisPage";
 import SettingsPage from "./pages/account/SettingsPage";
 import AccountPage from "./pages/AccountPage";
+import AccountsPage from "./pages/AccountsPage";
+import ThesesPage from "./pages/ThesesPage";
+import DefenseWeekPage from "./pages/DefenseWeekPage";
+import AnnouncementsPage from "./pages/AnnouncementsPage";
 
 const routes = [
   {
@@ -25,12 +29,28 @@ const routes = [
         element: <SettingsPage />
       },
       {
+        path: 'account',
+        element: <AccountsPage />
+      },
+      {
         path: 'account/new',
         element: <AccountPage />
       },
       {
         path: 'account/:aid',
         element: <AccountPage />
+      },
+      {
+        path: 'announcement',
+        element: <AnnouncementsPage />
+      },
+      {
+        path: 'defense',
+        element: <DefenseWeekPage />
+      },
+      {
+        path: 'thesis',
+        element: <ThesesPage />
       },
       {
         path: 'thesis/new',

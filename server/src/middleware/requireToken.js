@@ -53,6 +53,7 @@ async function requireToken(req, res, next) {
         // Find the token in the database
         const token = jwt.verify(rawToken, 'secret'); // TODO: change secret
         req.token = token.data;
+        req.token.kind = req.token.kind.toLowerCase();
     } catch (err) {
         // TODO: update error handling
         return res.status(401).json({

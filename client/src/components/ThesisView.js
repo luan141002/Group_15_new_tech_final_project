@@ -5,36 +5,34 @@ import Col from 'react-bootstrap/Col';
 import Spinner from 'react-bootstrap/Spinner';
 import Form from 'react-bootstrap/Form';
 import Modal from 'react-bootstrap/Modal';
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { LinkContainer } from "react-router-bootstrap";
 import Button from "react-bootstrap/esm/Button";
 import ThesisService from "../services/ThesisService";
-import { Download, Pencil } from "react-bootstrap-icons";
+import { Download, Pencil, Trash } from "react-bootstrap-icons";
 import renderName from '../utility/renderName';
 import PasswordPrompt from '../components/PasswordPrompt';
 import { useAccount } from "../providers/account";
 import { useState } from "react";
-
-function statusToString(status) {
-  switch (status) {
-    case 'for_checking': return 'For checking';
-    case 'endorsed': return 'Endorsed';
-    case 'redefense': return 'Redefense';
-    case 'pass': return 'Final';
-    case 'fail': return 'Final';
-    default: return '';
-  }
-}
+import { useTranslation } from "react-i18next";
 
 function ThesisView(props) {
+  const { t } = useTranslation();
   const { thesis, onUpdate } = props;
-  const account = useAccount();
+  const navigate = useNavigate();
+  const { account } = useAccount();
   const [grade, setGrade] = useState('');
   const [remarks, setRemarks] = useState('');
   const [updateGradeDialogOpen, setUpdateGradeDialogOpen] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [packet, setPacket] = useState(null);
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [file, setFile] = useState(null);
+  const [files, setFiles] = useState([]);
+  const [comment, setComment] = useState('');
+  const [comments, setComments] = useState([]);
 
   const findMember = (thesis, submitterID, mode) => {
     let table;
@@ -56,6 +54,11 @@ function ThesisView(props) {
     a.click();
   };
 
+  const handleCheckThesis = () => {
+    setPacket({ status: 'checked' });
+    setPasswordDialogOpen(true);
+  };
+
   const handleEndorsement = () => {
     setPacket({ status: 'endorsed' });
     setPasswordDialogOpen(true);
@@ -72,7 +75,31 @@ function ThesisView(props) {
     }
     setPacket({ status, grade: newGrade, remarks });
     setPasswordDialogOpen(true);
-  }
+  };
+
+  const handleAddFile = (e) => {
+    const file = e.currentTarget.files[0];
+    setFiles(prev => [ ...prev, file ]);
+    setFile('');
+  };
+
+  const handleRemoveFile = (e) => {
+    setFiles(prev => prev.filter(e2 => e2 !== e));
+  };
+
+  const handleUploadFiles = async () => {
+    try {
+      setUploading(true);
+      await ThesisService.uploadSubmission(thesis._id, files);
+      setFiles([]);
+      setSubmitting(false);
+      if (onUpdate) onUpdate();
+    } catch (error) {
+
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handlePasswordEntry = async (password) => {
     setPasswordDialogOpen(false);
@@ -90,6 +117,14 @@ function ThesisView(props) {
     }
   };
 
+  const isAuthor = () => {
+    return thesis && thesis.authors.find(e => e._id === account.accountID);
+  };
+
+  const isAdvisory = () => {
+    return thesis && thesis.advisers.find(e => e._id === account.accountID);
+  };
+
   return thesis ? (
     <>
       <Row>
@@ -98,10 +133,10 @@ function ThesisView(props) {
           <h6 className='text-muted'>by {thesis.authors.map(renderName).join('; ')}</h6>
           <h6 className='text-muted'>advised by {thesis.advisers.map(renderName).join('; ')}</h6>
           <p>{thesis.description}</p>
+          <h5>Media and Files</h5>
           {
-            (thesis.submissions && thesis.submissions.length > 0) &&
+            (thesis.submissions && thesis.submissions.length > 0) ?
               <>
-                <h5>Media and Files</h5>
                 <h6 className='text-muted'>Last updated on {dayjs(thesis.submissions[0].submitted).format('LLL')}</h6>
                 <ul>
                   {
@@ -122,34 +157,114 @@ function ThesisView(props) {
                     ))
                   }
                 </ul>
+                {
+                  (account.kind === 'student' && !submitting) && (
+                    <Button onClick={() => setSubmitting(!submitting)}>Submit again</Button>
+                  )
+                }
               </>
+              :
+              (
+                isAuthor() ?
+                  (
+                    !submitting && (
+                      <>
+                        <p>You have not made any submissions for your thesis.</p>
+                        <Button onClick={() => setSubmitting(!submitting)}>Submit</Button>
+                      </>
+                    )
+                  )
+                  :
+                  (
+                    <>
+                      <p>There are no submissions for this thesis.</p>
+                    </>
+                  )
+              )
+          }
+          {
+            submitting && (
+              <Card>
+                <Card.Body>
+                  <Card.Title>Submit files</Card.Title>
+                  <Card.Text>
+                    <Form.Group className="mb-3" controlId="formDocument">
+                      <Form.Label>Add file</Form.Label>
+                      <Form.Control type="file" value={file} onChange={handleAddFile} disabled={uploading} />
+                    </Form.Group>
+                    {
+                      files.length > 0 ?
+                        <ul>
+                          {
+                            files.map(e => (
+                              <li>
+                                <span>{e.name} ({e.size} bytes)</span>
+                                <Button
+                                  variant='link'
+                                  onClick={() => handleRemoveFile(e)}
+                                  className='ms-1'
+                                  style={{ padding: 0 }}
+                                  disabled={uploading}
+                                >
+                                  <Trash style={{ verticalAlign: 'baseline' }} />
+                                </Button>
+                              </li>
+                            ))
+                          }
+                        </ul>
+                        :
+                        <div>
+                          No files added.
+                        </div>
+                    }
+                    <div className='mt-3'>
+                      <Button onClick={handleUploadFiles} disabled={files.length < 1 || uploading} className='me-1'>Submit</Button>
+                      <Button variant='secondary' onClick={() => { setFiles([]); setSubmitting(false); }} disabled={uploading}>Cancel</Button>
+                    </div>
+                  </Card.Text>
+                </Card.Body>
+              </Card>
+            )
+          }
+          <h5>Comments</h5>
+          {
+            (isAuthor() || isAdvisory()) &&
+              <>
+              </>
+          }
+          {
+
           }
         </Col>
         <Col sm={3}>
           <div>
             <LinkContainer to={`/thesis/${thesis._id}/edit`}>
-              <Button>Edit</Button>
+              <Button className='me-1'>Edit</Button>
             </LinkContainer>
+            <Button variant='secondary' onClick={() => navigate(-1)}>Back</Button>
           </div>
-          <Card style={{ width: '18rem' }} className='mt-2'>
+          <Card className='mt-2'>
             <Card.Body>
               <Card.Text>
                 <h4>Status</h4>
                 <p className='d-flex'>
                   <div className='d-flex flex-row align-items-center'>
-                    <span className={updating ? 'text-muted' : ''}>{statusToString(thesis.status)}</span>
+                    <span className={updating ? 'text-muted' : ''}>{t(`values.thesis_status.${thesis.status}`)}</span>
                     { updating && <Spinner className='ms-2' size='sm' /> }
                   </div>
                 </p>
                 {
-                  account.kind !== 'student' && thesis.status === 'for_checking' &&
-                    <p><Button className='ms-2' onClick={handleEndorsement}>Endorse</Button></p>
+                  (isAdvisory() && (thesis.status === 'for_checking' || thesis.status === 'checked')) &&
+                    <p>
+                      { thesis.status !== 'checked' && <Button onClick={handleCheckThesis} className='me-2'>Mark as checked</Button> }
+                      <Button onClick={handleEndorsement}>Endorse</Button>
+                    </p>
                 }
                 <h4>Grade</h4>
                 <p>
                   { thesis.grade ? thesis.grade.toFixed(1) + ` (${thesis.grade >= 1.0 ? 'Pass' : 'Fail'})` : 'No grade yet' }
                   {
-                    account.kind !== 'student' && thesis.status === 'endorsed' &&
+                    isAdvisory() && thesis.status === 'endorsed' &&
                       <Button as='a' className='ms-2' bsPrefix='__' onClick={() => setUpdateGradeDialogOpen(true)}>
                         <Pencil />
                       </Button>

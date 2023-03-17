@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import ThesisService from "../services/ThesisService";
 import ThesisEditor from "../components/ThesisEditor";
 
 function EditThesisPage() {
   const { tid } = useParams();
+  const navigate = useNavigate();
   const [thesis, setThesis] = useState(null);
 
   const onLoad = async () => {
@@ -15,9 +16,10 @@ function EditThesisPage() {
 
   const handleSubmit = async (thesis) => {
     if (tid) {
-      
+      await ThesisService.updateThesis(tid, thesis);
     } else {
-      await ThesisService.createThesis(thesis);
+      const obj = await ThesisService.createThesis(thesis);
+      navigate(`/thesis/${obj._id}`);
     }
   };
 

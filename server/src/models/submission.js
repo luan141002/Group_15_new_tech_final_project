@@ -22,7 +22,7 @@ const SubmissionSchema = new Schema({
         data: Buffer,
         mime: String
     }],
-    term: Number,
+    term: String,
     status: String
 });
 

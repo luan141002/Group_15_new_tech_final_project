@@ -14,7 +14,10 @@ function buildTokenInfo(account) {
         data: {
             accountID: account._id.toString(),
             /*userID: account.idnum,*/
-            kind: account.kind
+            kind: account.kind,
+            lastName: account.lastName,
+            firstName: account.firstName,
+            middleName: account.middleName
         }
     };
 }

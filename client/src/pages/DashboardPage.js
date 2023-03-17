@@ -5,7 +5,6 @@ import StudentDashboardPage from './student/DashboardPage';
 
 function DashboardPage() {
   const { account } = useAccount();
-  console.log(account);
   switch (account.kind) {
     case 'administrator': return <AdminDashboardPage />;
     case 'faculty': return <FacultyDashboardPage />;

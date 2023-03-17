@@ -19,11 +19,18 @@ const en = {
       administrator: 'Administrator'
     },
     thesis_status: {
+      new: 'New',
       for_checking: 'For checking',
+      checked: 'Checked',
       endorsed: 'Endorsed',
       redefense: 'Redefense',
       pass: 'Final',
       fail: 'Final'
+    },
+    thesis_phase: {
+      '1': 'First',
+      '2': 'Second',
+      '3': 'Third'
     },
     full_name: '{{lastName}}, {{firstName}}'
   }

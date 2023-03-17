@@ -1,57 +1,55 @@
 const express = require('express');
-const requireToken = require('../middleware/requireToken');
-const requirePass = require('../middleware/requirePass');
-const Thesis = require('../models/Thesis');
 const multer = require('multer');
+const requirePass = require('../middleware/requirePass');
+const requireToken = require('../middleware/requireToken');
+const Comment = require('../models/Comment');
 const Submission = require('../models/Submission');
+const Thesis = require('../models/Thesis');
 const ServerError = require('../utility/error');
-const { init } = require('../models/Thesis');
+const isQueryTrue = require('../utility/isQueryTrue');
 
 const ThesisController = express.Router();
 
 const upload = multer();
 
 ThesisController.get('/thesis', requireToken, async (req, res) => {
-    const { all, q } = req.query;
+    const { all, q, status, phase } = req.query;
     const { accountID } = req.token;
     
     try {
         let query = { $or: [ { authors: accountID }, { advisers: accountID } ] };
 
-        if (all) query = {};
+        if (isQueryTrue(all)) query = {};
         if (q) query.title = { $regex: q, $options: 'i' };
+        if (status) query.status = status;
+        if (phase && Number.parseInt(phase)) query.phase = Number.parseInt(phase);
 
         let results = await Thesis.find(query).populate('authors').populate('advisers');
 
-        if (req.query.hasSubmission || req.query.getSubmissions) {
-            const thesisIDs = results.map(e => e._id);
-            const submissions = await Submission.find({ thesis: { $in: thesisIDs } }).select('-attachments');
-            results = results.filter(thesis => {
-                if (!req.query.hasSubmission && !req.query.getSubmissions) return true;
-                const thesisSubmissions = submissions.filter(sub => sub.thesis.toString() === thesis._id.toString());
-                if (!!req.query.hasSubmission && thesisSubmissions.length === 0) return false;
-                const submissionsByDate = [ ...thesisSubmissions ].sort((a, b) => a.submitted.getTime() - b.submitted.getTime());
-                const latest = submissionsByDate[0];
+        const thesisIDs = results.map(e => e._id);
+        const submissions = await Submission.find({ thesis: { $in: thesisIDs } }).select('-attachments');
+        results = results.filter(thesis => {
+            const thesisSubmissions = submissions.filter(sub => sub.thesis.toString() === thesis._id.toString());
+            const submissionsByDate = [ ...thesisSubmissions ].sort((a, b) => b.submitted.getTime() - a.submitted.getTime());
+            const latest = submissionsByDate[0];
 
-                if (!!req.query.hasSubmission) {
-                    thesis.submission = {
-                        latest: latest._id.toString(),
-                        when: latest.submitted
-                    };
-                }
+            if (thesisSubmissions.length > 0) {
+                thesis.submission = {
+                    latest: latest._id.toString(),
+                    when: latest.submitted
+                };
+            }
 
-                // TODO: figure out why !getSubmission works
-                if (!req.query.getSubmission) {
-                    thesis.submissions = submissionsByDate.map(e => ({
-                        _id: e._id.toString(),
-                        submitted: e.submitted,
-                        submitter: e.submitter
-                    }))
-                }
+            if (isQueryTrue(req.query.getSubmissions)) {
+                thesis.submissions = submissionsByDate.map(e => ({
+                    _id: e._id.toString(),
+                    submitted: e.submitted,
+                    submitter: e.submitter
+                }))
+            }
 
-                return true;
-            });
-        }
+            return true;
+        });
 
         return res.json(results.map(e => ({
             _id: e._id,
@@ -69,6 +67,7 @@ ThesisController.get('/thesis', requireToken, async (req, res) => {
                 firstName: e2.firstName,
                 middleName: e2.middleName
             })),
+            phase: e.phase,
             status: e.status,
             submission: e.submission,
             submissions: e.submissions
@@ -86,7 +85,7 @@ ThesisController.get('/thesis/:id', requireToken, async (req, res) => {
 
         if (!!req.query.getSubmissions) {
             const submissions = await Submission.find({ thesis: result }).select('-attachments.data');
-            submissions.sort((a, b) => a.submitted.getTime() - b.submitted.getTime());
+            submissions.sort((a, b) => b.submitted.getTime() - a.submitted.getTime());
 
             result.submissions = submissions.map(e => ({
                 _id: e._id.toString(),
@@ -119,6 +118,7 @@ ThesisController.get('/thesis/:id', requireToken, async (req, res) => {
                 firstName: e2.firstName,
                 middleName: e2.middleName
             })),
+            phase: result.phase,
             grade: grades[0] ? grades[0].value : undefined,
             status: result.status,
             remarks: grades[0] ? grades[0].remarks : undefined,
@@ -129,12 +129,125 @@ ThesisController.get('/thesis/:id', requireToken, async (req, res) => {
     }
 });
 
+ThesisController.put('/thesis/:id', requireToken, async (req, res) => {
+    const { id } = req.params;
+    const { accountID, kind } = req.token;
+    const { title, description, authors, advisers, status, phase } = req.body;
+    
+    try {
+        const thesis = await Thesis.findById(id);
+
+        if (!thesis) throw new ServerError(404, 'Thesis not found.');
+        if (title) thesis.title = title;
+        if (description) thesis.description = description;
+        if (authors) {
+            if (kind.toLowerCase() !== 'administrator' && !authors.includes(accountID)) throw new ServerError(400, 'Current user must be part of the group');
+            thesis.authors = authors;
+        }
+        if (advisers) {
+            if (!advisers || (Array.isArray(advisers) && advisers.length > 2)) throw new ServerError(400, 'Only 1-2 advisers can be added.');
+            thesis.advisers = advisers;
+        }
+        if (status && kind.toLowerCase() !== 'student') thesis.status = status;
+        if (phase && Number.parseInt(phase) && kind.toLowerCase() === 'administrator') thesis.phase = Number.parseInt(phase);
+
+        await thesis.save();
+
+        return res.sendStatus(204);
+    } catch (error) {
+        return res.error(error);
+    }
+});
+
+ThesisController.get('/thesis/:id/comment', requireToken, async (req, res) => {
+    const { id } = req.params;
+    const { accountID, kind } = req.token;
+    
+    try {
+        const thesis = await Thesis.findById(id);
+
+        if (!thesis) throw new ServerError(404, 'Thesis not found.');
+        if (kind === 'student' && !thesis.authors.find(e => e.toString() === accountID))
+            throw new ServerError(403, 'You must be an author to be able to read comments.');
+        
+        const comments = await Comment.find({ thesis: id }).populate('author');
+
+        return res.json(comments.map(e => ({
+            _id: e._id,
+            author: {
+                _id: e.author._id,
+                lastName: e.author.lastName,
+                firstName: e.author.firstName,
+                middleName: e.author.middleName
+            },
+            text: e.text,
+            sent: e.sent
+        })));
+    } catch (error) {
+        return res.error(error);
+    }
+});
+
+ThesisController.post('/thesis/:id/comment', requireToken, async (req, res) => {
+    const { id } = req.params;
+    const { accountID, kind, lastName, firstName, middleName } = req.token;
+    const { text } = req.body;
+    
+    try {
+        const thesis = await Thesis.findById(id);
+
+        if (!thesis) throw new ServerError(404, 'Thesis not found.');
+        if (kind === 'student' && !thesis.authors.find(e => e.toString() === accountID))
+            throw new ServerError(403, 'You must be an author to comment.');
+        
+        const comment = await Comment.create({
+            thesis: id,
+            author: accountID,
+            text
+        });
+
+        return res.status(201).location(`/thesis/${id}/comment/${comment._id}`).json({
+            _id: comment._id,
+            thesis: id,
+            author: {
+                _id: accountID,
+                lastName,
+                firstName,
+                middleName
+            },
+            text,
+            sent: comment.sent
+        });
+    } catch (error) {
+        return res.error(error);
+    }
+});
+
+ThesisController.delete('/thesis/:id/comment/:cid', requireToken, async (req, res) => {
+    const { id, cid } = req.params;
+    const { accountID } = req.token;
+    
+    try {
+        await Comment.deleteOne({ _id: cid, thesis: id, author: accountID });
+        return res.sendStatus(204);
+    } catch (error) {
+        return res.error(error);
+    }
+});
+
 const transitions = [
+    [ 'new', 'for_checking' ],
+    [ 'for_checking', 'for_checking' ],
+    [ 'for_checking', 'checked' ],
     [ 'for_checking', 'endorsed' ],
+    [ 'checked', 'for_checking' ],
+    [ 'checked', 'endorsed' ],
     [ 'endorsed', 'pass' ],
     [ 'endorsed', 'fail' ],
     [ 'endorsed', 'redefense' ],
     [ 'redefense', 'endorsed' ],
+    [ 'pass', 'new' ],
+    [ 'fail', 'new' ],
     [ 'pass', 'for_checking' ],
     [ 'fail', 'for_checking' ],
 ];
@@ -196,9 +309,10 @@ ThesisController.post('/thesis/:tid/submission', requireToken, upload.array('fil
 
     try {
         const thesis = await Thesis.findById(tid);
+        if (kind.toLowerCase() !== 'student') throw new ServerError(403, 'Only students can submit new files.');
         if (!thesis) throw new ServerError(404, 'Thesis not found');
-
         if (thesis.locked) throw new ServerError(403, 'Thesis is locked and cannot be edited.');
+        if (!thesis.authors.find(e => e.toString() === accountID)) throw new ServerError(403, 'You cannot submit to a thesis in which you are not the author.');
 
         let submission = null;
         if (req.files) {
@@ -216,6 +330,8 @@ ThesisController.post('/thesis/:tid/submission', requireToken, upload.array('fil
         }
 
         if (submission) {
+            thesis.status = 'for_checking';
+            await thesis.save();
             return res.status(201).location(`/thesis/${tid}/submission/${thesis._id}`).json({
                 _id: submission._id,
                 submitter: accountID,
@@ -300,9 +416,10 @@ ThesisController.post('/thesis', requireToken, upload.array('files'), async (req
     const { accountID, kind } = req.token;
 
     try {
+        if (!title) throw new ServerError(400, 'Title is required');
         if (!authors) throw new ServerError(400, 'Author list is required');
         if (!advisers) throw new ServerError(400, 'Adviser list is required');
-        if (!authors.includes(accountID)) throw new ServerError(400, 'Current user must be part of the group');
+        if (kind.toLowerCase() !== 'administrator' && !authors.includes(accountID)) throw new ServerError(400, 'Current user must be part of the group');
         if (!advisers || (Array.isArray(advisers) && advisers.length > 2)) throw new ServerError(400, 'Only 1-2 advisers can be added.');
         
         const thesis = await Thesis.create({
@@ -312,7 +429,7 @@ ThesisController.post('/thesis', requireToken, upload.array('files'), async (req
             advisers
         });
 
-        if (req.files) {
+        if (req.files && req.files.length > 0) {
             const attachments = req.files.map(e => ({
                 originalName: e.originalname,
                 data: e.buffer,

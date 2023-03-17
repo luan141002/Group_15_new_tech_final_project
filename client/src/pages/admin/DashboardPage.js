@@ -1,204 +1,177 @@
 import React, { useEffect, useState } from 'react';
 import Button from 'react-bootstrap/Button';
-import Form from 'react-bootstrap/Form';
-import Image from 'react-bootstrap/Image';
-import Modal from 'react-bootstrap/Modal';
-import Table from 'react-bootstrap/Table';
-import Row from 'react-bootstrap/Row';
+import Card from 'react-bootstrap/Card';
 import Col from 'react-bootstrap/Col';
-import AccountService from '../../services/AccountService';
-import renderName from '../../utility/renderName';
-import { Pencil, Trash } from 'react-bootstrap-icons';
-import { LinkContainer } from 'react-router-bootstrap';
-import ExcelJS from 'exceljs';
+import Form from 'react-bootstrap/Form';
+import Row from 'react-bootstrap/Row';
+import { AsyncTypeahead, Highlighter, Menu, MenuItem } from 'react-bootstrap-typeahead';
 import { useTranslation } from 'react-i18next';
-import { DatatableWrapper, Pagination, PaginationOptions, TableBody, TableHeader } from 'react-bs-datatable';
-import defaultProfile from '../../default-profile-photo.jpg';
+import { Link, useNavigate } from 'react-router-dom';
+import ThesisTable from '../../components/ThesisTable';
+import AccountService from '../../services/AccountService';
+import SearchService from '../../services/SearchService';
+import ThesisService from '../../services/ThesisService';
 import ProfileImage from '../../components/ProfileImage';
 
 function DashboardPage() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [accounts, setAccounts] = useState([]);
-  const [type, setType] = useState('');
-  const [importedAccounts, setImportedAccounts] = useState([]);
-  const [importAccountDialogOpen, setImportAccountDialogOpen] = useState(false);
-  const [file, setFile] = useState('');
+  const [theses, setTheses] = useState([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchOptions, setSearchOptions] = useState([]);
+  const [searchSelected, setSearchSelected] = useState([]);
 
   const load = async () => {
-    setAccounts(await AccountService.getAccounts(type));
-  };
-
-  const removeImport = index => {
-    setImportedAccounts(prev => {
-      const next = [...prev];
-      next.splice(index, 1);
-      return next;
-    });
-  };
-
-  const handleAddFile = e => {
-    const file = e.currentTarget.files[0];
-    const fr = new FileReader();
-    console.log(file);
-    fr.onload = async () => {
-      const contents = fr.result;
-      const workbook = new ExcelJS.Workbook();
-      await workbook.xlsx.load(contents);
-
-      const worksheet = workbook.worksheets[0];
-      const rowCount = worksheet.rowCount;
-      const accounts = [];
-      const kind = 'student';
-      for (let i = 2; i <= rowCount; i++) {
-        const row = worksheet.getRow(i);
-        const lastName = row.getCell(1).value;
-        const firstName = row.getCell(2).value;
-        const email = row.getCell(3).value;
-        accounts.push({ lastName, firstName, kind, email });
-      }
-      setImportedAccounts(accounts);
-    };
-    fr.readAsArrayBuffer(file);
-
-    setFile('');
-  };
-
-  const handleCloseImportModal = () => {
-    setImportedAccounts([]);
-    setImportAccountDialogOpen(false);
-  };
-
-  const handleImportAccounts = async e => {
-    e.preventDefault();
-    try {
-      await AccountService.createAccounts(importedAccounts);
-      await load();
-      setImportAccountDialogOpen(false);
-    } catch (error) {
-      console.log(error);
-    }
+    setAccounts(await AccountService.getAccounts());
+    setTheses(await ThesisService.getTheses({ all: true }));
   };
 
   useEffect(() => {
     load();
   }, []);
 
+  const handleSearch = async (q) => {
+    q = q.trim();
+    if (q.length < 2) return;
+
+    setSearchLoading(true);
+    const options = await SearchService.search(q);
+    setSearchOptions(options);
+    setSearchLoading(false);
+  };
+
+  const handleOption = (option) => {
+    const value = option.value;
+    switch (option.type) {
+      case 'thesis':
+        navigate(`/thesis/${value._id}`);
+        break;
+      case 'account':
+        navigate(`/account/${value._id}`);
+        break;
+      default:
+        break;
+    }
+    setSearchSelected([]);
+  };
+
+  const handleSearchKey = (e) => {
+    if (e.isComposing || e.keyCode === 229) return;
+
+    if (e.keyCode === 13) {
+      if (searchSelected.length > 0) {
+        const option = searchSelected[0];
+        handleOption(option);
+      }
+    }
+  };
+
+  const renderSearchMenu = (
+    results,
+    {
+      newSelectionPrefix,
+      paginationText,
+      renderMenuItemChildren,
+      ...menuProps
+    },
+    state
+  ) => {
+    if (!results || results.length === 0) {
+      return (
+        <Menu {...menuProps}>
+          <Menu.Header>Test</Menu.Header>
+          <MenuItem position={0}>
+            ABC
+          </MenuItem>
+        </Menu>
+      );
+    }
+
+    let index = 0;
+    const items = results.map(e => {
+      if (e.type === 'thesis') {
+        const thesis = e.value;
+        const item = (
+          <MenuItem key={`thesis-${thesis._id}`} option={e} position={index}>
+            <Highlighter search={state.name}>{thesis.title}</Highlighter>
+            <div>
+              <small>{thesis.authors.map(e => t('values.full_name', e)).join('; ')}</small>
+            </div>
+          </MenuItem>
+        );
+  
+        index += 1;
+        return item;
+      } else if (e.type === 'account') {
+        const account = e.value;
+        const item = (
+          <MenuItem key={`account-${account._id}`} option={e} position={index}>
+            <ProfileImage 
+              width={30}
+              roundedCircle
+              accountID={account._id}
+              alt={t('values.full_name', account)}
+              className='me-2'
+            />
+            <Highlighter search={state.name}>{t('values.full_name', account)}</Highlighter>
+          </MenuItem>
+        );
+  
+        index += 1;
+        return item;
+      } else {
+        return <></>;
+      }
+    });
+    return <Menu {...menuProps}>{items}</Menu>
+  };
+
   return (
     <>
-      <DatatableWrapper
-        body={accounts}
-        headers={[
-          {
-            title: '',
-            prop: 'photo',
-            cell: (row) => (
-              <React.Fragment key={`photo-${row._id}`}>
-                <ProfileImage
-                  roundedCircle
-                  width={30}
-                  className='ms-1 me-2'
-                  accountID={row._id}
-                  alt={t('values.full_name', row)}
-                />
-              </React.Fragment>
-            ),
-            thProps: {
-              style: {
-                width: '36px'
-              }
-            }
-          },
-          {
-            title: 'Name',
-            prop: 'name',
-            cell: (row) => (
-              <>
-                <span>{t('values.full_name', row)}</span>
-              </>
-            )
-          },
-          {
-            title: 'Actions',
-            prop: 'actions',
-            cell: (row) => (
-              <>
-                <LinkContainer to={`/account/${row._id}`}>
-                  <Button variant='link' size='sm'><Pencil /></Button>
-                </LinkContainer>
-              </>
-            )
-          }
-        ]}
-        paginationOptionsProps={{
-          initialState: {
-            rowsPerPage: 15,
-            options: [5, 10, 15, 20, 50, 100]
-          }
-        }}
-      >
-        <Row className='mb-2'>
-          <Col>
-            <h3>Account</h3>
-          </Col>
-          <Col className='d-flex flex-column align-items-end'>
-            <div>
-              <Button className='me-2' onClick={() => setImportAccountDialogOpen(true)}>Add accounts from file...</Button>
-              <LinkContainer to='/account/new'><Button as='a'>Add account</Button></LinkContainer>
-            </div>
-          </Col>
-        </Row>
-        <Table striped hover size="sm">
-          <TableHeader />
-          <TableBody />
-        </Table>
-        <Row>
-          <Col className='d-flex flex-col justify-content-start align-items-end mb-2 mb-sm-0'>
-            <PaginationOptions />
-          </Col>
-          <Col className='d-flex flex-col justify-content-end align-items-end'>
-            <Pagination />
-          </Col>
-        </Row>
-      </DatatableWrapper>
-      <Modal show={importAccountDialogOpen} size='lg' animation={false} centered scrollable>
-        <Modal.Header>
-          <Modal.Title>Add accounts from file</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Form.Group className="mb-3" controlId="formDocument">
-            <Form.Label>Import spreadsheet</Form.Label>
-            <Form.Control type="file" value={file} onChange={handleAddFile} accept="text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
-          </Form.Group>
-          <Table striped bordered hover size="sm">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Type</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {
-                importedAccounts.map((e, i) => (
-                  <tr>
-                    <td>{renderName(e)}</td>
-                    <td>{e.email}</td>
-                    <td>{t(`values.account_kind.${e.kind}`)}</td>
-                    <td>
-                      <Button variant='link' size='sm' onClick={() => removeImport(i)}><Trash /></Button>
-                    </td>
-                  </tr>
-                ))
-              }
-            </tbody>
-          </Table>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button onClick={handleImportAccounts}>Add all</Button>
-          <Button variant='secondary' onClick={handleCloseImportModal}>Cancel</Button>
-        </Modal.Footer>
-      </Modal>
+      <Row>
+        <Form className="d-flex w-100 mb-4">
+          <AsyncTypeahead
+            id='formSearch'
+            className="me-2 w-100"
+            filterBy={() => true}
+            isLoading={searchLoading}
+            labelKey='key'
+            renderMenu={renderSearchMenu}
+            onSearch={handleSearch}
+            options={searchOptions}
+            aria-label="Search"
+            placeholder="Search thesis, account..."
+            selected={searchSelected}
+            onChange={setSearchSelected}
+            onKeyDown={handleSearchKey}
+            selectHint={false}
+          />
+          <Button variant="outline-success">Search</Button>
+        </Form>
+      </Row>
+      <Row>
+        <Col>
+          <Card>
+            <Card.Body>
+              <Card.Text className='text-center'>
+                <h2>{theses.length}</h2>
+                <p><Link to='/thesis' className='stretched-link'>active theses</Link></p>
+              </Card.Text>
+            </Card.Body>
+          </Card>
+        </Col>
+        <Col>
+          <Card>
+            <Card.Body>
+              <Card.Text className='text-center'>
+                <h2>{accounts.filter(e => !e.locked).length}</h2>
+                <p><Link to='/account' className='stretched-link'>active accounts</Link></p>
+              </Card.Text>
+            </Card.Body>
+          </Card>
+        </Col>
+      </Row>
     </>
   );
 }

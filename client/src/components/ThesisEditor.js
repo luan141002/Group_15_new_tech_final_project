@@ -1,15 +1,18 @@
+import { useEffect, useState } from "react";
 import Button from 'react-bootstrap/Button';
+import Col from 'react-bootstrap/Col';
 import Form from 'react-bootstrap/Form';
 import Row from 'react-bootstrap/Row';
-import Col from 'react-bootstrap/Col';
+import Spinner from 'react-bootstrap/Spinner';
 import Table from 'react-bootstrap/Table';
-import AccountService from '../services/AccountService';
-import { useEffect, useState } from "react";
 import { AsyncTypeahead } from 'react-bootstrap-typeahead';
+import { useNavigate } from 'react-router-dom';
 import { useAccount } from '../providers/account';
+import AccountService from '../services/AccountService';
 import renderName from '../utility/renderName';
 
 function ThesisEditor(props) {
+  const navigate = useNavigate();
   const { account } = useAccount();
   const { thesis, onSubmit } = props;
   const [students, setStudents] = useState([]);
@@ -20,10 +23,14 @@ function ThesisEditor(props) {
   const [selectedFaculty, setSelectedFaculty] = useState([]);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [status, setStatus] = useState('');
+  const [phase, setPhase] = useState('');
   const [authors, setAuthors] = useState([]);
   const [advisers, setAdvisers] = useState([]);
   const [attachments, setAttachments] = useState([]);
   const [file, setFile] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const onLoad = async () => {
     if (thesis) {
@@ -31,7 +38,10 @@ function ThesisEditor(props) {
       setDescription(thesis.description);
       setAuthors(thesis.authors);
       setAdvisers(thesis.advisers);
+      setStatus(thesis.status);
+      setPhase(thesis.phase.toString());
     }
+    setLoading(false);
   };
 
   const handleSearchStudents = async (q) => {
@@ -82,19 +92,30 @@ function ThesisEditor(props) {
     setAttachments(prev => prev.filter(e2 => e2 !== e));
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async e => {
+    e.preventDefault();
     if (onSubmit) {
-      onSubmit({
-        title,
-        description,
-        authors,
-        advisers,
-        attachments
-      });
+      try {
+        setSaving(true);
+        onSubmit({
+          title,
+          description,
+          authors,
+          advisers,
+          attachments,
+          status,
+          phase
+        });
+      } catch (error) {
+
+      } finally {
+        setSaving(false);
+      }
     }
   };
 
   useEffect(() => {
+    setLoading(true);
     onLoad();
   }, [thesis]);
 
@@ -106,7 +127,11 @@ function ThesisEditor(props) {
             <h3>{ thesis ? 'Edit' : 'Add' } thesis</h3>
           </Col>
           <Col className='d-flex flex-column align-items-end'>
-            <Button type='submit' className='ms-auto'>Save</Button>
+            <div className='d-flex flex-row align-items-center'>
+              { saving && <Spinner className='me-2' /> }
+              <Button type='submit' className='ms-auto d-inline' disabled={saving}>Save</Button>
+              <Button variant='secondary' className='ms-1 d-inline' onClick={() => navigate(-1)}>Back</Button>
+            </div>
           </Col>
         </Row>
         <Form.Group className="mb-3" controlId="formTitle">
@@ -117,10 +142,13 @@ function ThesisEditor(props) {
           <Form.Label>Description</Form.Label>
           <Form.Control as='textarea' type="text" value={description} onChange={e => setDescription(e.currentTarget.value)} />
         </Form.Group>
-        <Form.Group className="mb-3" controlId="formDocument">
-          <Form.Label>Documents</Form.Label>
-          <Form.Control type="file" value={file} onChange={handleAddAttachment} />
-        </Form.Group>
+        {
+          (account.kind === 'student') && 
+            <Form.Group className="mb-3" controlId="formDocument">
+              <Form.Label>Documents</Form.Label>
+              <Form.Control type="file" value={file} onChange={handleAddAttachment} />
+            </Form.Group>
+        }
         {
           (account.kind === 'student') && (attachments.length > 0 &&
             <Table striped bordered hover size="sm">
@@ -144,13 +172,30 @@ function ThesisEditor(props) {
         }
         {
           (account.kind !== 'student') && (
-            <Form.Group className="mb-3" controlId="formStatus">
-              <Form.Label>Status</Form.Label>
-              <Form.Select>
-                <option value='for_checking'>For checking</option>
-                <option value='approved'>Approved</option>
-              </Form.Select>
-            </Form.Group>
+            <Row>
+              <Col>
+                <Form.Group className="mb-3" controlId="formStatus">
+                  <Form.Label>Status</Form.Label>
+                  <Form.Select value={status} onChange={e => setStatus(e.currentTarget.value)}>
+                    <option value='new'>New</option>
+                    <option value='for_checking'>For checking</option>
+                    <option value='checked'>Checked</option>
+                    <option value='endorsed'>Endorsed</option>
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+              <Col>
+                <Form.Group className="mb-3" controlId="formPhase">
+                  <Form.Label>Phase</Form.Label>
+                  <Form.Select value={phase} onChange={e => setPhase(e.currentTarget.value)}>
+                    <option value=''>Select phase</option>
+                    <option value='1'>First</option>
+                    <option value='2'>Second</option>
+                    <option value='3'>Third</option>
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+            </Row>
           )
         }
         <Form.Group className="mb-3" controlId="formAuthor">

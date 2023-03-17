@@ -1,15 +1,14 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
-const CommentSchema = new Schema({
-    thesis: {
-        type: Schema.Types.ObjectId,
-        ref: 'Thesis',
-        required: true
-    },
+const AnnouncementSchema = new Schema({
     author: {
         type: Schema.Types.ObjectId,
-        ref: 'Account',
+        ref: 'Administrator',
+        required: true
+    },
+    title: {
+        type: String,
         required: true
     },
     text: {
@@ -23,5 +22,5 @@ const CommentSchema = new Schema({
     }
 });
 
-const Comment = mongoose.model('Comment', CommentSchema);
-module.exports = Comment;
+const Announcement = mongoose.model('Announcement', AnnouncementSchema);
+module.exports = Announcement;

@@ -33,7 +33,34 @@ const ThesisService = {
     for (const adviser of thesis.advisers) form.append('advisers', adviser._id);
     for (const attachment of thesis.attachments) form.append('files', attachment);
 
-    return await WebService.postForm('/thesis', form);
+    const response = await WebService.postForm('/thesis', form);
+    return await response.json();
+  },
+
+  uploadSubmission: async (thesisID, attachments) => {
+    const form = new FormData();
+    for (const attachment of attachments) form.append('files', attachment);
+
+    const response = await WebService.postForm(`/thesis/${thesisID}/submission`, form);
+    return await response.json();
+  },
+
+  getCommentsOnThesis: async (thesisID, queries) => {
+    const response = await WebService.get(`/thesis/${thesisID}/comment`, queries);
+    return await response.json();
+  },
+
+  commentOnThesis: async (thesisID, comment) => {
+    const response = await WebService.postJson(`/thesis/${thesisID}/comment`, comment);
+    return await response.json();
+  },
+
+  /**
+   * Creates a new thesis entry.
+   * @param {{title: string, description?: string, authors: {_id:string}[], advisers: {_id:string}[], attachments?: File[]}} thesis 
+   */
+  updateThesis: async (thesisID, thesis) => {
+    await WebService.putJson(`/thesis/${thesisID}`, thesis);
   },
 
   /**
