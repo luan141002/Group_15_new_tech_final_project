@@ -125,17 +125,33 @@ function DefenseWeekPage() {
     },
 
     getEvents: () => {
-      return defenses.map(e => {
+      const filter = e => {
+        if (account.kind === 'student') {
+          return true;
+        } else if (account.kind === 'faculty') {
+          return true;
+        } else if (account.kind === 'administrator') {
+          return e.status !== 'pending';
+        } else {
+          return true;
+        }
+      };
+
+      return defenses.filter(filter).map(e => {
         let className = '';
         
+        switch (e.status) {
+          case 'approved':
+          case 'pending': className = 'bg-warning'; break;
+          case 'declined': className = 'bg-danger'; break;
+          case 'confirmed': className = 'bg-success'; break;
+          default: break;
+        }
+
         if (e.action) {
-          className = 'bg-secondary';
-        } else {
-          switch (e.status) {
-            case 'pending': className = 'bg-warning'; break;
-            case 'declined': className = 'bg-danger'; break;
-            case 'approved': className = 'bg-info'; break;
-            case 'confirmed': className = 'bg-success'; break;
+          switch (e.action) {
+            case 'create': className = 'bg-primary bg-edit'; break;
+            case 'delete': className = 'bg-danger bg-edit'; break;
             default: break;
           }
         }
@@ -166,7 +182,9 @@ function DefenseWeekPage() {
     if (calendarRef.current) {
       const api = calendarRef.current.getApi();
       if (api.view.type === 'timeGridWeek') {
-        functions.tryRemoveDefense(e.event.id);
+        if (account.kind === 'student') {
+          functions.tryRemoveDefense(e.event.id);
+        }
       }
     }
   };
@@ -351,6 +369,7 @@ function DefenseWeekPage() {
                   <Card.Title>Defense request status</Card.Title>
                   <Card.Text>
                     { defenses && functions.getOwnRequests().length < 1 && 'You have not requested any slots for defense.' }
+                    { defenses && functions.getOwnRequests().filter(e => e.status === 'confirmed').length > 0 && 'You are now set for defense.' }
                     <ul>
                       <li>{ defenses && functions.getOwnRequests().filter(e => e.status === 'pending').length } slot(s) pending</li>
                       <li>{ defenses && functions.getOwnRequests().filter(e => e.status === 'declined').length } slot(s) declined</li>

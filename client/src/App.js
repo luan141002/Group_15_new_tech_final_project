@@ -19,6 +19,8 @@ function App() {
             userID: token.userID,
             roles: [],
             kind: token.kind.toLowerCase(),
+            lastName: token.lastName,
+            firstName: token.firstName
           });
         }
       }

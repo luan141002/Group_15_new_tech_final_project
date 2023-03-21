@@ -138,6 +138,32 @@ function MainLayout() {
     });
   };
 
+  const sidebar = kind => {
+    switch (kind) {
+      case 'administrator':
+        return [
+          { name: 'Home', path: '/' },
+          { name: 'Defense', path: '/defense' },
+          { name: 'Announcements', path: '/announcement' },
+          { name: 'Thesis Projects', path: '/thesis' },
+          { name: 'Accounts', path: '/account' }
+        ];
+      case 'faculty':
+        return [
+          { name: 'Home', path: '/' },
+          { name: 'Defense', path: '/defense' },
+          { name: 'Thesis Projects', path: '/thesis' }
+        ];
+      case 'student':
+      default:
+        return [
+          { name: 'Home', path: '/' },
+          { name: 'Defense', path: '/defense' },
+          { name: 'My Thesis', path: '/thesis' }
+        ];
+    }
+  }
+
   return (
     <>
       <Offcanvas
@@ -192,18 +218,13 @@ function MainLayout() {
         <Navbar bg="light" expand="lg">
           <Container>
             <LinkContainer to='/'>
-              <Navbar.Brand>Thesis Management System</Navbar.Brand>
+              <Navbar.Brand>AnimoPlan</Navbar.Brand>
             </LinkContainer>
             <Navbar.Toggle />
-            <Navbar.Collapse>
-              <Nav className="me-auto">
-                <Nav.Link>Home</Nav.Link>
-              </Nav>
-            </Navbar.Collapse>
             <Navbar.Collapse className="justify-content-end w-100">
               <Nav className="ms-3">
                 <Button className='me-2' variant='link' onClick={() => setShowSearch(true)}><Search /></Button>
-                <Dropdown as={NavItem} id="account-dropdown">
+                <Dropdown align="end" as={NavItem} id="account-dropdown">
                   <Dropdown.Toggle as={NavLink}>
                     <ProfileImage
                       roundedCircle
@@ -214,6 +235,15 @@ function MainLayout() {
                     />
                   </Dropdown.Toggle>
                   <Dropdown.Menu>
+                    <ProfileImage
+                      roundedCircle
+                      className='mx-5 my-3'
+                      accountID={account.accountID}
+                      width={120}
+                    />
+                    <div className='text-center'>{t('values.full_name_regular', account)}</div>
+                    <div className='text-center text-muted'>{t(`values.account_kind.${account.kind}`)} account</div>
+                    <NavDropdown.Divider />
                     <LinkContainer to='/settings'>
                       <NavDropdown.Item>Settings</NavDropdown.Item>
                     </LinkContainer>
@@ -225,8 +255,23 @@ function MainLayout() {
             </Navbar.Collapse>
           </Container>
         </Navbar>
-        <Container className='my-3'>
-          <Outlet />
+        <Container>
+          <Row className='bg-white'>
+            <Col sm={3} md={2} className='pt-3 pb-5 px-5' style={{ backgroundColor: '#f8f8f8' }}>
+              <Nav variant='pills' className='flex-column'>
+                {
+                  sidebar(account.kind).map(e => (
+                    <LinkContainer to={e.path}>
+                      <Nav.Link eventKey={e.path}>{e.name}</Nav.Link>
+                    </LinkContainer>
+                  ))
+                }
+              </Nav>
+            </Col>
+            <Col sm={9} md={10} className='pt-3 pb-5'>
+              <Outlet />
+            </Col>
+          </Row>
         </Container>
       </NotificationContext.Provider>
     </>

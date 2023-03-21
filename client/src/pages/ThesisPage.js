@@ -159,7 +159,11 @@ function ThesisPage() {
           <h3>{thesis.title}</h3>
           <h6 className='text-muted'>by {thesis.authors.map(renderName).join('; ')}</h6>
           <h6 className='text-muted'>advised by {thesis.advisers.map(renderName).join('; ')}</h6>
-          <p>{thesis.description}</p>
+          {
+            thesis.description ?
+              <p>{thesis.description}</p> :
+              <p className='text-muted'>No description provided.</p>
+          }
           <h5>Media and Files</h5>
           {
             (thesis.submissions && thesis.submissions.length > 0) ?

@@ -13,11 +13,10 @@ AnnouncementController.get('/announcement', requireToken, async (req, res) => {
     const { all, items, page } = req.query;
 
     try {
-
         const query = {};
         if (!isQueryTrue(all)) {
             const allRead = await AnnouncementRead.find({ account: accountID });
-            query._id = { $nin: allRead.map(e => e._id.toString()) };
+            query._id = { $nin: allRead.map(e => e.announcement.toString()) };
         }
 
         const count = await Announcement.countDocuments(query);
@@ -52,7 +51,7 @@ AnnouncementController.get('/announcement', requireToken, async (req, res) => {
             return res.json(empty);
         }
 
-        let announcementsQuery = Announcement.find(query).sort({ sent: 'desc' }).populate('author');
+        let announcementsQuery = Announcement.find(query).sort({ sent: 'desc' }).populate('author').select('-author.photo');
         if (isPaginated) {
             announcementsQuery = announcementsQuery.skip((nPage - 1) * nItems).limit(nItems);
         }
@@ -68,7 +67,7 @@ AnnouncementController.get('/announcement', requireToken, async (req, res) => {
         }
 
         const results = {
-            items: (await announcements).map(e => ({
+            items: announcements.map(e => ({
                 _id: e._id,
                 author: {
                     _id: e.author._id,
@@ -84,7 +83,7 @@ AnnouncementController.get('/announcement', requireToken, async (req, res) => {
 
         if (isPaginated) {
             results.page = nPage;
-            results.maxPages = nTotalPages;
+            results.totalPages = nTotalPages;
             results.total = count;
         }
 

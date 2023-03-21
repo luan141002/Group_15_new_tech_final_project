@@ -32,7 +32,8 @@ const en = {
       '2': 'Second',
       '3': 'Third'
     },
-    full_name: '{{lastName}}, {{firstName}}'
+    full_name: '{{lastName}}, {{firstName}}',
+    full_name_regular: '{{firstName}} {{lastName}}'
   }
 };
 

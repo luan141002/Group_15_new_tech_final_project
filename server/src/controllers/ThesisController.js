@@ -14,12 +14,12 @@ const upload = multer();
 
 ThesisController.get('/thesis', requireToken, async (req, res) => {
     const { all, q, status, phase } = req.query;
-    const { accountID } = req.token;
+    const { accountID, kind } = req.token;
     
     try {
         let query = { $or: [ { authors: accountID }, { advisers: accountID } ] };
 
-        if (isQueryTrue(all)) query = {};
+        if ((all === undefined && kind === 'administrator') || isQueryTrue(all)) query = {};
         if (q) query.title = { $regex: q, $options: 'i' };
         if (status) query.status = status;
         if (phase && Number.parseInt(phase)) query.phase = Number.parseInt(phase);

@@ -6,16 +6,21 @@ import Row from 'react-bootstrap/Row';
 import { X } from 'react-bootstrap-icons';
 import { useTranslation } from 'react-i18next';
 import { LinkContainer } from 'react-router-bootstrap';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import FullCalendar from '@fullcalendar/react';
+import dayGridPlugin from '@fullcalendar/daygrid';
 import dayjs from 'dayjs';
 import ThesisTable from '../../components/ThesisTable';
 import AnnouncementService from '../../services/AnnouncementService';
+import DefenseService from '../../services/DefenseService';
 import ThesisService from '../../services/ThesisService';
 
 function DashboardPage() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [theses, setTheses] = useState([]);
-  const [announcements, setAnnouncements] = useState([]);
+  const [announcements, setAnnouncements] = useState({ items: [] });
+  const [defenses, setDefenses] = useState([]);
   const [loading, setLoading] = useState(false);
   const thesesToCheck = theses.filter(e => e.status === 'for_checking');
   const thesesByPhase = theses.reduce((p, e) => {
@@ -38,13 +43,20 @@ function DashboardPage() {
       setLoading(true);
       setAnnouncements(await AnnouncementService.getAnnouncements());
       setTheses(await ThesisService.getTheses());
+      setDefenses(await DefenseService.getDefenses());
     } finally {
       setLoading(false);
     }
   };
 
   const dismissAnnouncement = id => {
-    setAnnouncements(prev => prev.filter(e => e._id !== id));
+    setAnnouncements(prev => {
+      const { items, ...rest } = prev;
+      return {
+        items: items.filter(e => e._id !== id),
+        ...rest
+      }
+    });
   };
 
   useEffect(() => {
@@ -56,13 +68,13 @@ function DashboardPage() {
       <Row>
         <Col sm={8}>
           {
-            announcements.length > 0 &&
+            announcements.items && announcements.items.length > 0 &&
               <Card className='mb-4'>
                 <Card.Body>
                   <Card.Title>Announcements</Card.Title>
                   <Card.Text>
                     {
-                      announcements.map(e => (
+                      announcements.items.map(e => (
                         <>
                           <hr />
                           <div className='clearfix'>
@@ -94,6 +106,33 @@ function DashboardPage() {
                     :
                     <p>None to check.</p>
                 }
+              </Card.Text>
+            </Card.Body>
+          </Card>
+          <Card className='mb-4'>
+            <Card.Body>
+              <Card.Text className='text-center'>
+                <FullCalendar
+                  plugins={[ dayGridPlugin ]}
+                  initialView='dayGridMonth'
+                  selectable
+                  expandRows
+                  height='65vh'
+                  headerToolbar={{
+                    start: 'today,prev,next',
+                    center: 'title',
+                    end: 'gotoPage'
+                  }}
+                  events={defenses}
+                  customButtons={{
+                    gotoPage: {
+                      text: 'Go to page',
+                      click: () => {
+                        navigate('/defense');
+                      }
+                    }
+                  }}
+                />
               </Card.Text>
             </Card.Body>
           </Card>

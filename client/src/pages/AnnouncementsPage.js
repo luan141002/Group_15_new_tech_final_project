@@ -12,35 +12,63 @@ import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
 import { useAccount } from '../providers/account';
 import AnnouncementService from '../services/AnnouncementService';
+import Paginator from '../components/Paginator';
+
+async function loadAnnouncements(pageNumber = 1, itemsPerPage = 5) {
+  return await AnnouncementService.getAnnouncements({ all: true, items: itemsPerPage, page: pageNumber });
+}
 
 function AnnouncementsPage() {
-  const { t } = useTranslation();
   const { account } = useAccount();
   const navigate = useNavigate();
-  const [announcements, setAnnouncements] = useState({});
+  const { t } = useTranslation();
+
+  // Announcement list and pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(5);
+  const [totalPages, setTotalPages] = useState(1);
+  const [announcements, setAnnouncements] = useState(() => {
+    loadAnnouncements().then(result => {
+      setAnnouncements(result.items);
+      setTotalPages(result.totalPages);
+    });
+  });
+
+  // Modal state
   const [announcementDialog, setAnnouncementDialog] = useState(false);
-  const [deleteID, setDeleteID] = useState('');
   const [saving, setSaving] = useState(false);
   const [title, setTitle] = useState('');
   const [text, setText] = useState('');
   const [error, setError] = useState('');
-  const [itemsPerPage, setItemsPerPage] = useState(20);
+  const [deleteID, setDeleteID] = useState('');
 
   const load = async () => {
-    await loadPage(1);
+    const results = await loadAnnouncements(currentPage, itemsPerPage);
+    setAnnouncements(results.items);
+    setTotalPages(results.totalPages);
   };
 
-  const loadPage = async (page) => {
-    setAnnouncements(await AnnouncementService.getAnnouncements({ all: true, items: itemsPerPage, page }));
-  }
+  useEffect(() => {
+    load();
+  }, [currentPage]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+    load();
+  }, [itemsPerPage]);
+
+  const handlePage = async newPage => {
+    setCurrentPage(newPage);
+  };
 
   const handleSubmit = async e => {
     e.preventDefault();
     try {
       setSaving(true);
       await AnnouncementService.createAnnouncement({ title, text });
+      setCurrentPage(1);
       await load();
-      setAnnouncementDialog(false);
+      closeDialog();
     } catch (error) {
       setError(error.code ? t(error.code) : error.message);
     } finally {
@@ -54,6 +82,7 @@ function AnnouncementsPage() {
       setError('');
       setSaving(true);
       await AnnouncementService.deleteAnnouncement(deleteID);
+      setCurrentPage(1);
       await load();
       setDeleteID('');
     } catch (error) {
@@ -67,16 +96,12 @@ function AnnouncementsPage() {
     setDeleteID(id);
   };
 
-  const handleCancel = () => {
+  const closeDialog = () => {
     setTitle('');
     setText('');
     setError('');
     setAnnouncementDialog(false);
   };
-
-  useEffect(() => {
-    load();
-  }, []);
 
   return (
     <>
@@ -97,8 +122,8 @@ function AnnouncementsPage() {
         </Col>
       </Row>
       {
-        announcements.items && announcements.items.length > 0 ?
-          announcements.items.map(e => (
+        announcements && announcements.length > 0 ?
+          announcements.map(e => (
             <Card className='mb-4'>
               <Card.Body>
                 <Card.Title>
@@ -129,6 +154,13 @@ function AnnouncementsPage() {
           ))
           :
           <p>There are no announcements.</p>
+      }
+      {
+        announcements && announcements.length > 0 && (
+          <>
+            <Paginator page={currentPage} pageCount={totalPages} onChange={handlePage} />
+          </>
+        )
       }
       {
         account.kind === 'administrator' &&
@@ -163,7 +195,7 @@ function AnnouncementsPage() {
               </Modal.Body>
               <Modal.Footer>
                 <Button type='submit' disabled={saving}>Continue</Button>
-                <Button variant='secondary' onClick={handleCancel} disabled={saving}>Cancel</Button>
+                <Button variant='secondary' onClick={closeDialog} disabled={saving}>Cancel</Button>
               </Modal.Footer>
             </Form>
           </Modal>

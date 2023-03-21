@@ -4,7 +4,9 @@ const EMPTY_ACCOUNT = {
   accountID: null,
   userID: null,
   roles: [],
-  kind: null
+  kind: null,
+  lastName: null,
+  firstName: null
 }
 
 const AccountContext = React.createContext({

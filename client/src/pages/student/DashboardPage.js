@@ -31,7 +31,13 @@ function DashboardPage() {
   };
 
   const dismissAnnouncement = id => {
-    setAnnouncements(prev => prev.filter(e => e._id !== id));
+    setAnnouncements(prev => {
+      const { items, ...rest } = prev;
+      return {
+        items: items.filter(e => e._id !== id),
+        ...rest
+      }
+    });
   };
 
   const findMember = (thesis, submitterID, mode) => {
@@ -83,13 +89,13 @@ function DashboardPage() {
       <Row>
         <Col sm={8} md={9}>
           {
-            announcements.length > 0 &&
+            announcements.items && announcements.items.length > 0 &&
               <Card className='mb-4'>
                 <Card.Body>
                   <Card.Title>Announcements</Card.Title>
                   <Card.Text>
                     {
-                      announcements.map(e => (
+                      announcements.items.map(e => (
                         <>
                           <hr />
                           <div className='clearfix'>

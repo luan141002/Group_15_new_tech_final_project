@@ -19,7 +19,7 @@ function EditThesisPage() {
       await ThesisService.updateThesis(tid, thesis);
     } else {
       const obj = await ThesisService.createThesis(thesis);
-      navigate(`/thesis/${obj._id}`);
+      navigate(`/thesis/${obj._id}`, { replace: true });
     }
   };
 

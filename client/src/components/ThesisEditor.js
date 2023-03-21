@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import Alert from 'react-bootstrap/Alert';
 import Button from 'react-bootstrap/Button';
 import Col from 'react-bootstrap/Col';
 import Form from 'react-bootstrap/Form';
@@ -10,9 +11,11 @@ import { useNavigate } from 'react-router-dom';
 import { useAccount } from '../providers/account';
 import AccountService from '../services/AccountService';
 import renderName from '../utility/renderName';
+import { useTranslation } from "react-i18next";
 
 function ThesisEditor(props) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { account } = useAccount();
   const { thesis, onSubmit } = props;
   const [students, setStudents] = useState([]);
@@ -31,6 +34,7 @@ function ThesisEditor(props) {
   const [file, setFile] = useState('');
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   const onLoad = async () => {
     if (thesis) {
@@ -97,7 +101,7 @@ function ThesisEditor(props) {
     if (onSubmit) {
       try {
         setSaving(true);
-        onSubmit({
+        await onSubmit({
           title,
           description,
           authors,
@@ -107,7 +111,7 @@ function ThesisEditor(props) {
           phase
         });
       } catch (error) {
-
+        setError(error.code ? t(error.code) : error.message);
       } finally {
         setSaving(false);
       }
@@ -134,6 +138,7 @@ function ThesisEditor(props) {
             </div>
           </Col>
         </Row>
+        { error && <Alert variant='danger' onClose={() => setError('')} dismissible>{error}</Alert> }
         <Form.Group className="mb-3" controlId="formTitle">
           <Form.Label>Title</Form.Label>
           <Form.Control type="text" value={title} onChange={e => setTitle(e.currentTarget.value)} />
@@ -188,7 +193,6 @@ function ThesisEditor(props) {
                 <Form.Group className="mb-3" controlId="formPhase">
                   <Form.Label>Phase</Form.Label>
                   <Form.Select value={phase} onChange={e => setPhase(e.currentTarget.value)}>
-                    <option value=''>Select phase</option>
                     <option value='1'>First</option>
                     <option value='2'>Second</option>
                     <option value='3'>Third</option>

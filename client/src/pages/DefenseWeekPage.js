@@ -32,6 +32,7 @@ function DefenseWeekPage() {
   const [selectedThesis, setSelectedThesis] = useState(null);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [endorseNotice, setEndorseNotice] = useState(true);
 
   const [addEventsDialog, setAddEventsDialog] = useState(false);
   const [eventThesis, setEventThesis] = useState('');
@@ -44,6 +45,10 @@ function DefenseWeekPage() {
   const [adminEvent, setAdminEvent] = useState(null);
 
   const functions = {
+    isAuthor: (thesis) => {
+      return thesis.authors.find(e => e._id === account.accountID);
+    },
+
     isAdvisory: (thesis) => {
       return thesis.advisers.find(e => e._id === account.accountID);
     },
@@ -174,17 +179,36 @@ function DefenseWeekPage() {
     },
 
     getEvents: () => {
-      return defenses.map(e => {
+      const filter = e => {
+        if (account.kind === 'student') {
+          return true;
+        } else if (account.kind === 'faculty') {
+          return true;
+        } else if (account.kind === 'administrator') {
+          return e.status !== 'pending';
+        } else {
+          return true;
+        }
+      };
+
+      return defenses.filter(filter).map(e => {
         let className = '';
         
+        switch (e.status) {
+          case 'approved':
+          case 'pending': className = 'bg-warning'; break;
+          case 'declined': className = 'bg-danger'; break;
+          case 'confirmed': className = 'bg-success'; break;
+          default: break;
+        }
+
         if (e.action) {
-          className = 'bg-secondary';
-        } else {
-          switch (e.status) {
-            case 'pending': className = 'bg-warning'; break;
-            case 'declined': className = 'bg-danger'; break;
-            case 'approved': className = 'bg-info'; break;
-            case 'confirmed': className = 'bg-success'; break;
+          switch (e.action) {
+            case 'create': className = 'bg-primary bg-edit'; break;
+            case 'delete': className = 'bg-danger bg-edit'; break;
+            case 'approve': className = 'bg-info bg-edit'; break;
+            case 'confirm': className = 'bg-success bg-edit'; break;
+            case 'decline': className = 'bg-danger bg-edit'; break;
             default: break;
           }
         }
@@ -213,7 +237,7 @@ function DefenseWeekPage() {
       const api = calendarRef.current.getApi();
       if (api.view.type === 'timeGridWeek') {
         if (account.kind === 'student') {
-          functions.tryAddDefense(e.start, e.end, eventTitle || thesis.title, thesis._id);
+          functions.tryAddDefense(e.start, e.end, eventTitle || thesis.title, thesis);
           api.unselect();
         }
       }
@@ -224,16 +248,17 @@ function DefenseWeekPage() {
     if (calendarRef.current) {
       const api = calendarRef.current.getApi();
       if (api.view.type === 'timeGridWeek') {
+        const event = functions.getEvent(e.event.id);
         if (account.kind === 'student') {
-          functions.tryRemoveDefense(e.event.id);
+          if (event && functions.isAuthor(event.thesis) && event.status !== 'confirmed') {
+            functions.tryRemoveDefense(e.event.id);
+          }
         } else if (account.kind === 'faculty') {
-          const event = functions.getEvent(e.event.id);
           if (event && functions.isAdvisory(event.thesis)) {
             setAdviserEvent(event);
           }
         } else if (account.kind === 'administrator') {
-          const event = functions.getEvent(e.event.id);
-          if (event && event.status === 'approved') {
+          if (event && (event.status === 'approved' || event.status === 'pending')) {
             setAdminEvent(event);
           }
         }
@@ -312,9 +337,9 @@ function DefenseWeekPage() {
     const start = new Date(`${eventDate}T${eventStartTime}`);
     const end = new Date(`${eventDate}T${eventEndTime}`);
     if (eventThesis) {
-      functions.tryAddDefense(start, end, eventTitle || eventThesis.title, eventThesis._id);
+      functions.tryAddDefense(start, end, eventTitle || eventThesis.title, eventThesis);
     } else if (thesis) {
-      functions.tryAddDefense(start, end, eventTitle || thesis.title, thesis._id);
+      functions.tryAddDefense(start, end, eventTitle || thesis.title, thesis);
     }
     handleCloseEventDialog();
   };
@@ -358,52 +383,6 @@ function DefenseWeekPage() {
   }, [eventThesis]);
 
   useEffect(() => {
-    /*setDefenses([
-      {
-        _id: '1',
-        start: '2023-03-27T08:00:00',
-        end: '2023-03-27T18:00:00',
-        display: 'background',
-        className: 'bg-secondary cursor-blocked'
-      },
-      {
-        _id: '2',
-        start: '2023-03-31T08:00:00',
-        end: '2023-03-31T18:00:00',
-        display: 'background',
-      },
-      {
-        _id: '3',
-        start: '2023-03-29T12:00:00',
-        end: '2023-03-29T18:00:00',
-        display: 'background',
-      },
-      {
-        _id: '4',
-        start: '2023-03-29T10:00:00',
-        title: 'Reserved',
-        end: '2023-03-29T11:00:00',
-      },
-      {
-        _id: '5',
-        start: '2023-03-29T10:00:00',
-        end: '2023-03-29T11:00:00',
-        title: 'Reserved',
-      },
-      {
-        _id: '6',
-        start: '2023-03-29T10:00:00',
-        end: '2023-03-29T11:00:00',
-        title: 'Reserved',
-      },
-      {
-        _id: '7',
-        start: '2023-03-29T10:00:00',
-        end: '2023-03-29T11:00:00',
-        title: 'Reserved',
-      },
-    ]);*/
-
     load();
   }, [account]);
 
@@ -463,6 +442,33 @@ function DefenseWeekPage() {
           }
         </Col>
         <Col md={3}>
+          <Card className='mb-4'>
+            <Card.Body>
+              <Card.Title>Legend</Card.Title>
+              <Card.Text>
+                <div className='d-flex flex-row align-items-center'>
+                  <div className='bg-light me-2' style={{ width: 16, height: 16, borderRadius: '50%' }}></div>
+                  <div>Available</div>
+                </div>
+                {/* <div className='d-flex flex-row align-items-center'>
+                  <div className='bg-dark me-2' style={{ width: 16, height: 16, borderRadius: '50%' }}></div>
+                  <div>Unavailable</div>
+                </div> */}
+                <div className='d-flex flex-row align-items-center'>
+                  <div className='bg-warning me-2' style={{ width: 16, height: 16, borderRadius: '50%' }}></div>
+                  <div>Pending</div>
+                </div>
+                <div className='d-flex flex-row align-items-center'>
+                  <div className='bg-danger me-2' style={{ width: 16, height: 16, borderRadius: '50%' }}></div>
+                  <div>Declined</div>
+                </div>
+                <div className='d-flex flex-row align-items-center'>
+                  <div className='bg-success me-2' style={{ width: 16, height: 16, borderRadius: '50%' }}></div>
+                  <div>Confirmed</div>
+                </div>
+              </Card.Text>
+            </Card.Body>
+          </Card>
           {
             account.kind === 'student' &&
               <Card>
@@ -470,6 +476,7 @@ function DefenseWeekPage() {
                   <Card.Title>Defense request status</Card.Title>
                   <Card.Text>
                     { defenses && functions.getOwnRequests().length < 1 && 'You have not requested any slots for defense.' }
+                    { defenses && functions.getOwnRequests().filter(e => e.status === 'confirmed').length > 0 && 'You are now set for defense.' }
                     <ul>
                       <li>{ defenses && functions.getOwnRequests().filter(e => e.status === 'pending').length } slot(s) pending</li>
                       <li>{ defenses && functions.getOwnRequests().filter(e => e.status === 'declined').length } slot(s) declined</li>
@@ -624,6 +631,24 @@ function DefenseWeekPage() {
           <Button variant='secondary' onClick={() => setAdminEvent(null)}>Cancel</Button>
         </Modal.Footer>
       </Modal>
+      {
+        /*account.kind === 'student' && thesis &&
+          <Modal show={thesis.status !== 'endorsed' && endorseNotice} animation={false} centered size='lg'>
+            <Modal.Header>
+              <Modal.Title>
+                Notice
+              </Modal.Title>
+            </Modal.Header>
+            <Modal.Body>
+              <p>Please ensure that your thesis is endorsed.</p>
+            </Modal.Body>
+            <Modal.Footer>
+              <Button onClick={() => handleAdminEventForm('confirm')}>Confirm</Button>
+              <Button onClick={() => handleAdminEventForm('decline')}>Decline</Button>
+              <Button variant='secondary' onClick={() => setAdminEvent(null)}>Cancel</Button>
+            </Modal.Footer>
+          </Modal>*/
+      }
     </>
   );
 }

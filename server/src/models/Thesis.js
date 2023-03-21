@@ -6,10 +6,7 @@ const ThesisSchema = new Schema({
         type: String,
         required: true
     },
-    description: {
-        type: String,
-        required: true
-    },
+    description: String,
     authors: {
         type: [Schema.Types.ObjectId],
         ref: 'Student',
@@ -67,7 +64,7 @@ const ThesisSchema = new Schema({
             'pass',
             'fail',
         ],
-        default: 'for_checking'
+        default: 'new'
     }
 });
 

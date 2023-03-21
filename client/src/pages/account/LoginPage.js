@@ -26,6 +26,8 @@ function LoginPage() {
         accountID: data.accountID,
         roles: [],
         kind: data.kind.toLowerCase(),
+        lastName: data.lastName,
+        firstName: data.firstName
       });
       navigate('/');
     } catch (err) {

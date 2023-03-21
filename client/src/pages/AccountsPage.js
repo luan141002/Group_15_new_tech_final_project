@@ -6,7 +6,7 @@ import Modal from 'react-bootstrap/Modal';
 import Row from 'react-bootstrap/Row';
 import Table from 'react-bootstrap/Table';
 import { Pencil, Trash } from 'react-bootstrap-icons';
-import { DatatableWrapper, Pagination, PaginationOptions, TableBody, TableHeader } from 'react-bs-datatable';
+import { DatatableWrapper, Filter, Pagination, PaginationOptions, TableBody, TableHeader } from 'react-bs-datatable';
 import { useTranslation } from 'react-i18next';
 import { LinkContainer } from 'react-router-bootstrap';
 import { useNavigate } from 'react-router-dom';
@@ -24,7 +24,11 @@ function AccountsPage() {
   const [file, setFile] = useState('');
 
   const load = async () => {
-    setAccounts(await AccountService.getAccounts(type));
+    const accounts = await AccountService.getAccounts(type);
+    setAccounts(accounts.map(e => ({
+      ...e,
+      fullName: t('values.full_name', e)
+    })));
   };
 
   const removeImport = index => {
@@ -94,8 +98,8 @@ function AccountsPage() {
               <React.Fragment key={`photo-${row._id}`}>
                 <ProfileImage
                   roundedCircle
-                  width={30}
-                  className='ms-1 me-2'
+                  width={24}
+                  className='ms-1 me-1'
                   accountID={row._id}
                   alt={t('values.full_name', row)}
                 />
@@ -109,12 +113,17 @@ function AccountsPage() {
           },
           {
             title: 'Name',
-            prop: 'name',
+            prop: 'fullName',
+            isFilterable: true,
             cell: (row) => (
               <>
                 <span>{t('values.full_name', row)}</span>
               </>
             )
+          },
+          {
+            title: 'Type',
+            prop: 'kind'
           },
           {
             title: 'Actions',
@@ -141,10 +150,17 @@ function AccountsPage() {
           </Col>
           <Col className='d-flex flex-column align-items-end'>
             <div>
-              <Button className='me-2' onClick={() => setImportAccountDialogOpen(true)}>Add accounts from file...</Button>
-              <LinkContainer to='/account/new'><Button className='me-2' as='a'>Add account</Button></LinkContainer>
-              <Button variant='secondary' onClick={() => navigate(-1)}>Back</Button>
             </div>
+          </Col>
+        </Row>
+        <Row>
+          <Col className='d-flex flex-col justify-content-start align-items-end mb-2 mb-sm-0'>
+            <Filter />
+          </Col>
+          <Col className='d-flex flex-col justify-content-end align-items-end'>
+            <Button className='me-2' onClick={() => setImportAccountDialogOpen(true)}>Add accounts from file...</Button>
+            <LinkContainer to='/account/new'><Button className='me-2' as='a'>Add account</Button></LinkContainer>
+            <Button variant='secondary' onClick={() => navigate(-1)}>Back</Button>
           </Col>
         </Row>
         <Table striped hover size="sm">

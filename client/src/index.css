@@ -1,5 +1,6 @@
 html {
   font-size: 0.8em;
+  background-color: #f0f0f0;
 }
 
 body {
@@ -22,4 +23,18 @@ code {
 
 .cursor-blocked {
   cursor: not-allowed;
+}
+
+#root {
+  background-color: #f0f0f0;
+}
+
+.bg-edit {
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(0, 0, 0, 0.2),
+    rgba(0, 0, 0, 0.2) 10px,
+    rgba(0, 0, 0, 0.3) 10px,
+    rgba(0, 0, 0, 0.3) 20px
+  );
 }

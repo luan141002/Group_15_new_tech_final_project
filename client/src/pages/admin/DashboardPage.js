@@ -7,11 +7,13 @@ import Row from 'react-bootstrap/Row';
 import { AsyncTypeahead, Highlighter, Menu, MenuItem } from 'react-bootstrap-typeahead';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
-import ThesisTable from '../../components/ThesisTable';
+import FullCalendar from '@fullcalendar/react';
+import dayGridPlugin from '@fullcalendar/daygrid';
+import ProfileImage from '../../components/ProfileImage';
 import AccountService from '../../services/AccountService';
+import DefenseService from '../../services/DefenseService';
 import SearchService from '../../services/SearchService';
 import ThesisService from '../../services/ThesisService';
-import ProfileImage from '../../components/ProfileImage';
 
 function DashboardPage() {
   const { t } = useTranslation();
@@ -21,10 +23,12 @@ function DashboardPage() {
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchOptions, setSearchOptions] = useState([]);
   const [searchSelected, setSearchSelected] = useState([]);
+  const [defenses, setDefenses] = useState([]);
 
   const load = async () => {
     setAccounts(await AccountService.getAccounts());
     setTheses(await ThesisService.getTheses({ all: true }));
+    setDefenses(await DefenseService.getDefenses());
   };
 
   useEffect(() => {
@@ -129,8 +133,8 @@ function DashboardPage() {
 
   return (
     <>
-      <Row>
-        <Form className="d-flex w-100 mb-4">
+      <Row className='mb-4'>
+        <Form className="d-flex w-100">
           <AsyncTypeahead
             id='formSearch'
             className="me-2 w-100"
@@ -150,7 +154,7 @@ function DashboardPage() {
           <Button variant="outline-success">Search</Button>
         </Form>
       </Row>
-      <Row>
+      <Row className='mb-4'>
         <Col>
           <Card>
             <Card.Body>
@@ -167,6 +171,37 @@ function DashboardPage() {
               <Card.Text className='text-center'>
                 <h2>{accounts.filter(e => !e.locked).length}</h2>
                 <p><Link to='/account' className='stretched-link'>active accounts</Link></p>
+              </Card.Text>
+            </Card.Body>
+          </Card>
+        </Col>
+      </Row>
+      <Row>
+        <Col>
+          <Card>
+            <Card.Body>
+              <Card.Text className='text-center'>
+                <FullCalendar
+                  plugins={[ dayGridPlugin ]}
+                  initialView='dayGridMonth'
+                  selectable
+                  expandRows
+                  height='65vh'
+                  headerToolbar={{
+                    start: 'today,prev,next',
+                    center: 'title',
+                    end: 'gotoPage'
+                  }}
+                  events={defenses.filter(e => e.status === 'confirmed')}
+                  customButtons={{
+                    gotoPage: {
+                      text: 'Go to page',
+                      click: () => {
+                        navigate('/defense');
+                      }
+                    }
+                  }}
+                />
               </Card.Text>
             </Card.Body>
           </Card>

@@ -12,8 +12,11 @@ function ThesesPage() {
 
   return (
     <>
+      <h3>Thesis projects</h3>
       <ThesisTable
-        all={all}
+        userKind={account.kind}
+        filter
+        pagination
       />
     </>
   )
