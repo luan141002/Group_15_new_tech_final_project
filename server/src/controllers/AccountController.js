@@ -22,8 +22,9 @@ AccountController.get('/account', requireToken, async (req, res) => {
             case 'faculty': schema = Account.Faculty; break;
             case 'student': schema = Account.Student; break;
         }
-
-        //const isAdmin = token.kind.toLowerCase() === 'administrator';
+        
+        const isAdmin = token.kind.toLowerCase() === 'administrator';
+        const canSeePrivate = token.accountID === id || isAdmin;
 
         let query = {};
         if (q) {
@@ -40,7 +41,8 @@ AccountController.get('/account', requireToken, async (req, res) => {
             lastName: e.lastName,
             firstName: e.firstName,
             middleName: e.middleName,
-            kind: e.kind.toLowerCase()
+            kind: e.kind.toLowerCase(),
+            accessCode: isAdmin ? result.accessCode : undefined,
         })));
     } catch (error) {
         return res.error(error, 'Cannot get accounts');
@@ -52,7 +54,8 @@ AccountController.get('/account/:id', requireToken, async (req, res) => {
     const token = req.token;
     
     try {
-        const canSeePrivate = token.accountID === id || token.kind.toLowerCase() === 'administrator';
+        const isAdmin = token.kind.toLowerCase() === 'administrator';
+        const canSeePrivate = token.accountID === id || isAdmin;
 
         const result = await Account.User.findById(id);
         return res.json({
@@ -63,6 +66,7 @@ AccountController.get('/account/:id', requireToken, async (req, res) => {
             middleName: result.middleName,
             kind: result.kind.toLowerCase(),
             email: canSeePrivate ? result.email : undefined,
+            accessCode: isAdmin ? result.accessCode : undefined,
             joined: result.joined
         });
     } catch (error) {
@@ -202,13 +206,15 @@ AccountController.post('/account', requireToken, async (req, res) => {
     const added = [];
     try {
         const results = [];
+    
+        const distribution = randomjs.integer(1, 999999);
 
         for (let i = 0; i < entries.length; i++) {
             const { email, lastName, firstName, middleName, kind } = entries[i];
-            if (!email) errors.push({ fieldName: 'email', message: 'Email address is required' });
-            if (!lastName) errors.push({ fieldName: 'lastName', message: 'Last name is required' });
-            if (!firstName) errors.push({ fieldName: 'firstName', message: 'First name is required' });
-            if (!TYPES.includes(kind)) errors.push({ fieldName: 'kind', message: 'Invalid account type' });
+            if (!email) errors.push({ fieldName: 'email', index: i, message: 'Email address is required' });
+            if (!lastName) errors.push({ fieldName: 'lastName', index: i, message: 'Last name is required' });
+            if (!firstName) errors.push({ fieldName: 'firstName', index: i, message: 'First name is required' });
+            if (!TYPES.includes(kind)) errors.push({ fieldName: 'kind', index: i, message: 'Invalid account type' });
             if (errors.length > 0) throw new ServerError(400, 'Form error', errors);
     
             let schema = Account.User;
@@ -217,12 +223,19 @@ AccountController.post('/account', requireToken, async (req, res) => {
                 case 'faculty': schema = Account.Faculty; break;
                 case 'student': schema = Account.Student; break;
             }
-    
+            const seed = seedFromAccount({
+                _id: '000000000000000000000000',
+                lastName,
+                firstName,
+            }, '')
+            const engine = randomjs.MersenneTwister19937.seed(seed);
+
             const result = await schema.create({
                 email,
                 lastName,
                 firstName,
-                middleName
+                middleName,
+                accessCode: distribution(engine).toString().padStart(6, '0')
             });
 
             added.push(result._id);
@@ -232,7 +245,8 @@ AccountController.post('/account', requireToken, async (req, res) => {
                 lastName,
                 firstName,
                 middleName,
-                kind
+                kind,
+                accessCode
             });
         }
 

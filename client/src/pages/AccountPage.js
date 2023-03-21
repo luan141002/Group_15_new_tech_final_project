@@ -1,27 +1,30 @@
-import Button from 'react-bootstrap/Button';
-import Form from 'react-bootstrap/Form';
-import Row from 'react-bootstrap/Row';
-import Col from 'react-bootstrap/Col';
-import Image from 'react-bootstrap/Image';
-import Spinner from 'react-bootstrap/Spinner';
-import { useNavigate, useParams } from 'react-router-dom';
 import { useEffect, useRef, useState } from 'react';
-import AccountService from '../services/AccountService';
-import defaultProfile from '../default-profile-photo.jpg';
+import Alert from 'react-bootstrap/Alert';
+import Button from 'react-bootstrap/Button';
+import Col from 'react-bootstrap/Col';
+import Form from 'react-bootstrap/Form';
+import Image from 'react-bootstrap/Image';
+import Row from 'react-bootstrap/Row';
+import Spinner from 'react-bootstrap/Spinner';
+import { useTranslation } from 'react-i18next';
+import { useNavigate, useParams } from 'react-router-dom';
 import ProfileImage from '../components/ProfileImage';
+import AccountService from '../services/AccountService';
 
 function AccountPage() {
   const { aid } = useParams();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [account, setAccount] = useState(null);
   const [email, setEmail] = useState('');
-  const [idNumber, setIDNumber] = useState('');
   const [lastName, setLastName] = useState('');
   const [firstName, setFirstName] = useState('');
   const [middleName, setMiddleName] = useState('');
+  const [accessCode, setAccessCode] = useState('');
   const [type, setType] = useState('');
   const [locked, setLocked] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
   /* const [image, setImage] = useState(null);
   const imageRef = useRef(); */
 
@@ -29,13 +32,13 @@ function AccountPage() {
 
   useEffect(() => {
     if (account) {
-      setIDNumber(account.idnum);
       setEmail(account.email);
       setLastName(account.lastName);
       setFirstName(account.firstName);
       setMiddleName(account.middleName);
       setType(account.kind);
       setLocked(!!account.locked);
+      setAccessCode(account.accessCode);
     }
   }, [account]);
 
@@ -50,10 +53,10 @@ function AccountPage() {
     if (!aid) {
       try {
         setSaving(true);
-        const account = await AccountService.createAccount({ idnum: idNumber, lastName, firstName, middleName, kind: type });
+        const account = await AccountService.createAccount({ email, lastName, firstName, middleName, kind: type });
         navigate(`/account/${account._id}`);
       } catch (error) {
-        
+        setError(error.code ? t(error.code) : error.message);
       } finally {
         setSaving(false);
       }
@@ -70,13 +73,6 @@ function AccountPage() {
 
   return (
     <>
-      {/*<Card style={{ width: '18rem' }}>
-        <Card.Body>
-          <Nav variant="pills" defaultActiveKey="general" className="flex-column">
-            <Nav.Link eventKey="general">General</Nav.Link>
-          </Nav>
-        </Card.Body>
-      </Card>*/}
       <Form onSubmit={handleSave}>
         <Row>
           <Col>
@@ -89,6 +85,9 @@ function AccountPage() {
               <Button variant='secondary' className='ms-2 d-inline' onClick={() => navigate(-1)}>Back</Button>
             </div>
           </Col>
+        </Row>
+        <Row>
+          { error && <Alert variant='danger' onClose={() => setError('')} dismissible>{error}</Alert> }
         </Row>
         <Row>
           <Col md={isNew ? 12 : 8}>
@@ -117,6 +116,17 @@ function AccountPage() {
               <Form.Label>Middle Name</Form.Label>
               <Form.Control type="text" value={middleName} onChange={e => setMiddleName(e.currentTarget.value)} />
             </Form.Group>
+            <Form.Group className="mb-3" controlId="formAccessCode">
+              <Form.Label>Access Code</Form.Label>
+              <Row>
+                <Col>
+                  <Form.Control type='text' value={accessCode} disabled readOnly />
+                </Col>
+                <Col>
+                  <Button>Copy to clipboard</Button>
+                </Col>
+              </Row>
+            </Form.Group>
             <Form.Group className="mb-3" controlId="formActive">
               <Form.Check type='checkbox' checked={!locked} onChange={e => setLocked(!e.currentTarget.checked)} label='Active' />
             </Form.Group>
@@ -125,7 +135,7 @@ function AccountPage() {
             !isNew && account && (
               <Col md={4} className='d-flex flex-column align-items-end'>
                 <ProfileImage
-                  width='288px'
+                  width='224px'
                   rounded
                   accountID={account.accountID}
                 />
