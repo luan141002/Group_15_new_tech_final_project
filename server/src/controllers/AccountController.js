@@ -245,7 +245,7 @@ AccountController.post('/account', requireToken, async (req, res) => {
                 firstName,
                 middleName,
                 kind,
-                accessCode
+                accessCode: result.accessCode
             });
         }
 

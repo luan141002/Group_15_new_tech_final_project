@@ -1,0 +1,48 @@
+version: "3.7"
+services:
+  thesis_web:
+    container_name: thesis_web
+    build:
+      context: client/
+      dockerfile: Dockerfile.dev
+    ports:
+      - 8800:8888
+    environment:
+      NODE_ENV: production
+      REACT_APP_API: http://192.168.50.5:8989
+      PORT: 8888
+    command: yarn start
+    restart: on-failure
+  thesis_server:
+    container_name: thesis_server
+    build:
+      context: server/
+      dockerfile: Dockerfile.dev
+    depends_on:
+      - thesis_db
+    ports:
+      - 8989:8989
+    environment:
+      NODE_ENV: production
+      MONGODB_URL: mongodb://root:thesis@thesis_db:27017/thesis_db?authSource=admin
+      MONGODB_USER: root
+      MONGODB_PASSWORD: thesis
+      MONGODB_HOST: mongodb
+      MONGODB_PORT: 27017
+      MONGODB_DATABASE: thesis_db
+      PORT: 8989
+    command: yarn start
+    restart: on-failure
+  thesis_db:
+    container_name: thesis_db
+    image: mongo:latest
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=thesis
+    ports:
+      - 27118:27017
+    volumes:
+      - mongodb_container:/data/db
+
+volumes:
+  mongodb_container:

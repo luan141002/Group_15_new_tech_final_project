@@ -1,0 +1,11 @@
+FROM node:16-alpine
+
+WORKDIR /thesis/server
+
+COPY package.json ./
+COPY yarn.lock ./
+
+RUN yarn install --frozen-lockfile
+COPY src ./src
+
+CMD [ "yarn", "start" ]
