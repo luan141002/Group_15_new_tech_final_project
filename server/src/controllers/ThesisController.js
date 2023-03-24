@@ -27,7 +27,7 @@ ThesisController.get('/thesis', requireToken, async (req, res) => {
         let results = await Thesis.find(query).populate('authors').populate('advisers');
 
         const thesisIDs = results.map(e => e._id);
-        const submissions = await Submission.find({ thesis: { $in: thesisIDs } }).select('-attachments');
+        const submissions = await Submission.find({ thesis: { $in: thesisIDs } }).select('-attachments.data');
         results = results.filter(thesis => {
             const thesisSubmissions = submissions.filter(sub => sub.thesis.toString() === thesis._id.toString());
             const submissionsByDate = [ ...thesisSubmissions ].sort((a, b) => b.submitted.getTime() - a.submitted.getTime());
@@ -44,7 +44,12 @@ ThesisController.get('/thesis', requireToken, async (req, res) => {
                 thesis.submissions = submissionsByDate.map(e => ({
                     _id: e._id.toString(),
                     submitted: e.submitted,
-                    submitter: e.submitter
+                    submitter: e.submitter,
+                    attachments: e.attachments.map(e2 => ({
+                        _id: e2._id,
+                        originalName: e2.originalName,
+                        size: e2.size
+                    }))
                 }))
             }
 
@@ -170,7 +175,7 @@ ThesisController.get('/thesis/:id/comment', requireToken, async (req, res) => {
         if (kind === 'student' && !thesis.authors.find(e => e.toString() === accountID))
             throw new ServerError(403, 'You must be an author to be able to read comments.');
         
-        const comments = await Comment.find({ thesis: id }).populate('author');
+        const comments = await Comment.find({ thesis: id }).sort({ sent: 'desc' }).populate('author');
 
         return res.json(comments.map(e => ({
             _id: e._id,

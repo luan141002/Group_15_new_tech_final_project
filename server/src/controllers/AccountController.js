@@ -24,7 +24,6 @@ AccountController.get('/account', requireToken, async (req, res) => {
         }
         
         const isAdmin = token.kind.toLowerCase() === 'administrator';
-        const canSeePrivate = token.accountID === id || isAdmin;
 
         let query = {};
         if (q) {
@@ -42,7 +41,7 @@ AccountController.get('/account', requireToken, async (req, res) => {
             firstName: e.firstName,
             middleName: e.middleName,
             kind: e.kind.toLowerCase(),
-            accessCode: isAdmin ? result.accessCode : undefined,
+            accessCode: isAdmin ? e.accessCode : undefined,
         })));
     } catch (error) {
         return res.error(error, 'Cannot get accounts');

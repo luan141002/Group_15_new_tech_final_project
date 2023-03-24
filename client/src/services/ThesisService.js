@@ -29,8 +29,8 @@ const ThesisService = {
     const form = new FormData();
     form.append('title', thesis.title);
     form.append('description', thesis.description);
-    for (const author of thesis.authors) form.append('authors', author._id);
-    for (const adviser of thesis.advisers) form.append('advisers', adviser._id);
+    for (const author of thesis.authors) form.append('authors', typeof author === 'object' ? author._id : author);
+    for (const adviser of thesis.advisers) form.append('advisers', typeof adviser === 'object' ? adviser._id : adviser);
     for (const attachment of thesis.attachments) form.append('files', attachment);
 
     const response = await WebService.postForm('/thesis', form);
@@ -55,12 +55,23 @@ const ThesisService = {
     return await response.json();
   },
 
+  deleteComment: async (thesisID, commentID) => {
+    await WebService.delete(`/thesis/${thesisID}/comment/${commentID}`);
+  },
+
   /**
    * Creates a new thesis entry.
    * @param {{title: string, description?: string, authors: {_id:string}[], advisers: {_id:string}[], attachments?: File[]}} thesis 
    */
   updateThesis: async (thesisID, thesis) => {
-    await WebService.putJson(`/thesis/${thesisID}`, thesis);
+    const { authors, advisers, ...rest } = thesis;
+    const thesisReq = {
+      ...rest,
+      authors: authors.map(e => typeof e === 'object' ? e._id : e),
+      advisers: advisers.map(e => typeof e === 'object' ? e._id : e)
+    }
+
+    await WebService.putJson(`/thesis/${thesisID}`, thesisReq);
   },
 
   /**

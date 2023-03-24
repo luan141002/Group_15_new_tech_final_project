@@ -6,7 +6,7 @@ import ThesisService from '../../services/ThesisService';
 import { useTranslation } from 'react-i18next';
 
 function ThesisSelector(props) {
-  const { className, value, onChange } = props;
+  const { className, value, onChange, required } = props;
 
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -93,6 +93,9 @@ function ThesisSelector(props) {
       renderMenu={renderSearchMenu}
       selected={selected}
       selectHint={false}
+      inputProps={{
+        required
+      }}
     />
   );
 }

@@ -21,9 +21,18 @@ const DefenseSchema = new Schema({
         required: true
     },
     panelists: [
+        /* This includes the adviser */
         {
-            type: Schema.Types.ObjectId,
-            ref: 'Faculty'
+            faculty: {
+                type: Schema.Types.ObjectId,
+                ref: 'Faculty',
+                required: true
+            },
+            approved: {
+                type: Boolean,
+                required: true,
+                default: false
+            }
         }
     ],
     status: {

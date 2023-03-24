@@ -159,7 +159,7 @@ function MainLayout() {
         return [
           { name: 'Home', path: '/' },
           { name: 'Defense', path: '/defense' },
-          { name: 'My Thesis', path: '/thesis' }
+          { name: 'My Thesis', path: '/thesis/my' }
         ];
     }
   }

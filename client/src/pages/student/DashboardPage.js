@@ -8,23 +8,29 @@ import Table from 'react-bootstrap/Table';
 import { X } from 'react-bootstrap-icons';
 import { useTranslation } from 'react-i18next';
 import { LinkContainer } from 'react-router-bootstrap';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import FullCalendar from '@fullcalendar/react';
+import dayGridPlugin from '@fullcalendar/daygrid';
 import dayjs from 'dayjs';
 import ProfileImage from '../../components/ProfileImage';
 import AnnouncementService from '../../services/AnnouncementService';
 import ThesisService from '../../services/ThesisService';
+import DefenseService from '../../services/DefenseService';
 
 function DashboardPage() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [theses, setTheses] = useState([]);
   const [loading, setLoading] = useState(false);
   const [announcements, setAnnouncements] = useState([]);
+  const [defenses, setDefenses] = useState([]);
 
   const onLoad = async () => {
     try {
       setLoading(true);
       setAnnouncements(await AnnouncementService.getAnnouncements());
       setTheses(await ThesisService.getTheses({ getSubmissions: true }));
+      setDefenses(await DefenseService.getDefenses());
     } finally {
       setLoading(false);
     }
@@ -113,44 +119,73 @@ function DashboardPage() {
                 </Card.Body>
               </Card>
           }
+          {
+            theses && theses[0] && (
+              <Card className='mb-4'>
+                <Card.Body>
+                  <Card.Title>Submissions</Card.Title>
+                  <Card.Text>
+                    {
+                      (theses[0].submissions && theses[0].submissions.length > 0) ?
+                        <>
+                          <Table striped bordered hover size="sm">
+                            <thead>
+                              <tr>
+                                <th>#</th>
+                                <th>Submitter</th>
+                                <th>Submitted</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {
+                                theses[0].submissions.map((e, i) => (
+                                  <tr>
+                                    <td><Link to={`/thesis/${theses[0]._id}/submission/${e._id}`}>{theses[0].submissions.length - i}</Link></td>
+                                    <td><Link to={`/thesis/${theses[0]._id}/submission/${e._id}`}>{t('values.full_name', findMember(theses[0], e.submitter))}</Link></td>
+                                    <td><Link to={`/thesis/${theses[0]._id}/submission/${e._id}`}>{dayjs(e.submitted).format('LLL')}</Link></td>
+                                  </tr>
+                                ))
+                              }
+                            </tbody>
+                          </Table>
+                        </>
+                        :
+                        <>
+                          <p>Your group has not made any submissions.</p>
+                          <LinkContainer to={`/thesis/${theses[0]._id}`}>
+                            <Button>Go to thesis page</Button>
+                          </LinkContainer>
+                        </>
+                    }
+                  </Card.Text>
+                </Card.Body>
+              </Card>
+            )
+          }
           <Card className='mb-4'>
             <Card.Body>
-              <Card.Title>Submissions</Card.Title>
-              <Card.Text>
-                {
-                  theses && theses[0] && (
-                    (theses[0].submissions && theses[0].submissions.length > 0) ?
-                      <>
-                        <Table striped bordered hover size="sm">
-                          <thead>
-                            <tr>
-                              <th>#</th>
-                              <th>Submitter</th>
-                              <th>Submitted</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {
-                              theses[0].submissions.map((e, i) => (
-                                <tr>
-                                  <td><Link to={`/thesis/${theses[0]._id}/submission/${e._id}`}>{theses[0].submissions.length - i}</Link></td>
-                                  <td><Link to={`/thesis/${theses[0]._id}/submission/${e._id}`}>{t('values.full_name', findMember(theses[0], e.submitter))}</Link></td>
-                                  <td><Link to={`/thesis/${theses[0]._id}/submission/${e._id}`}>{dayjs(e.submitted).format('LLL')}</Link></td>
-                                </tr>
-                              ))
-                            }
-                          </tbody>
-                        </Table>
-                      </>
-                      :
-                      <>
-                        <p>Your group has not made any submissions.</p>
-                        <LinkContainer to={`/thesis/${theses[0]._id}`}>
-                          <Button>Go to thesis page</Button>
-                        </LinkContainer>
-                      </>
-                  )
-                }
+              <Card.Text className='text-center'>
+                <FullCalendar
+                  plugins={[ dayGridPlugin ]}
+                  initialView='dayGridMonth'
+                  selectable
+                  expandRows
+                  height='65vh'
+                  headerToolbar={{
+                    start: 'today,prev,next',
+                    center: 'title',
+                    end: 'gotoPage'
+                  }}
+                  events={defenses.filter(e => theses && theses[0] && theses[0]._id === e.thesis._id && e.status === 'confirmed')}
+                  customButtons={{
+                    gotoPage: {
+                      text: 'Go to page',
+                      click: () => {
+                        navigate('/defense');
+                      }
+                    }
+                  }}
+                />
               </Card.Text>
             </Card.Body>
           </Card>
@@ -202,6 +237,9 @@ function DashboardPage() {
                     </> :
                     <>
                       <p className='text-muted'>None</p>
+                      <LinkContainer to='/thesis/new'>
+                        <Button>Add thesis</Button>
+                      </LinkContainer>
                     </>
                 }
               </Card.Text>

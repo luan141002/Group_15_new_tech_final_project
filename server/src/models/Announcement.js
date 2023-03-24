@@ -19,7 +19,9 @@ const AnnouncementSchema = new Schema({
         type: Date,
         required: true,
         default: Date.now
-    }
+    },
+    filterUserTypes: [String],
+    filterPhase: Number
 });
 
 const Announcement = mongoose.model('Announcement', AnnouncementSchema);

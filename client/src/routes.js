@@ -53,6 +53,10 @@ const routes = [
         element: <ThesesPage />
       },
       {
+        path: 'thesis/my',
+        element: <ThesisPage />
+      },
+      {
         path: 'thesis/new',
         element: <EditThesisPage />
       },

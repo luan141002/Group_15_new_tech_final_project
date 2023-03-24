@@ -23,30 +23,46 @@ function ThesisPage() {
   const navigate = useNavigate();
   const { account } = useAccount();
   const { t } = useTranslation();
+
+  // Grade form
   const [grade, setGrade] = useState('');
   const [remarks, setRemarks] = useState('');
   const [updateGradeDialogOpen, setUpdateGradeDialogOpen] = useState(false);
   const [updating, setUpdating] = useState(false);
+
+  // Password verification
   const [packet, setPacket] = useState(null);
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+
+  // File submissions
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [file, setFile] = useState(null);
   const [files, setFiles] = useState([]);
+
+  // Comments
   const [comment, setComment] = useState('');
   const [comments, setComments] = useState([]);
   const [submittingComment, setSubmittingComment] = useState(false);
+  const [commentToDelete, setCommentToDelete] = useState(false);
+  const [commentDeleting, setCommentDeleting] = useState(false);
 
   const onLoad = async () => {
     if (tid) {
       setThesis(await ThesisService.getThesis(tid, { getSubmissions: true }));
       setComments(await ThesisService.getCommentsOnThesis(tid));
+    } else if (account.kind === 'student') {
+      const theses = await ThesisService.getTheses({ getSubmissions: true });
+      if (theses && theses[0]) {
+        setThesis(theses[0]);
+        setComments(await ThesisService.getCommentsOnThesis(theses[0]._id));
+      }
     }
   };
 
   useEffect(() => {
     onLoad();
-  }, []);
+  }, [account]);
 
   const findMember = (thesis, submitterID, mode) => {
     let table;
@@ -125,6 +141,19 @@ function ThesisPage() {
 
     } finally {
       setSubmittingComment(false);
+    }
+  };
+
+  const deleteComment = async id => {
+    try {
+      setCommentDeleting(true);
+      await ThesisService.deleteComment(thesis._id, id);
+      await onLoad();
+      setCommentToDelete('');
+    } catch (error) {
+
+    } finally {
+      setCommentDeleting(false);
     }
   };
 
@@ -274,7 +303,7 @@ function ThesisPage() {
               <div className='mt-3'>
                 {
                   comments.map(e => (
-                    <Card>
+                    <Card className='mb-3'>
                       <Card.Body>
                         <Card.Title>
                           <div className='d-inline-block align-top'>
@@ -292,6 +321,10 @@ function ThesisPage() {
                             </div>
                             <div>
                               <small className='text-muted' style={{fontSize: '1rem'}}>{dayjs(e.sent).format('LLL')}</small>
+                              {
+                                e.author._id === account.accountID &&
+                                  <Button variant='link' onClick={() => setCommentToDelete(e._id)}><Trash /></Button>
+                              }
                             </div>
                           </div>
                         </Card.Title>
@@ -321,6 +354,8 @@ function ThesisPage() {
           <Card className='mt-2'>
             <Card.Body>
               <Card.Text>
+                <h4>Phase</h4>
+                <p className='d-flex'>{t(`values.thesis_phase.${thesis.phase}`)}</p>
                 <h4>Status</h4>
                 <p className='d-flex'>
                   <div className='d-flex flex-row align-items-center'>
@@ -388,6 +423,18 @@ function ThesisPage() {
             <Button variant='secondary' onClick={() => setUpdateGradeDialogOpen(false)}>Close without saving</Button>
           </Modal.Footer>
         </Form>
+      </Modal>
+      <Modal show={!!commentToDelete} animation={false} centered>
+        <Modal.Header>
+          <Modal.Title>Delete comment</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          Once deleted, it cannot be undone.
+        </Modal.Body>
+        <Modal.Footer>
+          <Button onClick={() => deleteComment(commentToDelete)}>Delete</Button>
+          <Button variant='secondary' onClick={() => setCommentToDelete('')}>Cancel</Button>
+        </Modal.Footer>
       </Modal>
       <PasswordPrompt show={passwordDialogOpen} onSubmit={handlePasswordEntry} onCancel={() => setPasswordDialogOpen(false)} />
     </>

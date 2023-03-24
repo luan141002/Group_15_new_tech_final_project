@@ -123,7 +123,8 @@ function AccountsPage() {
           },
           {
             title: 'Type',
-            prop: 'kind'
+            prop: 'kind',
+            cell: (row) => t(`values.account_kind.${row.kind}`)
           },
           {
             title: 'Actions',

@@ -7,6 +7,8 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import dayjs from 'dayjs';
 import localizedFormatPlugin from 'dayjs/plugin/localizedFormat';
 import relativeTimePlugin from 'dayjs/plugin/relativeTime';
+import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
+import isSameOrAfter from 'dayjs/plugin/isSameOrAfter';
 import i18next from 'i18next';
 import { initReactI18next } from "react-i18next";
 import en from './translations/en';
@@ -22,6 +24,8 @@ i18next
 
 dayjs.extend(localizedFormatPlugin);
 dayjs.extend(relativeTimePlugin);
+dayjs.extend(isSameOrAfter)
+dayjs.extend(isSameOrBefore)
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(

@@ -115,7 +115,7 @@ function ThesisTable(props) {
           </Col>
           <Col>
             <Form.Select value={phase ? phase.toString() : ''} onChange={e => setPhase(Number.parseInt(e.currentTarget.value) || undefined)}>
-              <option value=''>All phases</option>
+              <option value=''>Show all phases</option>
               <option value='1'>First</option>
               <option value='2'>Second</option>
               <option value='3'>Third</option>

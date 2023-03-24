@@ -35,6 +35,7 @@ function ThesisEditor(props) {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
 
   const onLoad = async () => {
     if (thesis) {
@@ -100,6 +101,8 @@ function ThesisEditor(props) {
     e.preventDefault();
     if (onSubmit) {
       try {
+        setError('');
+        setSuccess(false);
         setSaving(true);
         await onSubmit({
           title,
@@ -110,6 +113,7 @@ function ThesisEditor(props) {
           status,
           phase
         });
+        setSuccess(true);
       } catch (error) {
         setError(error.code ? t(error.code) : error.message);
       } finally {
@@ -139,6 +143,7 @@ function ThesisEditor(props) {
           </Col>
         </Row>
         { error && <Alert variant='danger' onClose={() => setError('')} dismissible>{error}</Alert> }
+        { success && <Alert variant='success' onClose={() => setSuccess(false)} dismissible>Thesis successfully updated.</Alert> }
         <Form.Group className="mb-3" controlId="formTitle">
           <Form.Label>Title</Form.Label>
           <Form.Control type="text" value={title} onChange={e => setTitle(e.currentTarget.value)} />

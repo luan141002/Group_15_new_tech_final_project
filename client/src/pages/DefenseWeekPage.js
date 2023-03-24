@@ -34,9 +34,12 @@ function DefenseWeekPage() {
   const [saving, setSaving] = useState(false);
   const [endorseNotice, setEndorseNotice] = useState(true);
 
+  const [dialogValidated, setDialogValidated] = useState(false);
+  const [dialogError, setDialogError] = useState('');
   const [addEventsDialog, setAddEventsDialog] = useState(false);
   const [eventThesis, setEventThesis] = useState('');
   const [eventTitle, setEventTitle] = useState('');
+  const [eventDescription, setEventDescription] = useState(''); // TODO: integrate description
   const [eventStartTime, setEventStartTime] = useState('');
   const [eventEndTime, setEventEndTime] = useState('');
   const [eventDate, setEventDate] = useState('');
@@ -236,7 +239,7 @@ function DefenseWeekPage() {
     if (calendarRef.current) {
       const api = calendarRef.current.getApi();
       if (api.view.type === 'timeGridWeek') {
-        if (account.kind === 'student') {
+        if (account.kind === 'student' && (thesis && thesis.status === 'endorsed')) {
           functions.tryAddDefense(e.start, e.end, eventTitle || thesis.title, thesis);
           api.unselect();
         }
@@ -258,7 +261,9 @@ function DefenseWeekPage() {
             setAdviserEvent(event);
           }
         } else if (account.kind === 'administrator') {
-          if (event && (event.status === 'approved' || event.status === 'pending')) {
+          if (event && event.action === 'create') {
+            functions.tryRemoveDefense(e.event.id);
+          } else if (event && (event.status === 'approved' || event.status === 'pending')) {
             setAdminEvent(event);
           }
         }
@@ -278,8 +283,10 @@ function DefenseWeekPage() {
   const load = async () => {
     setDefenses(await DefenseService.getDefenses());
     const theses = await ThesisService.getTheses();
-    if (theses && theses.length > 0) {
-      setThesis(theses[0]);
+    if (account.kind === 'student') {
+      if (theses && theses.length > 0) {
+        setThesis(theses[0]);
+      }
     }
   };
 
@@ -329,11 +336,36 @@ function DefenseWeekPage() {
     setEventEndTime('');
     setEventDate('');
     setEventThesis(null);
+    setDialogError('');
+    setDialogValidated(false);
     setAddEventsDialog(false);
   };
 
   const handleSubmitEventForm = e => {
+    const form = e.currentTarget;
     e.preventDefault();
+    setDialogError('');
+    setDialogValidated(false);
+
+    if (form.checkValidity() === false) {
+      e.stopPropagation();
+      setDialogValidated(true);
+      setDialogError('Please fill out the necessary fields.');
+      return;
+    }
+
+    if (dayjs(`${eventDate}T${eventStartTime}`).isSameOrAfter(`${eventDate}T${eventEndTime}`)) {
+      setDialogError('Start time must be earlier than end time.');
+      setDialogValidated(true);
+      return;
+    }
+
+    if (dayjs().isAfter(`${eventDate}T${eventStartTime}`)) {
+      setDialogError('Cannot schedule a defense in the past.');
+      setDialogValidated(true);
+      return;
+    }
+
     const start = new Date(`${eventDate}T${eventStartTime}`);
     const end = new Date(`${eventDate}T${eventEndTime}`);
     if (eventThesis) {
@@ -395,8 +427,13 @@ function DefenseWeekPage() {
         <Col className='d-flex flex-column align-items-end'>
           <div className='d-flex flex-row align-items-center'>
             { saving && <Spinner /> }
-            <Button className='ms-2' onClick={handleSaveDefense} disabled={!functions.hasTentativeChanges() || saving}>Save</Button>
-            <Button className='ms-2' variant='secondary' onClick={handleResetDefense} disabled={!functions.hasTentativeChanges() || saving}>Reset</Button>
+            {
+              (account.kind !== 'student' || (thesis && thesis.status === 'endorsed')) &&
+                <>
+                  <Button className='ms-2' onClick={handleSaveDefense} disabled={!functions.hasTentativeChanges() || saving}>Save</Button>
+                  <Button className='ms-2' variant='secondary' onClick={handleResetDefense} disabled={!functions.hasTentativeChanges() || saving}>Reset</Button>
+                </>
+            }
             <Button className='ms-2' variant='secondary' onClick={() => navigate(-1)} disabled={saving}>Back</Button>
           </div>
         </Col>
@@ -428,7 +465,7 @@ function DefenseWeekPage() {
             ref={calendarRef}
           />
           {
-            account.kind === 'student' &&
+            account.kind === 'student' && (thesis && thesis.status === 'endorsed') &&
               <div className='mt-2 d-flex flex-row align-items-center'>
                 <p className='text-muted'>You can request defense slots by dragging on the available slots.</p>
                 <Button className='ms-auto' onClick={handleOpenEventDialog} disabled={saving}>Request a slot</Button>
@@ -437,7 +474,7 @@ function DefenseWeekPage() {
           {
             account.kind === 'administrator' &&
               <div className='mt-2 d-flex flex-row align-items-center'>
-                <Button className='ms-auto' onClick={handleOpenEventDialog} disabled={saving}>Request a slot</Button>
+                <Button className='ms-auto' onClick={handleOpenEventDialog} disabled={saving}>Create a slot</Button>
               </div>
           }
         </Col>
@@ -475,13 +512,26 @@ function DefenseWeekPage() {
                 <Card.Body>
                   <Card.Title>Defense request status</Card.Title>
                   <Card.Text>
-                    { defenses && functions.getOwnRequests().length < 1 && 'You have not requested any slots for defense.' }
-                    { defenses && functions.getOwnRequests().filter(e => e.status === 'confirmed').length > 0 && 'You are now set for defense.' }
-                    <ul>
-                      <li>{ defenses && functions.getOwnRequests().filter(e => e.status === 'pending').length } slot(s) pending</li>
-                      <li>{ defenses && functions.getOwnRequests().filter(e => e.status === 'declined').length } slot(s) declined</li>
-                      <li>{ defenses && functions.getOwnRequests().filter(e => e.status === 'confirmed').length } slot(s) confirmed</li>
-                    </ul>
+                    {
+                      thesis && thesis.status !== 'endorsed' &&
+                        'You are not eligible to schedule a defense. Please make sure that your thesis is endorsed by your adviser before requesting slots.'
+                    }
+                    {
+                      thesis && thesis.status === 'endorsed' &&
+                        defenses && functions.getOwnRequests().length < 1 && 'You have not requested any slots for defense.'
+                    }
+                    {
+                      thesis && thesis.status === 'endorsed' &&
+                        defenses && functions.getOwnRequests().filter(e => e.status === 'confirmed').length > 0 && 'You are now set for defense.' 
+                    }
+                    {
+                      thesis && thesis.status === 'endorsed' &&
+                        <ul>
+                          <li>{ defenses && functions.getOwnRequests().filter(e => e.status === 'pending').length } slot(s) pending</li>
+                          <li>{ defenses && functions.getOwnRequests().filter(e => e.status === 'declined').length } slot(s) declined</li>
+                          <li>{ defenses && functions.getOwnRequests().filter(e => e.status === 'confirmed').length } slot(s) confirmed</li>
+                        </ul>
+                    }
                   </Card.Text>
                 </Card.Body>
               </Card>
@@ -515,35 +565,38 @@ function DefenseWeekPage() {
         </Modal.Header>
         <Form onSubmit={handleSubmitEventForm}>
           <Modal.Body>
+            { dialogError && <Alert variant='danger' onClose={() => setDialogError('')} dismissible>{dialogError}</Alert> }
+            {
+              account.kind === 'administrator' &&
+                <Form.Group className="mb-3" controlId="formTitle">
+                  <Form.Label>Thesis</Form.Label>
+                  <ThesisSelector value={eventThesis} onChange={e => { console.log(e); setEventThesis(e)}} required />
+                </Form.Group>
+            }
+            <Form.Group className="mb-3" controlId="formTitle">
+              <Form.Label>Description</Form.Label>
+              <Form.Control as='textarea' rows={3} value={eventDescription} onChange={e => setEventDescription(e.currentTarget.value)} />
+            </Form.Group>
             <Row>
-              {
-                account.kind === 'administrator' &&
-                  <Form.Group className="mb-3" controlId="formTitle">
-                    <Form.Label>Thesis</Form.Label>
-                    <ThesisSelector value={eventThesis} onChange={e => { console.log(e); setEventThesis(e)}} />
-                  </Form.Group>
-              }
-              <Form.Group className="mb-3" controlId="formTitle">
-                <Form.Label>Title</Form.Label>
-                <Form.Control type='text' placeholder={thesis ? thesis.title : ''} value={eventTitle} onChange={e => setEventTitle(e.currentTarget.value)} />
-              </Form.Group>
+              <Col>
+                <Form.Group className="mb-3" controlId="formDate">
+                  <Form.Label>Date</Form.Label>
+                  <Form.Control type='date' value={eventDate} onChange={e => setEventDate(e.currentTarget.value)} required />
+                </Form.Group>
+              </Col>
               <Col>
                 <Form.Group className="mb-3" controlId="formStartTime">
                   <Form.Label>Start time</Form.Label>
-                  <Form.Control type='time' value={eventStartTime} onChange={e => setEventStartTime(e.currentTarget.value)} />
+                  <Form.Control type='time' value={eventStartTime} onChange={e => setEventStartTime(e.currentTarget.value)} required />
                 </Form.Group>
               </Col>
               <Col>
                 <Form.Group className="mb-3" controlId="formEndTime">
                   <Form.Label>End time</Form.Label>
-                  <Form.Control type='time' value={eventEndTime} onChange={e => setEventEndTime(e.currentTarget.value)} />
+                  <Form.Control type='time' value={eventEndTime} onChange={e => setEventEndTime(e.currentTarget.value)} required />
                 </Form.Group>
               </Col>
             </Row>
-            <Form.Group className="mb-3" controlId="formDate">
-              <Form.Label>Date</Form.Label>
-              <Form.Control type='date' value={eventDate} onChange={e => setEventDate(e.currentTarget.value)} />
-            </Form.Group>
           </Modal.Body>
           <Modal.Footer>
             <Button type='submit'>Add</Button>
@@ -564,6 +617,12 @@ function DefenseWeekPage() {
             </Col>
             <Col as='dd' sm={9}>
               { adviserEvent && adviserEvent.thesis.title }
+            </Col>
+            <Col as='dt' sm={3}>
+              Description
+            </Col>
+            <Col as='dd' sm={9}>
+              { adviserEvent && (adviserEvent.thesis.description || 'No description provided') }
             </Col>
             <Col as='dt' sm={3}>
               Date and time
@@ -606,6 +665,12 @@ function DefenseWeekPage() {
               { adminEvent && adminEvent.thesis.title }
             </Col>
             <Col as='dt' sm={3}>
+              Description
+            </Col>
+            <Col as='dd' sm={9}>
+              { adminEvent && (adminEvent.thesis.description || 'No description provided') }
+            </Col>
+            <Col as='dt' sm={3}>
               Date and time
             </Col>
             <Col as='dd' sm={9}>
@@ -632,7 +697,7 @@ function DefenseWeekPage() {
         </Modal.Footer>
       </Modal>
       {
-        /*account.kind === 'student' && thesis &&
+        account.kind === 'student' && thesis &&
           <Modal show={thesis.status !== 'endorsed' && endorseNotice} animation={false} centered size='lg'>
             <Modal.Header>
               <Modal.Title>
@@ -640,14 +705,12 @@ function DefenseWeekPage() {
               </Modal.Title>
             </Modal.Header>
             <Modal.Body>
-              <p>Please ensure that your thesis is endorsed.</p>
+              <p>Please ensure that your thesis is endorsed before accessing this page.</p>
             </Modal.Body>
             <Modal.Footer>
-              <Button onClick={() => handleAdminEventForm('confirm')}>Confirm</Button>
-              <Button onClick={() => handleAdminEventForm('decline')}>Decline</Button>
-              <Button variant='secondary' onClick={() => setAdminEvent(null)}>Cancel</Button>
+              <Button variant='secondary' onClick={() => navigate(-1)}>Leave</Button>
             </Modal.Footer>
-          </Modal>*/
+          </Modal>
       }
     </>
   );

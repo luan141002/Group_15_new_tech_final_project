@@ -2,7 +2,6 @@ const express = require('express');
 const requireToken = require('../middleware/requireToken');
 const Account = require('../models/Account');
 const Defense = require('../models/Defense');
-const DefenseRequest = require('../models/DefenseRequest');
 const Thesis = require('../models/Thesis');
 const ServerError = require('../utility/error');
 
