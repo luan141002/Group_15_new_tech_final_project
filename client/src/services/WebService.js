@@ -1,6 +1,6 @@
 import AuthService from './AuthService';
 
-const API_URL = process.env.REACT_APP_API;
+const API_URL = process.env.REACT_APP_API || '/api';
 
 class WebError {
   constructor(status, code, message, details) {

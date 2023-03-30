@@ -12,7 +12,7 @@ module.exports.initialize = async function() {
             activated: true,
         });
 
-        if (process.env.NODE_ENV.trim() !== 'development') return;
+        if (!process.env.NODE_ENV || process.env.NODE_ENV.trim() !== 'development') return;
 
         const users = [
             {

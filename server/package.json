@@ -5,7 +5,8 @@
   "license": "UNLICENSED",
   "private": true,
   "scripts": {
-    "start": "nodemon src/index.js"
+    "start": "nodemon src/index.js",
+    "serve": "node src/index.js"
   },
   "dependencies": {
     "bcrypt": "^5.1.0",
