@@ -60,14 +60,18 @@ function DashboardPage() {
     setSearchSelected([]);
   };
 
+  const handleResult = () => {
+    if (searchSelected.length > 0) {
+      const option = searchSelected[0];
+      handleOption(option);
+    }
+  }
+
   const handleSearchKey = (e) => {
     if (e.isComposing || e.keyCode === 229) return;
 
     if (e.keyCode === 13) {
-      if (searchSelected.length > 0) {
-        const option = searchSelected[0];
-        handleOption(option);
-      }
+      handleResult();
     }
   };
 
@@ -82,14 +86,7 @@ function DashboardPage() {
     state
   ) => {
     if (!results || results.length === 0) {
-      return (
-        <Menu {...menuProps}>
-          <Menu.Header>Test</Menu.Header>
-          <MenuItem position={0}>
-            ABC
-          </MenuItem>
-        </Menu>
-      );
+      return <></>;
     }
 
     let index = 0;
@@ -151,7 +148,7 @@ function DashboardPage() {
             onKeyDown={handleSearchKey}
             selectHint={false}
           />
-          <Button variant="outline-success">Search</Button>
+          <Button variant="outline-success" onClick={handleResult}>Search</Button>
         </Form>
       </Row>
       <Row className='mb-4'>

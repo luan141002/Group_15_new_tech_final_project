@@ -24,7 +24,7 @@ ThesisController.get('/thesis', requireToken, async (req, res) => {
         if (status) query.status = status;
         if (phase && Number.parseInt(phase)) query.phase = Number.parseInt(phase);
 
-        let results = await Thesis.find(query).populate('authors').populate('advisers');
+        let results = await Thesis.find(query).populate('authors').populate('advisers').populate('panelists');
 
         const thesisIDs = results.map(e => e._id);
         const submissions = await Submission.find({ thesis: { $in: thesisIDs } }).select('-attachments.data');
@@ -72,6 +72,12 @@ ThesisController.get('/thesis', requireToken, async (req, res) => {
                 firstName: e2.firstName,
                 middleName: e2.middleName
             })),
+            panelists: e.panelists.map(e2 => ({
+                _id: e2._id,
+                lastName: e2.lastName,
+                firstName: e2.firstName,
+                middleName: e2.middleName
+            })),
             phase: e.phase,
             status: e.status,
             submission: e.submission,
@@ -86,7 +92,7 @@ ThesisController.get('/thesis/:id', requireToken, async (req, res) => {
     const { id } = req.params;
     
     try {
-        let result = await Thesis.findById(id).populate('authors').populate('advisers');
+        let result = await Thesis.findById(id).populate('authors').populate('advisers').populate('panelists');
 
         if (!!req.query.getSubmissions) {
             const submissions = await Submission.find({ thesis: result }).select('-attachments.data');
@@ -123,6 +129,12 @@ ThesisController.get('/thesis/:id', requireToken, async (req, res) => {
                 firstName: e2.firstName,
                 middleName: e2.middleName
             })),
+            panelists: result.panelists.map(e2 => ({
+                _id: e2._id,
+                lastName: e2.lastName,
+                firstName: e2.firstName,
+                middleName: e2.middleName
+            })),
             phase: result.phase,
             grade: grades[0] ? grades[0].value : undefined,
             status: result.status,
@@ -137,7 +149,7 @@ ThesisController.get('/thesis/:id', requireToken, async (req, res) => {
 ThesisController.put('/thesis/:id', requireToken, async (req, res) => {
     const { id } = req.params;
     const { accountID, kind } = req.token;
-    const { title, description, authors, advisers, status, phase } = req.body;
+    const { title, description, authors, advisers, panelists, status, phase } = req.body;
     
     try {
         const thesis = await Thesis.findById(id);
@@ -150,8 +162,12 @@ ThesisController.put('/thesis/:id', requireToken, async (req, res) => {
             thesis.authors = authors;
         }
         if (advisers) {
-            if (!advisers || (Array.isArray(advisers) && advisers.length > 2)) throw new ServerError(400, 'Only 1-2 advisers can be added.');
+            if (!advisers || (Array.isArray(advisers) && (advisers.length < 1 || advisers.length > 2))) throw new ServerError(400, 'Only 1-2 advisers can be added.');
             thesis.advisers = advisers;
+        }
+        if (panelists) {
+            if (!panelists || (Array.isArray(panelists) && panelists.length > 4)) throw new ServerError(400, 'Only 0-4 panelists can be added.');
+            thesis.panelists = panelists;
         }
         if (status && kind.toLowerCase() !== 'student') thesis.status = status;
         if (phase && Number.parseInt(phase) && kind.toLowerCase() === 'administrator') thesis.phase = Number.parseInt(phase);
@@ -417,7 +433,7 @@ ThesisController.get('/thesis/:tid/submission/:sid/attachment/:aid', requireToke
 });
 
 ThesisController.post('/thesis', requireToken, upload.array('files'), async (req, res) => {
-    const { title, description, authors, advisers } = req.body;
+    const { title, description, authors, advisers, panelists } = req.body;
     const { accountID, kind } = req.token;
 
     try {
@@ -426,12 +442,14 @@ ThesisController.post('/thesis', requireToken, upload.array('files'), async (req
         if (!advisers) throw new ServerError(400, 'Adviser list is required');
         if (kind.toLowerCase() !== 'administrator' && !authors.includes(accountID)) throw new ServerError(400, 'Current user must be part of the group');
         if (!advisers || (Array.isArray(advisers) && advisers.length > 2)) throw new ServerError(400, 'Only 1-2 advisers can be added.');
+        if (panelists && (Array.isArray(panelists) && panelists.length > 4)) throw new ServerError(400, 'Only 0-4 panelists can be added.');
         
         const thesis = await Thesis.create({
             title,
             description,
             authors,
-            advisers
+            advisers,
+            panelists: panelists || []
         });
 
         if (req.files && req.files.length > 0) {

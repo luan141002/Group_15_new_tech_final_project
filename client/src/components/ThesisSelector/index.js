@@ -62,7 +62,8 @@ function ThesisSelector(props) {
         <MenuItem key={thesis._id} option={thesis} position={index}>
           <Highlighter search={state.name}>{thesis.title}</Highlighter>
           <div>
-            <small>{thesis.authors.map(e => t('values.full_name', e)).join('; ')}</small>
+            <small>{thesis.authors.map(e => t('values.full_name', e)).join('; ')}</small><br />
+            <small>{t(`values.thesis_phase.${e.phase}`)} phase</small>
           </div>
         </MenuItem>
       );

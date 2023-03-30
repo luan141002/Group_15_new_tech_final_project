@@ -31,6 +31,7 @@ const ThesisService = {
     form.append('description', thesis.description);
     for (const author of thesis.authors) form.append('authors', typeof author === 'object' ? author._id : author);
     for (const adviser of thesis.advisers) form.append('advisers', typeof adviser === 'object' ? adviser._id : adviser);
+    for (const panelist of thesis.panelists) form.append('panelists', typeof adviser === 'object' ? panelist._id : panelist);
     for (const attachment of thesis.attachments) form.append('files', attachment);
 
     const response = await WebService.postForm('/thesis', form);
@@ -61,14 +62,15 @@ const ThesisService = {
 
   /**
    * Creates a new thesis entry.
-   * @param {{title: string, description?: string, authors: {_id:string}[], advisers: {_id:string}[], attachments?: File[]}} thesis 
+   * @param {{title: string, description?: string, authors: {_id:string}[], advisers: {_id:string}[], panelists: {_id:string}[], attachments?: File[]}} thesis 
    */
   updateThesis: async (thesisID, thesis) => {
-    const { authors, advisers, ...rest } = thesis;
+    const { authors, advisers, panelists, ...rest } = thesis;
     const thesisReq = {
       ...rest,
       authors: authors.map(e => typeof e === 'object' ? e._id : e),
-      advisers: advisers.map(e => typeof e === 'object' ? e._id : e)
+      advisers: advisers.map(e => typeof e === 'object' ? e._id : e),
+      panelists: panelists.map(e => typeof e === 'object' ? e._id : e),
     }
 
     await WebService.putJson(`/thesis/${thesisID}`, thesisReq);

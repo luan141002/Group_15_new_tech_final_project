@@ -122,6 +122,27 @@ AnnouncementController.post('/announcement', requireToken, async (req, res) => {
     }
 });
 
+AnnouncementController.put('/announcement/:id', requireToken, async (req, res) => {
+    const { id } = req.params;
+    const { kind } = req.token;
+    const { title, text } = req.body;
+
+    try {
+        if (kind !== 'administrator') throw new ServerError(403, 'You must be an administrator to delete announcements');
+
+        const announcement = await Announcement.findById(id);
+        if (!announcement) throw new ServerError(404, 'Announcement not found');
+
+        announcement.title = title;
+        announcement.text = text;
+        await announcement.save();
+
+        return res.sendStatus(204);
+    } catch (error) {
+        return res.error(error);
+    }
+});
+
 AnnouncementController.delete('/announcement/:id', requireToken, async (req, res) => {
     const { id } = req.params;
     const { kind } = req.token;

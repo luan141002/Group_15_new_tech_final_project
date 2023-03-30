@@ -18,19 +18,26 @@ function ThesisEditor(props) {
   const { t } = useTranslation();
   const { account } = useAccount();
   const { thesis, onSubmit } = props;
+
   const [students, setStudents] = useState([]);
   const [studentsLoading, setStudentsLoading] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState([]);
   const [faculty, setFaculty] = useState([]);
   const [facultyLoading, setFacultyLoading] = useState(false);
   const [selectedFaculty, setSelectedFaculty] = useState([]);
+  const [faculty2, setFaculty2] = useState([]);
+  const [faculty2Loading, setFaculty2Loading] = useState(false);
+  const [selectedFaculty2, setSelectedFaculty2] = useState([]);
+
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState('');
   const [phase, setPhase] = useState('');
   const [authors, setAuthors] = useState([]);
   const [advisers, setAdvisers] = useState([]);
+  const [panelists, setPanelists] = useState([]);
   const [attachments, setAttachments] = useState([]);
+
   const [file, setFile] = useState('');
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -43,6 +50,7 @@ function ThesisEditor(props) {
       setDescription(thesis.description);
       setAuthors(thesis.authors);
       setAdvisers(thesis.advisers);
+      setPanelists(thesis.panelists || []);
       setStatus(thesis.status);
       setPhase(thesis.phase.toString());
     }
@@ -56,8 +64,16 @@ function ThesisEditor(props) {
     setStudentsLoading(false);
   };
 
+  const canAddStudent = () => {
+    if (selectedStudent.length < 1) return false;
+    if (authors.find(e => e._id === selectedStudent[0]._id)) return false;
+    if (authors.length >= 4) return false;
+    return true;
+  };
+
   const handleAddStudent = () => {
     if (selectedStudent.length < 1) return;
+    if (!canAddStudent()) return;
     setAuthors(prev => {
       const value = students.find(e => e._id === selectedStudent[0]._id);
       return [ ...prev, value ];
@@ -72,12 +88,21 @@ function ThesisEditor(props) {
   const handleSearchFaculty = async (q) => {
     setFacultyLoading(true);
     const faculty = await AccountService.getFaculty({ q });
+    console.log(faculty);
     setFaculty(faculty);
     setFacultyLoading(false);
   };
 
+  const canAddFaculty = () => {
+    if (selectedFaculty.length < 1) return false;
+    if (advisers.find(e => e._id === selectedFaculty[0]._id)) return false;
+    if (advisers.length >= 4) return false;
+    return true;
+  };
+
   const handleAddFaculty = () => {
     if (selectedFaculty.length < 1) return;
+    if (!canAddFaculty()) return;
     setAdvisers(prev => {
       const value = faculty.find(e => e._id === selectedFaculty[0]._id);
       return [ ...prev, value ];
@@ -87,6 +112,34 @@ function ThesisEditor(props) {
 
   const handleRemoveFaculty = (id) => {
     setAdvisers(prev => prev.filter(e => e._id !== id));
+  };
+
+  const handleSearchPanelist = async (q) => {
+    setFaculty2Loading(true);
+    const faculty = await AccountService.getFaculty({ q });
+    setFaculty2(faculty);
+    setFaculty2Loading(false);
+  };
+
+  const canAddPanelist = () => {
+    if (selectedFaculty2.length < 1) return false;
+    if (panelists.find(e => e._id === selectedFaculty2[0]._id)) return false;
+    if (panelists.length >= 4) return false;
+    return true;
+  };
+
+  const handleAddPanelist = () => {
+    if (selectedFaculty2.length < 1) return;
+    if (!canAddPanelist()) return;
+    setPanelists(prev => {
+      const value = faculty2.find(e => e._id === selectedFaculty2[0]._id);
+      return [ ...prev, value ];
+    });
+    setSelectedFaculty2([]);
+  };
+
+  const handleRemovePanelist = (id) => {
+    setPanelists(prev => prev.filter(e => e._id !== id));
   };
 
   const handleAddAttachment = (e) => {
@@ -101,9 +154,24 @@ function ThesisEditor(props) {
 
   const handleSubmit = async e => {
     e.preventDefault();
+
+    setError('');
+    
+    const errors = [];
+    // Do client-side validation before submitting
+    if (!title) errors.push('Title must be provided.');
+    if (advisers.length < 1) errors.push('At least one adviser must be added.');
+    else if (advisers.length > 2) errors.push('There can only be a maximum of two (2) advisers.');
+    if (authors.length < 1) errors.push('At least one author must be added.');
+    else if (authors.length > 4) errors.push('There can only be a maximum of four (4) authors.');
+
+    if (errors.length > 0) {
+      setError(errors[0]);
+      return;
+    }
+
     if (onSubmit) {
       try {
-        setError('');
         setSuccess(false);
         setSaving(true);
         await onSubmit({
@@ -111,6 +179,7 @@ function ThesisEditor(props) {
           description,
           authors,
           advisers,
+          panelists,
           attachments,
           status,
           phase
@@ -224,10 +293,11 @@ function ThesisEditor(props) {
                 onChange={setSelectedStudent}
                 selected={selectedStudent}
                 placeholder='Search from students...'
+                useCache={false}
               />
             </Col>
             <Col xs={3} sm={2} className="my-1">
-              <Button className='w-100' onClick={handleAddStudent} disabled={selectedStudent.length < 1 || authors.length >= 4}>Add</Button>
+              <Button className='w-100' onClick={handleAddStudent} disabled={!canAddStudent()}>Add</Button>
             </Col>
           </Row>
         </Form.Group>
@@ -266,10 +336,11 @@ function ThesisEditor(props) {
                 onChange={setSelectedFaculty}
                 selected={selectedFaculty}
                 placeholder='Search from faculty...'
+                useCache={false}
               />
             </Col>
             <Col xs={3} sm={2} className="my-1">
-              <Button className='w-100' onClick={handleAddFaculty} disabled={selectedFaculty.length < 1 || advisers.length >= 2}>Add</Button>
+              <Button className='w-100' onClick={handleAddFaculty} disabled={!canAddFaculty()}>Add</Button>
             </Col>
           </Row>
         </Form.Group>
@@ -290,6 +361,49 @@ function ThesisEditor(props) {
                   <td><Button as='a' variant='link' style={{ padding: 0 }} onClick={() => handleRemoveFaculty(e._id)}>Remove</Button></td>
                 </tr>
               )) : <tr><td className='text-center' colSpan={3}>No advisers added.</td></tr>
+            }
+          </tbody>
+        </Table>
+        <Form.Group className="mb-3" controlId="formPanelist">
+          <Form.Label>Panelists</Form.Label>
+          <Row className="align-items-center">
+            <Col xs={9} sm={10} className="my-1">
+              <AsyncTypeahead
+                id='formPanelist'
+                filterBy={(faculty) => !panelists.includes(faculty._id)}
+                isLoading={facultyLoading}
+                labelKey={(option) => renderName(option)}
+                minLength={2}
+                onSearch={handleSearchPanelist}
+                options={faculty2}
+                onChange={setSelectedFaculty2}
+                selected={selectedFaculty2}
+                placeholder='Search from faculty...'
+                useCache={false}
+              />
+            </Col>
+            <Col xs={3} sm={2} className="my-1">
+              <Button className='w-100' onClick={handleAddPanelist} disabled={!canAddPanelist()}>Add</Button>
+            </Col>
+          </Row>
+        </Form.Group>
+        <Table striped bordered hover size="sm">
+          <thead>
+            <tr>
+              <th>Last Name</th>
+              <th>First Name</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {
+              panelists.length > 0 ? panelists.map(e => (
+                <tr>
+                  <td>{e.lastName}</td>
+                  <td>{e.firstName}</td>
+                  <td><Button as='a' variant='link' style={{ padding: 0 }} onClick={() => handleRemovePanelist(e._id)}>Remove</Button></td>
+                </tr>
+              )) : <tr><td className='text-center' colSpan={3}>No panelists added.</td></tr>
             }
           </tbody>
         </Table>

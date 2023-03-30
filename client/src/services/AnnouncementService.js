@@ -11,6 +11,10 @@ const AnnouncementService = {
     return await response.json();
   },
 
+  updateAnnouncement: async (announcementID, announcement) => {
+    await WebService.putJson(`/announcement/${announcementID}`, announcement);
+  },
+
   deleteAnnouncement: async (announcementID) => {
     await WebService.delete(`/announcement/${announcementID}`);
   }

@@ -17,6 +17,7 @@ function EditThesisPage() {
   const handleSubmit = async (thesis) => {
     if (tid) {
       await ThesisService.updateThesis(tid, thesis);
+      navigate(`/thesis/${tid}`, { replace: true });
     } else {
       const obj = await ThesisService.createThesis(thesis);
       navigate(`/thesis/${obj._id}`, { replace: true });

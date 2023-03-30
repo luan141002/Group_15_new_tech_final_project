@@ -243,7 +243,7 @@ function AccountsPage() {
           <LinkContainer to={`/account/${row._id}`}>
             <Button variant='link' size='sm'><Pencil /></Button>
           </LinkContainer>
-          <Button variant='link' size='sm' onClick={() => setDeleteID(row._id)}><Trash /></Button>
+          { row.kind !== 'administrator' && <Button variant='link' size='sm' onClick={() => setDeleteID(row._id)}><Trash /></Button> }
         </>
       )
     }

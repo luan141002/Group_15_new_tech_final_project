@@ -6,7 +6,7 @@ import Col from 'react-bootstrap/Col';
 import Form from 'react-bootstrap/Form';
 import Modal from 'react-bootstrap/Modal';
 import Row from 'react-bootstrap/Row';
-import { Trash } from 'react-bootstrap-icons';
+import { Pencil, Trash } from 'react-bootstrap-icons';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
@@ -36,6 +36,7 @@ function AnnouncementsPage() {
 
   // Modal state
   const [announcementDialog, setAnnouncementDialog] = useState(false);
+  const [updateID, setUpdateID] = useState('');
   const [saving, setSaving] = useState(false);
   const [title, setTitle] = useState('');
   const [text, setText] = useState('');
@@ -65,7 +66,11 @@ function AnnouncementsPage() {
     e.preventDefault();
     try {
       setSaving(true);
-      await AnnouncementService.createAnnouncement({ title, text });
+      if (updateID) {
+        await AnnouncementService.updateAnnouncement(updateID, { title, text });
+      } else {
+        await AnnouncementService.createAnnouncement({ title, text });
+      }
       setCurrentPage(1);
       await load();
       closeDialog();
@@ -96,7 +101,24 @@ function AnnouncementsPage() {
     setDeleteID(id);
   };
 
+  const openCreateDialog = () => {
+    setUpdateID('');
+    setTitle('');
+    setText('');
+    setError('');
+    setAnnouncementDialog(true);
+  };
+
+  const openUpdateDialog = (e) => {
+    setUpdateID(e._id);
+    setTitle(e.title);
+    setText(e.text);
+    setError('');
+    setAnnouncementDialog(true);
+  };
+
   const closeDialog = () => {
+    setUpdateID('');
     setTitle('');
     setText('');
     setError('');
@@ -113,7 +135,7 @@ function AnnouncementsPage() {
           <div className='d-flex flex-row align-items-center'>
             {
               account.kind === 'administrator' &&
-                <Button className='ms-2' onClick={() => setAnnouncementDialog(true)}>
+                <Button className='ms-2' onClick={openCreateDialog}>
                   Create announcement
                 </Button>
             }
@@ -135,9 +157,14 @@ function AnnouncementsPage() {
                       <div className='d-flex flex-row align-items-center'>
                         {
                           account.kind === 'administrator' &&
-                            <Button className='p-0' variant='light' onClick={() => tryDeleteAnnouncement(e._id)}>
-                              <Trash />
-                            </Button>
+                            <>
+                              <Button className='p-0' variant='light' onClick={() => openUpdateDialog(e)}>
+                                <Pencil />
+                              </Button>
+                              <Button className='p-0' variant='light' onClick={() => tryDeleteAnnouncement(e._id)}>
+                                <Trash />
+                              </Button>
+                            </>
                         }
                       </div>
                     </Col>
@@ -147,7 +174,9 @@ function AnnouncementsPage() {
                   {dayjs(e.sent).format('LLL')}
                 </Card.Subtitle>
                 <Card.Text>
-                  {e.text}
+                  <div style={{ whiteSpace: 'pre-wrap' }}>
+                    {e.text}
+                  </div>
                 </Card.Text>
               </Card.Body>
             </Card>
@@ -167,7 +196,7 @@ function AnnouncementsPage() {
           <Modal show={announcementDialog} animation={false} centered size='lg'>
             <Modal.Header>
               <Modal.Title>
-                Create announcement
+                { updateID ? 'Edit' : 'Create' } announcement
               </Modal.Title>
             </Modal.Header>
             <Form onSubmit={handleSubmit}>

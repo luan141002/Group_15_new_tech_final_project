@@ -17,6 +17,12 @@ const ThesisSchema = new Schema({
         ref: 'Faculty',
         required: true
     },
+    panelists: {
+        type: [Schema.Types.ObjectId],
+        ref: 'Faculty',
+        required: true,
+        default: []
+    },
     locked: {
         type: Boolean,
         required: true,
