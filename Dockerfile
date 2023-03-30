@@ -25,7 +25,6 @@ COPY server/package.json ./
 COPY server/yarn.lock ./
 RUN yarn install --frozen-lockfile
 COPY server/src ./src
-COPY server/fonts ./fonts
 
 EXPOSE 8550
 
