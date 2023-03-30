@@ -54,7 +54,7 @@ function AccountPage() {
       try {
         setSaving(true);
         const account = await AccountService.createAccount({ email, lastName, firstName, middleName, kind: type });
-        navigate(`/account/${account._id}`);
+        navigate(`/account/${account._id}`, { replace: true });
       } catch (error) {
         setError(error.code ? t(error.code) : error.message);
       } finally {
@@ -69,7 +69,7 @@ function AccountPage() {
 
   useEffect(() => {
     load();
-  }, [])
+  }, []);
 
   return (
     <>
@@ -116,17 +116,21 @@ function AccountPage() {
               <Form.Label>Middle Name</Form.Label>
               <Form.Control type="text" value={middleName} onChange={e => setMiddleName(e.currentTarget.value)} />
             </Form.Group>
-            <Form.Group className="mb-3" controlId="formAccessCode">
-              <Form.Label>Access Code</Form.Label>
-              <Row>
-                <Col>
-                  <Form.Control type='text' value={accessCode} disabled readOnly />
-                </Col>
-                <Col>
-                  <Button>Copy to clipboard</Button>
-                </Col>
-              </Row>
-            </Form.Group>
+            {
+              !isNew && (
+                <Form.Group className="mb-3" controlId="formAccessCode">
+                  <Form.Label>Access Code</Form.Label>
+                  <Row>
+                    <Col>
+                      <Form.Control type='text' value={accessCode} disabled readOnly />
+                    </Col>
+                    <Col>
+                      <Button>Copy to clipboard</Button>
+                    </Col>
+                  </Row>
+                </Form.Group>
+              )
+            }
             <Form.Group className="mb-3" controlId="formActive">
               <Form.Check type='checkbox' checked={!locked} onChange={e => setLocked(!e.currentTarget.checked)} label='Active' />
             </Form.Group>

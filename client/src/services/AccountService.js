@@ -45,6 +45,10 @@ const AccountService = {
     
     await WebService.patchForm(`/account/${accountID}`, form);
   },
+
+  deleteAccount: async (accountID) => {
+    await WebService.delete(`/account/${accountID}`);
+  },
 };
 
 export default AccountService;

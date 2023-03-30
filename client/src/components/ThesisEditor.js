@@ -57,6 +57,7 @@ function ThesisEditor(props) {
   };
 
   const handleAddStudent = () => {
+    if (selectedStudent.length < 1) return;
     setAuthors(prev => {
       const value = students.find(e => e._id === selectedStudent[0]._id);
       return [ ...prev, value ];
@@ -76,6 +77,7 @@ function ThesisEditor(props) {
   };
 
   const handleAddFaculty = () => {
+    if (selectedFaculty.length < 1) return;
     setAdvisers(prev => {
       const value = faculty.find(e => e._id === selectedFaculty[0]._id);
       return [ ...prev, value ];
@@ -225,7 +227,7 @@ function ThesisEditor(props) {
               />
             </Col>
             <Col xs={3} sm={2} className="my-1">
-              <Button className='w-100' onClick={handleAddStudent} disabled={authors.length >= 4}>Add</Button>
+              <Button className='w-100' onClick={handleAddStudent} disabled={selectedStudent.length < 1 || authors.length >= 4}>Add</Button>
             </Col>
           </Row>
         </Form.Group>
@@ -267,7 +269,7 @@ function ThesisEditor(props) {
               />
             </Col>
             <Col xs={3} sm={2} className="my-1">
-              <Button className='w-100' onClick={handleAddFaculty} disabled={advisers.length >= 2}>Add</Button>
+              <Button className='w-100' onClick={handleAddFaculty} disabled={selectedFaculty.length < 1 || advisers.length >= 2}>Add</Button>
             </Col>
           </Row>
         </Form.Group>

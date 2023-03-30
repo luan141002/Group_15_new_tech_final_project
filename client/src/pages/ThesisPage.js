@@ -19,11 +19,11 @@ import ProfileImage from "../components/ProfileImage";
 
 function ThesisPage() {
   const { tid } = useParams();
-  const [thesis, setThesis] = useState(null);
-  const navigate = useNavigate();
-  const { account } = useAccount();
   const { t } = useTranslation();
-
+  const { account } = useAccount();
+  const navigate = useNavigate();
+  const [thesis, setThesis] = useState(null);
+  
   // Grade form
   const [grade, setGrade] = useState('');
   const [remarks, setRemarks] = useState('');
@@ -432,8 +432,8 @@ function ThesisPage() {
           Once deleted, it cannot be undone.
         </Modal.Body>
         <Modal.Footer>
-          <Button onClick={() => deleteComment(commentToDelete)}>Delete</Button>
-          <Button variant='secondary' onClick={() => setCommentToDelete('')}>Cancel</Button>
+          <Button onClick={() => deleteComment(commentToDelete)} disable={commentDeleting}>Delete</Button>
+          <Button variant='secondary' onClick={() => setCommentToDelete('')} disable={commentDeleting}>Cancel</Button>
         </Modal.Footer>
       </Modal>
       <PasswordPrompt show={passwordDialogOpen} onSubmit={handlePasswordEntry} onCancel={() => setPasswordDialogOpen(false)} />
