@@ -11,7 +11,7 @@ const app = express();
 
 const DEFAULT_PORT = 8550;
 
-app.use(cors());
+if (process.env.USE_CORS) app.use(cors());
 app.use(express.json());
 
 app.use((req, res, next) => {

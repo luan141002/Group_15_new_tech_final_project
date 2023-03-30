@@ -28,4 +28,4 @@ COPY server/src ./src
 
 EXPOSE 8550
 
-CMD [ "yarn", "start" ]
+CMD [ "yarn", "serve" ]
