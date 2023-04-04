@@ -47,10 +47,6 @@ const ThesisSchema = new Schema({
             type: Number,
             required: true
         },
-        term: {
-            type: String,
-            required: true
-        },
         remarks: String,
         by: {
             type: Schema.Types.ObjectId,

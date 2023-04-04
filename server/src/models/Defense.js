@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
 const DefenseSchema = new Schema({
-    title: String,
+    description: String,
     thesis: {
         type: Schema.Types.ObjectId,
         ref: 'Thesis',
@@ -32,7 +32,8 @@ const DefenseSchema = new Schema({
                 type: Boolean,
                 required: true,
                 default: false
-            }
+            },
+            declined: Boolean
         }
     ],
     status: {

@@ -17,7 +17,7 @@ ThesisController.get('/thesis', requireToken, async (req, res) => {
     const { accountID, kind } = req.token;
     
     try {
-        let query = { $or: [ { authors: accountID }, { advisers: accountID } ] };
+        let query = { $or: [ { authors: accountID }, { advisers: accountID }, { panelists: accountID } ] };
 
         if ((all === undefined && kind === 'administrator') || isQueryTrue(all)) query = {};
         if (q) query.title = { $regex: q, $options: 'i' };
@@ -154,23 +154,24 @@ ThesisController.put('/thesis/:id', requireToken, async (req, res) => {
     try {
         const thesis = await Thesis.findById(id);
 
+        if (kind.toLowerCase() === 'student') throw new ServerError(403, 'Students cannot edit thesis projects and must ask for assistance from admin.');
         if (!thesis) throw new ServerError(404, 'Thesis not found.');
         if (title) thesis.title = title;
         if (description) thesis.description = description;
         if (authors) {
-            if (kind.toLowerCase() !== 'administrator' && !authors.includes(accountID)) throw new ServerError(400, 'Current user must be part of the group');
+            if (Array.isArray(authors) && (authors.length < 1 || authors.length > 4)) throw new ServerError(400, 'Only 1-4 authors can be added.');
             thesis.authors = authors;
         }
         if (advisers) {
-            if (!advisers || (Array.isArray(advisers) && (advisers.length < 1 || advisers.length > 2))) throw new ServerError(400, 'Only 1-2 advisers can be added.');
+            if (Array.isArray(advisers) && (advisers.length < 1 || advisers.length > 2)) throw new ServerError(400, 'Only 1-2 advisers can be added.');
             thesis.advisers = advisers;
         }
         if (panelists) {
-            if (!panelists || (Array.isArray(panelists) && panelists.length > 4)) throw new ServerError(400, 'Only 0-4 panelists can be added.');
+            if (Array.isArray(panelists) && panelists.length > 4) throw new ServerError(400, 'Only 0-4 panelists can be added.');
             thesis.panelists = panelists;
         }
         if (status && kind.toLowerCase() !== 'student') thesis.status = status;
-        if (phase && Number.parseInt(phase) && kind.toLowerCase() === 'administrator') thesis.phase = Number.parseInt(phase);
+        if (phase && Number.parseInt(phase) && kind.toLowerCase() !== 'student') thesis.phase = Number.parseInt(phase);
 
         await thesis.save();
 
@@ -258,6 +259,7 @@ ThesisController.delete('/thesis/:id/comment/:cid', requireToken, async (req, re
 
 const transitions = [
     [ 'new', 'for_checking' ],
+    [ 'new', 'endorsed' ],
     [ 'for_checking', 'for_checking' ],
     [ 'for_checking', 'checked' ],
     [ 'for_checking', 'endorsed' ],
@@ -437,10 +439,13 @@ ThesisController.post('/thesis', requireToken, upload.array('files'), async (req
     const { accountID, kind } = req.token;
 
     try {
+        if (kind.toLowerCase() === 'student') throw new ServerError(403, 'Students cannot create thesis projects and must ask for assistance from admin.');
         if (!title) throw new ServerError(400, 'Title is required');
         if (!authors) throw new ServerError(400, 'Author list is required');
         if (!advisers) throw new ServerError(400, 'Adviser list is required');
-        if (kind.toLowerCase() !== 'administrator' && !authors.includes(accountID)) throw new ServerError(400, 'Current user must be part of the group');
+        if (kind.toLowerCase() !== 'administrator' && (!authors.includes(accountID) || !advisers.includes(accountID)))
+            throw new ServerError(400, 'Current user must be part of the group');
+
         if (!advisers || (Array.isArray(advisers) && advisers.length > 2)) throw new ServerError(400, 'Only 1-2 advisers can be added.');
         if (panelists && (Array.isArray(panelists) && panelists.length > 4)) throw new ServerError(400, 'Only 0-4 panelists can be added.');
         

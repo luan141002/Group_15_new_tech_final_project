@@ -7,6 +7,7 @@ import Form from 'react-bootstrap/Form';
 import Modal from 'react-bootstrap/Modal';
 import Row from 'react-bootstrap/Row';
 import Spinner from 'react-bootstrap/Spinner';
+import Table from 'react-bootstrap/Table';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 import FullCalendar from '@fullcalendar/react';
@@ -18,6 +19,376 @@ import DefenseService from '../services/DefenseService';
 import { useAccount } from '../providers/account';
 import ThesisService from '../services/ThesisService';
 import ThesisSelector from '../components/ThesisSelector';
+import { AsyncTypeahead } from 'react-bootstrap-typeahead';
+import AccountService from '../services/AccountService';
+
+function EditDefenseEventDialog(props) {
+  const { account } = useAccount();
+  const { t } = useTranslation();
+  const { open, event, error, onCancel, onAction, studentThesis } = props;
+  const [_error, _setError] = useState('');
+  const [errorOpen, setErrorOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const [thesis, setThesis] = useState(null);
+  const [description, setDescription] = useState('');
+  const [date, setDate] = useState('');
+  const [startTime, setStartTime] = useState('');
+  const [endTime, setEndTime] = useState('');
+  const [panelists, setPanelists] = useState([]);
+  const edit = !event || event.action === 'create';
+
+  const [faculty, setFaculty] = useState([]);
+  const [facultyLoading, setFacultyLoading] = useState(false);
+  const [selectedFaculty, setSelectedFaculty] = useState([]);
+
+  const handleSubmit = async e => {
+    const form = e.currentTarget;
+    e.preventDefault();
+    if (onAction) {
+
+      if (form.checkValidity() === false) {
+        e.stopPropagation();
+        //setDialogValidated(true);
+        _setError('Please fill out the necessary fields.');
+        return;
+      }
+  
+      if (dayjs(`${date}T${startTime}`).isSameOrAfter(`${date}T${endTime}`)) {
+        _setError('Start time must be earlier than end time.');
+        //setDialogValidated(true);
+        return;
+      }
+  
+      if (dayjs().isAfter(`${date}T${startTime}`)) {
+        _setError('Cannot schedule a defense in the past.');
+        //setDialogValidated(true);
+        return;
+      }
+  
+      const start = new Date(`${date}T${startTime}`);
+      const end = new Date(`${date}T${endTime}`);
+
+      const action = event ? 'update' : 'create';
+      setSaving(true);
+      try {
+        const result = onAction(action, {
+          _id: event ? event._id : undefined,
+          thesis,
+          description,
+          start,
+          end,
+          panelists
+        });
+        if (result && result.then) {
+          await result;
+        }
+      } catch (error) {
+        _setError(error.code ? t(error.code) : error.message);
+      } finally {
+        setSaving(false);
+      }
+    }
+  };
+
+  const handleSearchFaculty = async (q) => {
+    setFacultyLoading(true);
+    const faculty = await AccountService.getFaculty({ q });
+    setFaculty(faculty);
+    setFacultyLoading(false);
+  };
+
+  const canAddFaculty = () => {
+    if (selectedFaculty.length < 1) return false;
+    if (panelists.find(e => e._id === selectedFaculty[0]._id)) return false;
+    if (panelists.length >= 4) return false;
+    return true;
+  };
+
+  const handleAddFaculty = () => {
+    if (selectedFaculty.length < 1) return;
+    if (!canAddFaculty()) return;
+    setPanelists(prev => {
+      const value = faculty.find(e => e._id === selectedFaculty[0]._id);
+      return [ ...prev, value ];
+    });
+    setSelectedFaculty([]);
+  };
+
+  const handleRemoveFaculty = (id) => {
+    setPanelists(prev => prev.filter(e => e._id !== id));
+  };
+
+  const doAction = async action => {
+    if (onAction) {
+      setSaving(true);
+      try {
+        const result = onAction(action, event ? event._id : undefined);
+        if (result && result.then) {
+          await result;
+        }
+      } catch (error) {
+        _setError(error.code ? t(error.code) : error.message);
+      } finally {
+        setSaving(false);
+      }
+    }
+  }
+
+  const handleCancel = () => {
+    if (onCancel) onCancel();
+  }
+
+  useEffect(() => {
+    setErrorOpen(!!error);
+  }, [error, _error]);
+
+  useEffect(() => {
+    if (event) {
+      setThesis(event.thesis);
+      setDescription(event.description);
+      setDate(dayjs(event.start).format('YYYY-MM-DD'));
+      setStartTime(dayjs(event.start).format('HH:mm'));
+      setEndTime(dayjs(event.end).format('HH:mm'));
+      setPanelists(event.panelists ? event.panelists.map(e => e.faculty) : []);
+    } else {
+      setThesis(null);
+      setDescription('');
+      setDate('');
+      setStartTime('');
+      setEndTime('');
+      setPanelists([]);
+    }
+  }, [event]);
+
+  useEffect(() => {
+    if (studentThesis) {
+      setPanelists([
+        ...studentThesis.advisers,
+        ...studentThesis.panelists
+      ]);
+      setDescription(studentThesis.title);
+    }
+  }, [open, studentThesis]);
+
+  const showDelete = () => {
+    if (!account || !event) return false;
+    if (account.kind === 'administrator') return true;
+    if (account.kind === 'faculty') return false;
+    if (account.kind === 'student') {
+      if (event.action === 'create') return true;
+      if (event.thesis.authors.find(e => e._id === account.accountID)) return true;
+      return false;
+    }
+    return false;
+  };
+
+  const showConfirm = () => {
+    if (!account) return false;
+    if (account.kind === 'administrator') return event && event.status === 'approved';
+    return false;
+  };
+
+  const showApprove = () => {
+    if (!account) return false;
+    if (account.kind === 'faculty') {
+      if (!event) return false;
+      const isPending = event.status === 'pending';
+      const hasApproved = event.panelists.some(e => e.faculty._id === account.accountID && e.approved);
+      const hasDeclined = event.status === 'declined' || event.panelists.some(e => e.declined);
+      return isPending && !hasApproved && !hasDeclined;
+    }
+    return false;
+  };
+
+  const showDecline = () => {
+    if (!account) return false;
+    if (account.kind === 'student') return false;
+    if (account.kind === 'administrator') return event && (event.action === 'pending' || event.status === 'approved');
+    if (account.kind === 'faculty') {
+      if (!event) return false;
+      const isPending = event.status === 'pending';
+      const hasApproved = event.panelists.some(e => e.faculty._id === account.accountID && e.approved);
+      const hasDeclined = event.status === 'declined' || event.panelists.some(e => e.declined);
+      return isPending && !hasApproved && !hasDeclined;
+    }
+    return false;
+  };
+
+  const handleChangeThesis = value => {
+    setThesis(value);
+    if (value) setPanelists([...value.advisers, ...value.panelists]);
+  };
+
+  const getTitle = () => {
+    if (!edit) return 'Defense event summary';
+    if (account) {
+      if (account.kind === 'student') return 'Request defense slot';
+    }
+    return 'Create defense slot';
+  };
+
+  return (
+    <Modal show={open} animation={false} centered size='lg'>
+      <Modal.Header>
+        <Modal.Title>
+          {getTitle()}
+        </Modal.Title>
+      </Modal.Header>
+      <Form onSubmit={handleSubmit}>
+        <Modal.Body>
+          { (error || _error) && errorOpen && <Alert variant='danger' onClose={() => setErrorOpen(false)} dismissible>{error || _error}</Alert> }
+          {
+            edit ? <>
+              {
+                account && account.kind === 'administrator' &&
+                  <Form.Group className="mb-3" controlId="formTitle">
+                    <Form.Label>Thesis</Form.Label>
+                    <ThesisSelector value={thesis} onChange={handleChangeThesis} required disabled={saving} />
+                  </Form.Group>
+              }
+              <Form.Group className="mb-3" controlId="formTitle">
+                <Form.Label>Description</Form.Label>
+                <Form.Control as='textarea' rows={3} value={description} onChange={e => setDescription(e.currentTarget.value)} disabled={saving} />
+              </Form.Group>
+              <Row>
+                <Col>
+                  <Form.Group className="mb-3" controlId="formDate">
+                    <Form.Label>Date</Form.Label>
+                    <Form.Control type='date' value={date} onChange={e => setDate(e.currentTarget.value)} required disabled={saving} />
+                  </Form.Group>
+                </Col>
+                <Col>
+                  <Form.Group className="mb-3" controlId="formStartTime">
+                    <Form.Label>Start time</Form.Label>
+                    <Form.Control type='time' value={startTime} onChange={e => setStartTime(e.currentTarget.value)} required disabled={saving} />
+                  </Form.Group>
+                </Col>
+                <Col>
+                  <Form.Group className="mb-3" controlId="formEndTime">
+                    <Form.Label>End time</Form.Label>
+                    <Form.Control type='time' value={endTime} onChange={e => setEndTime(e.currentTarget.value)} required disabled={saving} />
+                  </Form.Group>
+                </Col>
+              </Row>
+              <Form.Group className="mb-3" controlId="formAdviser">
+                <Form.Label>Panelists</Form.Label>
+                <Row className="align-items-center">
+                  <Col xs={9} sm={10} className="my-1">
+                    <AsyncTypeahead
+                      id='formFaculty'
+                      filterBy={(faculty) => !panelists.includes(faculty._id)}
+                      isLoading={facultyLoading}
+                      labelKey={(option) => t('values.full_name', option)}
+                      minLength={2}
+                      onSearch={handleSearchFaculty}
+                      options={faculty}
+                      onChange={setSelectedFaculty}
+                      selected={selectedFaculty}
+                      placeholder='Search from faculty...'
+                      useCache={false}
+                      disabled={saving}
+                    />
+                  </Col>
+                  <Col xs={3} sm={2} className="my-1">
+                    <Button className='w-100' onClick={handleAddFaculty} disabled={!canAddFaculty() || saving}>Add</Button>
+                  </Col>
+                </Row>
+              </Form.Group>
+              <Table striped bordered hover size="sm">
+                <thead>
+                  <tr>
+                    <th>Last Name</th>
+                    <th>First Name</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {
+                    panelists.length > 0 ? panelists.map(e => (
+                      <tr>
+                        <td>{e.lastName}</td>
+                        <td>{e.firstName}</td>
+                        <td>
+                          <Button as='a' variant='link' style={{ padding: 0 }} onClick={() => handleRemoveFaculty(e._id)} disabled={saving}>
+                            Remove
+                          </Button>
+                        </td>
+                      </tr>
+                    )) : <tr><td className='text-center' colSpan={3}>No panelists added.</td></tr>
+                  }
+                </tbody>
+              </Table>
+            </> : <>
+              <Row as='dl'>
+                <Col as='dt' sm={3}>
+                  Thesis title
+                </Col>
+                <Col as='dd' sm={9}>
+                  { event && event.thesis.title }
+                </Col>
+                <Col as='dt' sm={3}>
+                  Description
+                </Col>
+                <Col as='dd' sm={9}>
+                  { event && (event.thesis.description || 'No description provided') }
+                </Col>
+                <Col as='dt' sm={3}>
+                  Date and time
+                </Col>
+                <Col as='dd' sm={9}>
+                  { event && `${dayjs(event.start).format('LL, LT')} - ${dayjs(event.end).format('LT')}` }
+                </Col>
+                <Col as='dt' sm={3}>
+                  Authors
+                </Col>
+                <Col as='dd' sm={9}>
+                  <ul>
+                    {
+                      event && event.thesis.authors.map(e => (
+                        <li key={`author-${e._id}`}>{t('values.full_name', e)}</li>
+                      ))
+                    }
+                  </ul>
+                </Col>
+                <Col as='dt' sm={3}>
+                  Panelists
+                </Col>
+                <Col as='dd' sm={9}>
+                  <ul>
+                    {
+                      event && event.panelists.map(e => (
+                        <li
+                          key={`panelist-${e.faculty._id}`}
+                        >
+                          {t('values.full_name', e.faculty)} {e.declined ? '(Declined)' : (e.approved ? '(Approved)' : '(Not yet approved)')}
+                        </li>
+                      ))
+                    }
+                  </ul>
+                </Col>
+                <Col as='dt' sm={3}>
+                  Status
+                </Col>
+                <Col as='dd' sm={9}>
+                  { event && t(`values.defense_status.${event.status}`) }
+                </Col>
+              </Row>
+            </>
+          }
+        </Modal.Body>
+        <Modal.Footer>
+          { edit && <Button type='submit' disabled={saving}>{ event ? 'Update' : 'Add' }</Button> }
+          { showApprove() && <Button variant='secondary' onClick={() => doAction('approve')} disabled={saving}>Approve</Button> }
+          { showConfirm() && <Button variant='secondary' onClick={() => doAction('confirm')} disabled={saving}>Confirm</Button> }
+          { showDecline() && <Button variant='secondary' onClick={() => doAction('decline')} disabled={saving}>Decline</Button> }
+          { showDelete() && <Button variant='secondary' onClick={() => doAction('delete')} disabled={saving}>Delete</Button> }
+          <Button variant='secondary' onClick={handleCancel} disabled={saving}>{ edit ? 'Cancel' : 'Close' }</Button>
+        </Modal.Footer>
+      </Form>
+    </Modal>
+  );
+}
 
 function DefenseWeekPage() {
   const navigate = useNavigate();
@@ -25,27 +396,16 @@ function DefenseWeekPage() {
   const { account } = useAccount();
   const [startTime, setStartTime] = useState('08:00');
   const [endTime, setEndTime] = useState('18:00');
-  const [slotInterval, setSlotInterval] = useState(30 * 60 * 1000);
+  const [slotInterval, setSlotInterval] = useState(15 * 60 * 1000);
   const [defenses, setDefenses] = useState([]);
   const calendarRef = useRef(null);
   const [thesis, setThesis] = useState(null);
-  const [selectedThesis, setSelectedThesis] = useState(null);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [endorseNotice, setEndorseNotice] = useState(true);
 
-  const [dialogValidated, setDialogValidated] = useState(false);
-  const [dialogError, setDialogError] = useState('');
-  const [addEventsDialog, setAddEventsDialog] = useState(false);
-  const [eventThesis, setEventThesis] = useState('');
-  const [eventTitle, setEventTitle] = useState('');
-  const [eventDescription, setEventDescription] = useState(''); // TODO: integrate description
-  const [eventStartTime, setEventStartTime] = useState('');
-  const [eventEndTime, setEventEndTime] = useState('');
-  const [eventDate, setEventDate] = useState('');
-
-  const [adviserEvent, setAdviserEvent] = useState(null);
-  const [adminEvent, setAdminEvent] = useState(null);
+  const [eventDialogOpen, setEventDialogOpen] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState(null);
 
   const functions = {
     isAuthor: (thesis) => {
@@ -56,17 +416,46 @@ function DefenseWeekPage() {
       return thesis.advisers.find(e => e._id === account.accountID);
     },
 
-    tryAddDefense: (start, end, title, thesis) => {
+    isPanelist: (defense) => {
+      return defense.panelists.find(e => e.faculty._id === account.accountID);
+    },
+
+    tryAddDefense: (info) => {
+      const { start, end, thesis, description, panelists } = info;
       setDefenses(prev => {
         const next = [ ...prev ];
         next.push({
           _id: start.getTime().toString(),
           start,
           end,
-          title,
           thesis,
+          description,
+          panelists,
           action: 'create'
         });
+        return next;
+      });
+    },
+
+    tryUpdateDefenseData: (id, info) => {
+      const { start, end, thesis, description, panelists } = info;
+      setDefenses(prev => {
+        const defenseI = prev.findIndex(e => e._id === id);
+        if (defenseI === -1) return prev;
+
+        let defense = { ...prev[defenseI] };
+        if (defense.action === 'create') {
+          defense.start = start;
+          defense.end = end;
+          defense.thesis = thesis;
+          defense.description = description;
+          defense.panelists = panelists;
+        } else {
+          defense.description = description;
+          defense.panelists = panelists;
+        }
+        const next = [ ...prev ];
+        next[defenseI] = defense;
         return next;
       });
     },
@@ -121,7 +510,6 @@ function DefenseWeekPage() {
 
         const defense = { ...prev[defenseI] };
         defense.action = action;
-        console.log(defense);
         const next = [ ...prev ];
         next[defenseI] = defense;
         return next;
@@ -151,25 +539,37 @@ function DefenseWeekPage() {
     applyAllActions: (allActions) => {
       setDefenses(prev => {
         const next = prev.filter(e => e.action !== 'delete');
-        return next.map(e => {
+        const next2 = next.map(e => {
           let action = '';
           if (allActions) {
             const actionItem = allActions.find(e2 => e2._id === e._id);
             if (actionItem) action = actionItem.action;
           }
 
-          const { ...copy } = e;
+          const { action: _, ...copy } = e;
           if (!action) action = e.action;
 
           switch (action) {
-            case 'approve': copy.status = 'approved'; break;
-            case 'decline': copy.status = 'declined'; break;
+            case 'approve': {
+              const panelistEntry = copy.panelists.find(e => e.faculty._id === account.accountID);
+              if (panelistEntry) panelistEntry.approved = true;
+              if (copy.panelists.every(e => e.approved)) copy.status = 'approved';
+            } break;
+            case 'decline': {
+              const panelistEntry = copy.panelists.find(e => e.faculty._id === account.accountID);
+              if (panelistEntry) panelistEntry.declined = true;
+              copy.status = 'declined';
+            } break;
             case 'confirm': copy.status = 'confirmed'; break;
-            case 'create': copy.status = account.kind === 'administrator' ? 'confirmed' : 'pending'; break;
+            case 'create':
+              copy.status = account.kind === 'administrator' ? 'confirmed' : 'pending';
+              copy.panelists = copy.panelists.map(e => ({ faculty: e, approved: false }));
+              break;
             default: break;
           }
           return copy;
         });
+        return next2;
       });
     },
 
@@ -218,7 +618,7 @@ function DefenseWeekPage() {
 
         let display = '';
         if (account.kind === 'faculty') {
-          if (!functions.isAdvisory(e.thesis)) {
+          if (!functions.isPanelist(e)) {
             display = 'background';
           }
         }
@@ -227,7 +627,7 @@ function DefenseWeekPage() {
           id: e._id,
           start: e.start,
           end: e.end,
-          title: e.title || '',
+          title: e.description || e.thesis.title,
           display: e.display || display,
           className
         };
@@ -240,7 +640,13 @@ function DefenseWeekPage() {
       const api = calendarRef.current.getApi();
       if (api.view.type === 'timeGridWeek') {
         if (account.kind === 'student' && (thesis && thesis.status === 'endorsed')) {
-          functions.tryAddDefense(e.start, e.end, eventTitle || thesis.title, thesis);
+          functions.tryAddDefense({
+            start: e.start,
+            end: e.end,
+            description: thesis.title,
+            thesis: thesis,
+            panelists: [...thesis.advisers, ...thesis.panelists]
+          });
           api.unselect();
         }
       }
@@ -252,21 +658,8 @@ function DefenseWeekPage() {
       const api = calendarRef.current.getApi();
       if (api.view.type === 'timeGridWeek') {
         const event = functions.getEvent(e.event.id);
-        if (account.kind === 'student') {
-          if (event && functions.isAuthor(event.thesis) && event.status !== 'confirmed') {
-            functions.tryRemoveDefense(e.event.id);
-          }
-        } else if (account.kind === 'faculty') {
-          if (event && functions.isAdvisory(event.thesis)) {
-            setAdviserEvent(event);
-          }
-        } else if (account.kind === 'administrator') {
-          if (event && event.action === 'create') {
-            functions.tryRemoveDefense(e.event.id);
-          } else if (event && (event.status === 'approved' || event.status === 'pending')) {
-            setAdminEvent(event);
-          }
-        }
+        setSelectedEvent(event);
+        setEventDialogOpen(true);
       }
     }
   };
@@ -282,11 +675,41 @@ function DefenseWeekPage() {
 
   const load = async () => {
     setDefenses(await DefenseService.getDefenses());
-    const theses = await ThesisService.getTheses();
     if (account.kind === 'student') {
+      const theses = await ThesisService.getTheses();
       if (theses && theses.length > 0) {
         setThesis(theses[0]);
       }
+    }
+  };
+
+  const handleOpenEventDialog = () => {
+    setSelectedEvent(null);
+    setEventDialogOpen(true);
+  };
+
+  const handleCloseEventDialog = () => {
+    setEventDialogOpen(false);
+    setSelectedEvent(null);
+  };
+
+  const handleEventAction = async (action, data) => {
+    if (action === 'create') {
+      functions.tryAddDefense(data);
+      setSelectedEvent(null);
+      setEventDialogOpen(false);
+    } else if (action === 'update') {
+      functions.tryUpdateDefenseData(data._id, data);
+      setSelectedEvent(null);
+      setEventDialogOpen(false);
+    } else if (action === 'delete') {
+      functions.tryRemoveDefense(data);
+      setSelectedEvent(null);
+      setEventDialogOpen(false);
+    } else if (action === 'approve' || action === 'decline' || action === 'confirm') {
+      const allActions = [{ _id: data, action }];
+      await DefenseService.processDefenseSlots(allActions);
+      functions.applyAllActions(allActions);
     }
   };
 
@@ -314,8 +737,8 @@ function DefenseWeekPage() {
   const handleSaveDefense = async () => {
     try {
       setSaving(true);
-      const requests = functions.getAllTentativeChanges();
-      await DefenseService.processDefenseSlots(requests);
+      const pending = functions.getAllTentativeChanges();
+      await DefenseService.processDefenseSlots(pending);
       functions.applyAllActions();
     } catch (error) {
       setError(error.code ? t(error.code) : error.message);
@@ -323,96 +746,6 @@ function DefenseWeekPage() {
       setSaving(false);
     }
   };
-
-  const handleOpenEventDialog = () => {
-    if (account.kind !== 'student' && account.kind !== 'administrator') return;
-
-    setAddEventsDialog(true);
-  };
-
-  const handleCloseEventDialog = () => {
-    setEventTitle('');
-    setEventStartTime('');
-    setEventEndTime('');
-    setEventDate('');
-    setEventThesis(null);
-    setDialogError('');
-    setDialogValidated(false);
-    setAddEventsDialog(false);
-  };
-
-  const handleSubmitEventForm = e => {
-    const form = e.currentTarget;
-    e.preventDefault();
-    setDialogError('');
-    setDialogValidated(false);
-
-    if (form.checkValidity() === false) {
-      e.stopPropagation();
-      setDialogValidated(true);
-      setDialogError('Please fill out the necessary fields.');
-      return;
-    }
-
-    if (dayjs(`${eventDate}T${eventStartTime}`).isSameOrAfter(`${eventDate}T${eventEndTime}`)) {
-      setDialogError('Start time must be earlier than end time.');
-      setDialogValidated(true);
-      return;
-    }
-
-    if (dayjs().isAfter(`${eventDate}T${eventStartTime}`)) {
-      setDialogError('Cannot schedule a defense in the past.');
-      setDialogValidated(true);
-      return;
-    }
-
-    const start = new Date(`${eventDate}T${eventStartTime}`);
-    const end = new Date(`${eventDate}T${eventEndTime}`);
-    if (eventThesis) {
-      functions.tryAddDefense(start, end, eventTitle || eventThesis.title, eventThesis);
-    } else if (thesis) {
-      functions.tryAddDefense(start, end, eventTitle || thesis.title, thesis);
-    }
-    handleCloseEventDialog();
-  };
-
-  const handleAdviserEventForm = async action => {
-    if (!adviserEvent) return;
-
-    try {
-      setSaving(true);
-      const allActions = [{ _id: adviserEvent._id, action }];
-      await DefenseService.processDefenseSlots(allActions);
-      functions.applyAllActions(allActions);
-      setAdviserEvent(null);
-    } catch (error) {
-      setError(error.code ? t(error.code) : error.message);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleAdminEventForm = async action => {
-    if (!adminEvent) return;
-
-    try {
-      setSaving(true);
-      const allActions = [{ _id: adminEvent._id, action }];
-      await DefenseService.processDefenseSlots(allActions);
-      functions.applyAllActions(allActions);
-      setAdminEvent(null);
-    } catch (error) {
-      setError(error.code ? t(error.code) : error.message);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  useEffect(() => {
-    if (eventThesis) {
-      setEventTitle(eventThesis.title);
-    }
-  }, [eventThesis]);
 
   useEffect(() => {
     load();
@@ -536,7 +869,7 @@ function DefenseWeekPage() {
                 </Card.Body>
               </Card>
           }
-          {
+          {/*
             account.kind === 'administrator' &&
               <Card>
                 <Card.Body>
@@ -554,148 +887,16 @@ function DefenseWeekPage() {
                   </Card.Text>
                 </Card.Body>
               </Card>
-          }
+          */}
         </Col>
       </Row>
-      <Modal show={addEventsDialog} animation={false} centered size='lg'>
-        <Modal.Header>
-          <Modal.Title>
-            Request defense slot
-          </Modal.Title>
-        </Modal.Header>
-        <Form onSubmit={handleSubmitEventForm}>
-          <Modal.Body>
-            { dialogError && <Alert variant='danger' onClose={() => setDialogError('')} dismissible>{dialogError}</Alert> }
-            {
-              account.kind === 'administrator' &&
-                <Form.Group className="mb-3" controlId="formTitle">
-                  <Form.Label>Thesis</Form.Label>
-                  <ThesisSelector value={eventThesis} onChange={e => { console.log(e); setEventThesis(e)}} required />
-                </Form.Group>
-            }
-            <Form.Group className="mb-3" controlId="formTitle">
-              <Form.Label>Description</Form.Label>
-              <Form.Control as='textarea' rows={3} value={eventDescription} onChange={e => setEventDescription(e.currentTarget.value)} />
-            </Form.Group>
-            <Row>
-              <Col>
-                <Form.Group className="mb-3" controlId="formDate">
-                  <Form.Label>Date</Form.Label>
-                  <Form.Control type='date' value={eventDate} onChange={e => setEventDate(e.currentTarget.value)} required />
-                </Form.Group>
-              </Col>
-              <Col>
-                <Form.Group className="mb-3" controlId="formStartTime">
-                  <Form.Label>Start time</Form.Label>
-                  <Form.Control type='time' value={eventStartTime} onChange={e => setEventStartTime(e.currentTarget.value)} required />
-                </Form.Group>
-              </Col>
-              <Col>
-                <Form.Group className="mb-3" controlId="formEndTime">
-                  <Form.Label>End time</Form.Label>
-                  <Form.Control type='time' value={eventEndTime} onChange={e => setEventEndTime(e.currentTarget.value)} required />
-                </Form.Group>
-              </Col>
-            </Row>
-          </Modal.Body>
-          <Modal.Footer>
-            <Button type='submit'>Add</Button>
-            <Button variant='secondary' onClick={handleCloseEventDialog}>Cancel</Button>
-          </Modal.Footer>
-        </Form>
-      </Modal>
-      <Modal show={!!adviserEvent} animation={false} centered size='lg'>
-        <Modal.Header>
-          <Modal.Title>
-            { adviserEvent && adviserEvent.title }
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Row as='dl'>
-            <Col as='dt' sm={3}>
-              Thesis title
-            </Col>
-            <Col as='dd' sm={9}>
-              { adviserEvent && adviserEvent.thesis.title }
-            </Col>
-            <Col as='dt' sm={3}>
-              Description
-            </Col>
-            <Col as='dd' sm={9}>
-              { adviserEvent && (adviserEvent.thesis.description || 'No description provided') }
-            </Col>
-            <Col as='dt' sm={3}>
-              Date and time
-            </Col>
-            <Col as='dd' sm={9}>
-              { adviserEvent && `${dayjs(adviserEvent.start).format('LL, LT')} - ${dayjs(adviserEvent.end).format('LT')}` }
-            </Col>
-            <Col as='dt' sm={3}>
-              Authors
-            </Col>
-            <Col as='dd' sm={9}>
-              <ul>
-                {
-                  adviserEvent && adviserEvent.thesis.authors.map(e => (
-                    <li key={`author-${e._id}`}>{t('values.full_name', e)}</li>
-                  ))
-                }
-              </ul>
-            </Col>
-          </Row>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button onClick={() => handleAdviserEventForm('approve')}>Approve</Button>
-          <Button onClick={() => handleAdviserEventForm('decline')}>Decline</Button>
-          <Button variant='secondary' onClick={() => setAdviserEvent(null)}>Cancel</Button>
-        </Modal.Footer>
-      </Modal>
-      <Modal show={!!adminEvent} animation={false} centered size='lg'>
-        <Modal.Header>
-          <Modal.Title>
-            { adminEvent && adminEvent.title }
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Row as='dl'>
-            <Col as='dt' sm={3}>
-              Thesis title
-            </Col>
-            <Col as='dd' sm={9}>
-              { adminEvent && adminEvent.thesis.title }
-            </Col>
-            <Col as='dt' sm={3}>
-              Description
-            </Col>
-            <Col as='dd' sm={9}>
-              { adminEvent && (adminEvent.thesis.description || 'No description provided') }
-            </Col>
-            <Col as='dt' sm={3}>
-              Date and time
-            </Col>
-            <Col as='dd' sm={9}>
-              { adminEvent && `${dayjs(adminEvent.start).format('LL, LT')} - ${dayjs(adminEvent.end).format('LT')}` }
-            </Col>
-            <Col as='dt' sm={3}>
-              Authors
-            </Col>
-            <Col as='dd' sm={9}>
-              <ul>
-                {
-                  adminEvent && adminEvent.thesis.authors.map(e => (
-                    <li key={`author-${e._id}`}>{t('values.full_name', e)}</li>
-                  ))
-                }
-              </ul>
-            </Col>
-          </Row>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button onClick={() => handleAdminEventForm('confirm')}>Confirm</Button>
-          <Button onClick={() => handleAdminEventForm('decline')}>Decline</Button>
-          <Button variant='secondary' onClick={() => setAdminEvent(null)}>Cancel</Button>
-        </Modal.Footer>
-      </Modal>
+      <EditDefenseEventDialog
+        event={selectedEvent}
+        open={eventDialogOpen}
+        onCancel={handleCloseEventDialog}
+        onAction={handleEventAction}
+        studentThesis={thesis}
+      />
       {
         account.kind === 'student' && thesis &&
           <Modal show={thesis.status !== 'endorsed' && endorseNotice} animation={false} centered size='lg'>

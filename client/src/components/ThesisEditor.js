@@ -88,7 +88,6 @@ function ThesisEditor(props) {
   const handleSearchFaculty = async (q) => {
     setFacultyLoading(true);
     const faculty = await AccountService.getFaculty({ q });
-    console.log(faculty);
     setFaculty(faculty);
     setFacultyLoading(false);
   };
@@ -216,17 +215,17 @@ function ThesisEditor(props) {
         { error && <Alert variant='danger' onClose={() => setError('')} dismissible>{error}</Alert> }
         { success && <Alert variant='success' onClose={() => setSuccess(false)} dismissible>Thesis successfully updated.</Alert> }
         <Form.Group className="mb-3" controlId="formTitle">
-          <Form.Label>Title</Form.Label>
+          <Form.Label className='fw-bold'>Title</Form.Label>
           <Form.Control type="text" value={title} onChange={e => setTitle(e.currentTarget.value)} />
         </Form.Group>
         <Form.Group className="mb-3" controlId="formDescription">
-          <Form.Label>Description</Form.Label>
+          <Form.Label className='fw-bold'>Description</Form.Label>
           <Form.Control as='textarea' type="text" value={description} onChange={e => setDescription(e.currentTarget.value)} />
         </Form.Group>
         {
           (account.kind === 'student') && 
             <Form.Group className="mb-3" controlId="formDocument">
-              <Form.Label>Documents</Form.Label>
+              <Form.Label className='fw-bold'>Documents</Form.Label>
               <Form.Control type="file" value={file} onChange={handleAddAttachment} />
             </Form.Group>
         }
@@ -256,7 +255,7 @@ function ThesisEditor(props) {
             <Row>
               <Col>
                 <Form.Group className="mb-3" controlId="formStatus">
-                  <Form.Label>Status</Form.Label>
+                  <Form.Label className='fw-bold'>Status</Form.Label>
                   <Form.Select value={status} onChange={e => setStatus(e.currentTarget.value)}>
                     <option value='new'>New</option>
                     <option value='for_checking'>For checking</option>
@@ -267,7 +266,7 @@ function ThesisEditor(props) {
               </Col>
               <Col>
                 <Form.Group className="mb-3" controlId="formPhase">
-                  <Form.Label>Phase</Form.Label>
+                  <Form.Label className='fw-bold'>Phase</Form.Label>
                   <Form.Select value={phase} onChange={e => setPhase(e.currentTarget.value)}>
                     <option value='1'>First</option>
                     <option value='2'>Second</option>
@@ -279,7 +278,7 @@ function ThesisEditor(props) {
           )
         }
         <Form.Group className="mb-3" controlId="formAuthor">
-          <Form.Label>Authors</Form.Label>
+          <Form.Label className='fw-bold'>Authors</Form.Label>
           <Row className="align-items-center">
             <Col xs={9} sm={10} className="my-1">
               <AsyncTypeahead
@@ -322,7 +321,7 @@ function ThesisEditor(props) {
           </tbody>
         </Table>
         <Form.Group className="mb-3" controlId="formAdviser">
-          <Form.Label>Advisers</Form.Label>
+          <Form.Label className='fw-bold'>Advisers</Form.Label>
           <Row className="align-items-center">
             <Col xs={9} sm={10} className="my-1">
               <AsyncTypeahead
@@ -365,7 +364,7 @@ function ThesisEditor(props) {
           </tbody>
         </Table>
         <Form.Group className="mb-3" controlId="formPanelist">
-          <Form.Label>Panelists</Form.Label>
+          <Form.Label className='fw-bold'>Panelists</Form.Label>
           <Row className="align-items-center">
             <Col xs={9} sm={10} className="my-1">
               <AsyncTypeahead

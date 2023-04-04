@@ -25,19 +25,16 @@ DefenseController.get('/defense', requireToken, async (req, res) => {
             }
         }
 
-        const thesisPopulate = kind !== 'student' ?
-            { path: 'thesis', populate: [ { path: 'advisers' }, { path: 'authors' } ] } :
-            { path: 'thesis', populate: [ { path: 'authors' } ] };
-
+        const thesisPopulate = { path: 'thesis', populate: [ { path: 'advisers' }, { path: 'authors' } ] };
         const schedules = await Defense.find(query)
             .populate(thesisPopulate)
-            .populate('panelists');
+            .populate('panelists.faculty');
 
         return res.json(schedules.map(e => ({
             _id: e._id,
             start: e.start,
             end: e.end,
-            title: e.title,
+            description: e.description,
             thesis: {
                 _id: e.thesis._id,
                 title: e.thesis.title,
@@ -47,18 +44,22 @@ DefenseController.get('/defense', requireToken, async (req, res) => {
                     firstName: e2.firstName,
                     middleName: e2.middleName
                 })),
-                authors: e.thesis.authors ? e.thesis.authors.map(e2 => ({
+                authors: e.thesis.authors.map(e2 => ({
                     _id: e2._id,
                     lastName: e2.lastName,
                     firstName: e2.firstName,
                     middleName: e2.middleName
-                })) : undefined
+                }))
             },
             panelists: e.panelists.map(e2 => ({
-                _id: e2._id,
-                lastName: e2.lastName,
-                firstName: e2.firstName,
-                middleName: e2.middleName
+                faculty: {
+                    _id: e2.faculty._id,
+                    lastName: e2.faculty.lastName,
+                    firstName: e2.faculty.firstName,
+                    middleName: e2.faculty.middleName
+                },
+                approved: e2.approved,
+                declined: e2.declined
             })),
             status: e.status,
             phase: e.phase
@@ -82,13 +83,20 @@ DefenseController.post('/defense', requireToken, async (req, res) => {
             const slotObjs = slots.map(e => {
                 if (!e.action || e.action === 'create') {
                     return {
-                        title: e.title || thesis.title,
                         start: e.start,
                         end: e.end,
                         thesis: thesis._id,
+                        description: e.description,
                         phase: thesis.phase,
                         term: CURRENT_TERM,
-                        panelists: []
+                        panelists: e.panelists ? e.panelists.map(e2 => ({ faculty: e2 })) : []
+                    };
+                } else if (e.action === 'update') {
+                    return {
+                        _id: e._id,
+                        description: e.description,
+                        panelists: e.panelists || [],
+                        action: 'update'
                     };
                 } else if (e.action === 'delete') {
                     return {
@@ -99,9 +107,17 @@ DefenseController.post('/defense', requireToken, async (req, res) => {
             });
 
             const slotsToCreate = slotObjs.filter(e => !e.action);
+            const slotsToUpdate = slotObjs.filter(e => e.action === 'update');
             const slotsToDelete = slotObjs.filter(e => e.action === 'delete');
 
             const added = await Defense.create(slotsToCreate);
+            for (const slotToUpdate of slotsToUpdate) {
+                await Defense.updateOne({
+                    _id: slotToUpdate._id,
+                    description: slotToUpdate.description,
+                    panelists: slotToUpdate.panelists || []
+                });
+            }
             await Defense.deleteMany({ _id: { $in: slotsToDelete.map(e => e._id) }});
 
             return res.json([
@@ -110,29 +126,39 @@ DefenseController.post('/defense', requireToken, async (req, res) => {
             ]);
         } else if (kind === 'faculty') {
             const allIDs = slots.map(e => e._id);
-            const defenseSlots = await Defense.find({ _id: { $in: allIDs }, status: { $not: 'confirmed' } }).populate('thesis');
+            const defenseSlots = await Defense.find({ _id: { $in: allIDs }, status: { $not: /^confirmed$/ } });
 
-            const idsToApprove = slots.filter(e => {
-                const defenseSlot = defenseSlots.find(e2 => e2._id.toString() === e._id);
-                if (!defenseSlot) return false;
+            const updateSlots = {};
+            const errors = [];
 
-                return e.action === 'approve' && !!defenseSlot.thesis.advisers.find(e2 => e2.toString() === accountID);
+            slots.forEach((e, index) => {
+                const defenseSlot = defenseSlots.find(e2 => e2._id.toString() === e._id.toString());
+                if (!defenseSlot) return;
+
+                const panelists = defenseSlot.panelists;
+                const entryIndex = panelists.findIndex(e2 => e2.faculty.toString() === accountID);
+                if (entryIndex === -1) {
+                    errors.push({ index, message: 'You cannot approve or decline a slot that you are not a panel member of.' });
+                }
+
+                if (e.action === 'approve') {
+                    panelists[entryIndex] = { faculty: accountID, approved: true };
+                    if (panelists.every(e2 => e2.approved)) {
+                        updateSlots[defenseSlot._id] = { panelists, status: 'approved' };
+                    } else {
+                        updateSlots[defenseSlot._id] = { panelists };
+                    }
+                } else if (e.action === 'decline') {
+                    panelists[entryIndex] = { faculty: accountID, declined: true };
+                    updateSlots[defenseSlot._id] = { panelists, status: 'declined' };
+                }
             });
 
-            const idsToDecline = slots.filter(e => {
-                const defenseSlot = defenseSlots.find(e2 => e2._id.toString() === e._id);
-                if (!defenseSlot) return false;
+            for (const [key, value] of Object.entries(updateSlots)) {
+                await Defense.updateOne({ _id: key }, value);
+            }
 
-                return e.action === 'decline' && !!defenseSlot.thesis.advisers.find(e2 => e2.toString() === accountID);
-            });
-
-            await Defense.updateMany({ _id: { $in: idsToApprove }}, { status: 'approved' });
-            await Defense.updateMany({ _id: { $in: idsToDecline }}, { status: 'declined' });
-
-            return res.json([
-                ...(idsToApprove.map(e => ({ _id: e, status: 'approved' }))),
-                ...(idsToDecline.map(e => ({ _id: e, status: 'declined' })))
-            ]);
+            return res.json([]);
         } else if (kind === 'administrator') {
             const allIDs = slots.filter(e => !!e.action && e.action !== 'create').map(e => e._id);
             const allThesisIDs = slots
@@ -141,7 +167,7 @@ DefenseController.post('/defense', requireToken, async (req, res) => {
                 .reduce((p, e) => ({ ...p, [e]: true }), {});
             const allTheses = await Thesis.find({ _id: { $in: Object.keys(allThesisIDs) }});
             for (const nthesis of allTheses) {
-                allThesisIDs[nthesis._id.toString()] = { phase: nthesis.phase, title: nthesis.title };
+                allThesisIDs[nthesis._id.toString()] = { phase: nthesis.phase };
             }
 
             const defenseSlots = await Defense.find({ _id: { $in: allIDs }, status: 'approved' });
@@ -149,14 +175,20 @@ DefenseController.post('/defense', requireToken, async (req, res) => {
             const slotObjs = slots.map(e => {
                 if (!e.action || e.action === 'create') {
                     return {
-                        title: e.title || allThesisIDs[e.thesis].title,
                         start: e.start,
                         end: e.end,
                         thesis: e.thesis,
                         phase: allThesisIDs[e.thesis].phase,
                         term: CURRENT_TERM,
-                        panelists: [],
+                        panelists: e.panelists || [],
                         status: 'confirmed'
+                    };
+                } else if (e.action === 'update') {
+                    return {
+                        _id: e._id,
+                        description: e.description,
+                        panelists: e.panelists || [],
+                        action: 'update'
                     };
                 } else {
                     return {
@@ -182,16 +214,33 @@ DefenseController.post('/defense', requireToken, async (req, res) => {
                 return e.action === 'decline';
             });
 
+            const idsToDelete = slotObjs.filter(e => {
+                if (!e._id) return false;
+                const defenseSlot = defenseSlots.find(e2 => e2._id.toString() === e._id);
+                if (!defenseSlot) return false;
+
+                return e.action === 'decline';
+            });
+
             const slotsToCreate = slotObjs.filter(e => {
                 if (e._id) return false;
                 return (!e.action || e.action === 'create') && !!e.thesis;
             });
+            const slotsToUpdate = slotObjs.filter(e => e.action === 'update');
 
-            console.log(slotsToCreate);
+            for (const slotToUpdate of slotsToUpdate) {
+                await Defense.updateOne({
+                    _id: slotToUpdate._id,
+                    description: slotToUpdate.description,
+                    panelists: slotToUpdate.panelists || []
+                });
+            }
+            const slotsToDelete = slotObjs.filter(e => e.action === 'delete');
 
             const results = await Defense.create(slotsToCreate);
             await Defense.updateMany({ _id: { $in: idsToConfirm }}, { status: 'confirmed' });
             await Defense.updateMany({ _id: { $in: idsToDecline }}, { status: 'declined' });
+            await Defense.deleteMany({ _id: { $in: slotsToDelete.map(e => e._id) }});
 
             return res.json([
                 ...(results),

@@ -27,6 +27,12 @@ const en = {
       pass: 'Final',
       fail: 'Final'
     },
+    defense_status: {
+      pending: 'Pending',
+      approved: 'Approved',
+      confirmed: 'Confirmed',
+      declined: 'Declined'
+    },
     thesis_phase: {
       '1': 'First',
       '2': 'Second',

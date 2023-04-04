@@ -7,10 +7,13 @@ const DefenseWeekSchema = new Schema({
         ref: 'Administrator',
         required: true
     },
-    startDate: { type: Date, required: true },
-    endDate: { type: Date, required: true },
+    dates: [{
+        startDate: { type: Date, required: true },
+        endDate: { type: Date, required: true }
+    }],
     startTime: { type: Number, required: true },
     endTime: { type: Number, required: true },
+    term: { type: Schema.Types.ObjectId, required: true, ref: 'Term' },
     phase: Number
 });
 

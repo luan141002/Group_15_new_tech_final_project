@@ -165,11 +165,12 @@ function ThesisPage() {
         await ThesisService.updateStatus(thesis._id, { ...packet, password });
         await onLoad();
       }
+      setPacket(null);
+      setUpdateGradeDialogOpen(false);
     } catch (error) {
       
     } finally {
       setUpdating(false);
-      setPacket(null);
     }
   };
 
@@ -346,9 +347,12 @@ function ThesisPage() {
         </Col>
         <Col sm={3}>
           <div>
-            <LinkContainer to={`/thesis/${thesis._id}/edit`}>
-              <Button className='me-1'>Edit</Button>
-            </LinkContainer>
+            {
+              account.kind !== 'student' &&
+                <LinkContainer to={`/thesis/${thesis._id}/edit`}>
+                  <Button className='me-1'>Edit</Button>
+                </LinkContainer>
+            }
             <Button variant='secondary' onClick={() => navigate(-1)}>Back</Button>
           </div>
           <Card className='mt-2'>

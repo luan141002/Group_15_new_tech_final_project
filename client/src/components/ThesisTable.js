@@ -1,6 +1,5 @@
 import dayjs from 'dayjs';
 import { useEffect, useState } from 'react';
-import Button from 'react-bootstrap/Button';
 import Col from 'react-bootstrap/Col';
 import Form from 'react-bootstrap/Form';
 import Row from 'react-bootstrap/Row';
@@ -120,11 +119,6 @@ function ThesisTable(props) {
               <option value='2'>Second</option>
               <option value='3'>Third</option>
             </Form.Select>
-          </Col>
-          <Col>
-            <LinkContainer to='/thesis/new'>
-              <Button className='w-100'>Add thesis</Button>
-            </LinkContainer>
           </Col>
         </Row>
       </Col>

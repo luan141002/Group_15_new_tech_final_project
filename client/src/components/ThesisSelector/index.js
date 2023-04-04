@@ -6,7 +6,7 @@ import ThesisService from '../../services/ThesisService';
 import { useTranslation } from 'react-i18next';
 
 function ThesisSelector(props) {
-  const { className, value, onChange, required } = props;
+  const { className, value, onChange, required, disabled } = props;
 
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -74,9 +74,17 @@ function ThesisSelector(props) {
     return <Menu {...menuProps}>{items}</Menu>
   };
 
+  const handleChange = (value) => {
+    setSelected(value);
+    if (onChange) {
+      if (value && value.length > 0) onChange(value[0]);
+      else onChange(null);
+    }
+  };
+
   useEffect(() => {
-    if (selected && selected.length > 0 && onChange) onChange(selected[0]);
-  });
+    setSelected(value ? [value] : []);
+  }, [value]);
 
   return (
     <AsyncTypeahead
@@ -86,7 +94,7 @@ function ThesisSelector(props) {
       filterBy={() => true}
       isLoading={loading}
       labelKey='title'
-      onChange={setSelected}
+      onChange={handleChange}
       onKeyDown={handleSearchKey}
       onSearch={handleSearch}
       options={options}
@@ -97,6 +105,7 @@ function ThesisSelector(props) {
       inputProps={{
         required
       }}
+      disabled={disabled}
     />
   );
 }

@@ -67,13 +67,13 @@ function DashboardPage() {
           <Alert variant='warning'>
             <Row>
               <Col className='d-flex flex-row align-items-middle'>
-                <p className='my-auto'>You or your group has not uploaded your thesis yet.</p>
+                <p className='my-auto'>You or your group has not uploaded your thesis yet. Ask for assistance from an administrator.</p>
               </Col>
-              <Col className='d-flex flex-row align-items-end'>
+              {/*<Col className='d-flex flex-row align-items-end'>
                 <LinkContainer to='/thesis/new'>
                   <Button color='primary' className='ms-auto'>Add thesis</Button>
                 </LinkContainer>
-              </Col>
+              </Col>*/}
             </Row>
           </Alert>
       }
@@ -85,7 +85,7 @@ function DashboardPage() {
                 <p className='my-auto'>You can now request a schedule for your defense.</p>
               </Col>
               <Col className='d-flex flex-row align-items-end'>
-                <LinkContainer to='/defense/request'>
+                <LinkContainer to='/defense'>
                   <Button color='primary' className='ms-auto'>Request a defense schedule</Button>
                 </LinkContainer>
               </Col>
