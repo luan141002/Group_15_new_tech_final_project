@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next';
 import ThesisService from '../services/ThesisService';
 import { LinkContainer } from 'react-router-bootstrap';
 import { Link } from 'react-router-dom';
+import { useAccount } from '../providers/account';
 
 const getColumns = ({ t, hasActions }) => {
   const cols = [
@@ -55,6 +56,7 @@ const getColumns = ({ t, hasActions }) => {
 };
 
 function ThesisTable(props) {
+  const { account } = useAccount();
   const { t } = useTranslation();
   const { theses, header, footer, all, filter, pagination, status, userKind } = props;
   const [thesesInternal, setThesesInternal] = useState([]);
@@ -102,16 +104,19 @@ function ThesisTable(props) {
   const defaultHeader = () => (
     <Row className='mb-2'>
       <Col className='d-flex flex-col justify-content-start align-items-end mb-2 mb-sm-0'>
-        { filter && <Filter /> }
+        { filter && <Filter placeholder='Filter thesis projects' /> }
       </Col>
       <Col>
         <Row>
-          <Col>
-            <Form.Select value={allInternal ? 'true' : 'false'} onChange={e => setAllInternal(e.currentTarget.value === 'true')}>
-              <option value='false'>Show only my theses</option>
-              <option value='true'>Show all theses</option>
-            </Form.Select>
-          </Col>
+          {
+            account && account.kind !== 'administrator' &&
+              <Col>
+                <Form.Select value={allInternal ? 'true' : 'false'} onChange={e => setAllInternal(e.currentTarget.value === 'true')}>
+                  <option value='false'>Show only my theses</option>
+                  <option value='true'>Show all theses</option>
+                </Form.Select>
+              </Col>
+          }
           <Col>
             <Form.Select value={phase ? phase.toString() : ''} onChange={e => setPhase(Number.parseInt(e.currentTarget.value) || undefined)}>
               <option value=''>Show all phases</option>

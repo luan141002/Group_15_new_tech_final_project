@@ -65,6 +65,7 @@ const ThesisSchema = new Schema({
             'redefense',
             'pass',
             'fail',
+            'final'
         ],
         default: 'new'
     }

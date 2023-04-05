@@ -14,6 +14,10 @@ import { useNavigate } from 'react-router-dom';
 import ExcelJS from 'exceljs';
 import ProfileImage from '../components/ProfileImage';
 import AccountService from '../services/AccountService';
+import buffer from 'buffer';
+import base64url from 'base64url';
+
+window.Buffer = window.Buffer || buffer.Buffer;
 
 function ImportAccountsDialog(props) {
   const SPREADSHEET_MIME_TYPES = ['text/csv', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'].join(',');
@@ -58,17 +62,57 @@ function ImportAccountsDialog(props) {
       }
 
       // Add accounts from spreadsheet
-      const accounts = [];
+      const importedAccounts = [];
       for (let i = 2; i <= rowCount; i++) {
         const row = worksheet.getRow(i);
         const lastName = row.getCell(lastNameCol).value;
         const firstName = row.getCell(firstNameCol).value;
         const middleName = middleNameCol !== -1 ? row.getCell(middleNameCol) : undefined;
-        const email = row.getCell(emailCol).value;
+        const email = row.getCell(emailCol).value.text;
         const kind = typeCol !== -1 ? row.getCell(typeCol) : defaultAccountType;
-        accounts.push({ lastName, firstName, middleName, kind, email });
+        importedAccounts.push({ lastName, firstName, middleName, kind, email });
       }
-      setAccounts(prev => [...prev, ...accounts]);
+
+      async function check(accounts) {
+        const emails = accounts.map(e => e.email).join(';');
+        const duplicates = await AccountService.getAccounts('', { findDuplicates: base64url.encode(emails) });
+        return duplicates;
+      }
+
+      const nonduplicates = importedAccounts.filter(e => accounts.findIndex(e2 => e2.email === e.email) === -1);
+      const importDuplicates = importedAccounts.filter(e => accounts.findIndex(e2 => e2.email === e.email) !== -1);
+      const importDuplicateCount = importDuplicates.length;
+
+      const storeDuplicates = await check(nonduplicates);
+      let storeDuplicateCount = 0;
+      if (storeDuplicates.length > 0) {
+        for (const account of nonduplicates) {
+          if (storeDuplicates.some(e => e.email === account.email)) {
+            account.status = 'duplicate';
+            storeDuplicateCount++;
+          }
+        }
+      }
+
+      const messages = [];
+      if (importDuplicateCount) {
+        if (importDuplicateCount === 1) {
+          messages.push('The imported file contains a duplicate entry from the current list and thus it is excluded.');
+        } else {
+          messages.push(`The imported file contains ${importDuplicateCount} duplicate entries from the current list and thus they are excluded.`);
+        }
+      }
+
+      if (storeDuplicateCount > 0) {
+        if (storeDuplicateCount === 1) {
+          messages.push('One of the entries imported is identified to be a duplicate of one of the accounts already in the system. It will appear here marked, but it will not be imported.');
+        } else {
+          messages.push(`${storeDuplicateCount} entries are identified to be duplicates of some of the accounts already in the system. They will appear here marked, but they will not be imported.`);
+        }
+      }
+      
+      setError(messages.join(' '));
+      setAccounts(prev => [...prev, ...nonduplicates]);
     };
     fr.readAsArrayBuffer(file);
 
@@ -87,7 +131,7 @@ function ImportAccountsDialog(props) {
     
     if (onImport) {
       try {
-        const result = onImport(accounts);
+        const result = onImport(accounts.filter(e => e.status !== 'duplicate'));
         if (typeof result === 'object' && typeof result.then === 'function') {
           await result;
         }
@@ -139,7 +183,7 @@ function ImportAccountsDialog(props) {
           <tbody>
             {
               accounts.map((e, i) => (
-                <tr>
+                <tr className={e.status === 'duplicate' ? 'bg-warning' : ''}>
                   <td>{t('values.full_name', e)}</td>
                   <td>{e.email}</td>
                   <td>{t(`values.account_kind.${e.kind}`)}</td>
@@ -153,8 +197,8 @@ function ImportAccountsDialog(props) {
         </Table>
       </Modal.Body>
       <Modal.Footer>
-        <Button variant='secondary' onClick={handleClear}>Clear all</Button>
-        <Button onClick={handleSubmitForm}>Add all</Button>
+        <Button variant='secondary' onClick={handleClear} disabled={accounts.length === 0}>Clear all</Button>
+        <Button onClick={handleSubmitForm} disabled={accounts.filter(e => e.status !== 'duplicate').length === 0}>Add all</Button>
         <Button variant='secondary' onClick={handleCancelForm}>Cancel</Button>
       </Modal.Footer>
     </Modal>
@@ -272,7 +316,7 @@ function AccountsPage() {
         </Row>
         <Row>
           <Col className='d-flex flex-col justify-content-start align-items-end mb-2 mb-sm-0'>
-            <Filter />
+            <Filter placeholder='Filter accounts' />
           </Col>
           <Col className='d-flex flex-col justify-content-end align-items-end'>
             <Button className='me-2' onClick={() => setImportAccountDialogOpen(true)}>Add accounts from file...</Button>

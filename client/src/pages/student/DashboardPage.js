@@ -128,21 +128,38 @@ function DashboardPage() {
                     {
                       (theses[0].submissions && theses[0].submissions.length > 0) ?
                         <>
+                          {
+                            theses[0].submissions.filter(e => e.phase === theses[0].phase).length < 1 &&
+                              <Alert variant='warning'>
+                                <Row>
+                                  <Col className='d-flex flex-row align-items-middle'>
+                                    <p className='my-auto'>Your group has not made any submissions for this phase.</p>
+                                  </Col>
+                                  <Col className='d-flex flex-row align-items-end'>
+                                    <LinkContainer to='/thesis/my'>
+                                      <Button color='primary' className='ms-auto'>Submit</Button>
+                                    </LinkContainer>
+                                  </Col>
+                                </Row>
+                              </Alert>
+                          }
                           <Table striped bordered hover size="sm">
                             <thead>
                               <tr>
                                 <th>#</th>
-                                <th>Submitter</th>
+                                <th>Phase</th>
                                 <th>Submitted</th>
+                                <th>Submitter</th>
                               </tr>
                             </thead>
                             <tbody>
                               {
-                                theses[0].submissions.map((e, i) => (
+                                theses[0].submissions.slice(0, 5).map((e, i) => (
                                   <tr>
                                     <td><Link to={`/thesis/${theses[0]._id}/submission/${e._id}`}>{theses[0].submissions.length - i}</Link></td>
-                                    <td><Link to={`/thesis/${theses[0]._id}/submission/${e._id}`}>{t('values.full_name', findMember(theses[0], e.submitter))}</Link></td>
+                                    <td><Link to={`/thesis/${theses[0]._id}/submission/${e._id}`}>{t(`values.thesis_phase.${e.phase}`)}</Link></td>
                                     <td><Link to={`/thesis/${theses[0]._id}/submission/${e._id}`}>{dayjs(e.submitted).format('LLL')}</Link></td>
+                                    <td><Link to={`/thesis/${theses[0]._id}/submission/${e._id}`}>{t('values.full_name', findMember(theses[0], e.submitter))}</Link></td>
                                   </tr>
                                 ))
                               }

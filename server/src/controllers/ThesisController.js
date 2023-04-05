@@ -45,6 +45,7 @@ ThesisController.get('/thesis', requireToken, async (req, res) => {
                     _id: e._id.toString(),
                     submitted: e.submitted,
                     submitter: e.submitter,
+                    phase: e.phase,
                     attachments: e.attachments.map(e2 => ({
                         _id: e2._id,
                         originalName: e2.originalName,
@@ -52,6 +53,10 @@ ThesisController.get('/thesis', requireToken, async (req, res) => {
                     }))
                 }))
             }
+
+            const grades = thesis.grades || [];
+            grades.sort((a, b) => -(a.date.getTime() - b.date.getTime()));
+            thesis._grades = grades;
 
             return true;
         });
@@ -80,6 +85,7 @@ ThesisController.get('/thesis', requireToken, async (req, res) => {
             })),
             phase: e.phase,
             status: e.status,
+            grades: e._grades,
             submission: e.submission,
             submissions: e.submissions
         })));
@@ -102,6 +108,7 @@ ThesisController.get('/thesis/:id', requireToken, async (req, res) => {
                 _id: e._id.toString(),
                 submitted: e.submitted,
                 submitter: e.submitter,
+                phase: e.phase,
                 attachments: e.attachments.map(e2 => ({
                     _id: e2._id,
                     originalName: e2.originalName,
@@ -111,7 +118,7 @@ ThesisController.get('/thesis/:id', requireToken, async (req, res) => {
         }
 
         const grades = result.grades || [];
-        grades.sort((a, b) => -(a.when.getTime() - b.when.getTime()));
+        grades.sort((a, b) => -(a.date.getTime() - b.date.getTime()));
 
         return res.json({
             _id: result._id,
@@ -137,6 +144,7 @@ ThesisController.get('/thesis/:id', requireToken, async (req, res) => {
             })),
             phase: result.phase,
             grade: grades[0] ? grades[0].value : undefined,
+            grades,
             status: result.status,
             remarks: grades[0] ? grades[0].remarks : undefined,
             submissions: result.submissions
@@ -273,6 +281,7 @@ const transitions = [
     [ 'fail', 'new' ],
     [ 'pass', 'for_checking' ],
     [ 'fail', 'for_checking' ],
+    [ 'pass', 'final' ]
 ];
 
 const isValidTransition = (prev, next) => {
@@ -286,7 +295,7 @@ const isValidTransition = (prev, next) => {
 ThesisController.post('/thesis/:tid/status', requireToken, requirePass, async (req, res) => {
     const { tid } = req.params;
     const { accountID, kind } = req.token;
-    const { status, grade, remarks } = req.body;
+    const { status, grade, remarks, phase } = req.body;
 
     try {
         if (kind === 'student') throw new ServerError(403, 'Cannot change status.');
@@ -308,6 +317,11 @@ ThesisController.post('/thesis/:tid/status', requireToken, requirePass, async (r
             newGrade = grade;
         }
 
+        if (status === 'final') {
+            thesis.locked = true;
+        }
+
+        if (phase) thesis.phase = phase;
         thesis.status = nextStatus;
         if (status === 'pass' || status === 'fail') {
             thesis.grades.push({
@@ -348,7 +362,8 @@ ThesisController.post('/thesis/:tid/submission', requireToken, upload.array('fil
             submission = await Submission.create({
                 thesis,
                 submitter: accountID,
-                attachments
+                attachments,
+                phase: thesis.phase
             });
         }
 
@@ -358,7 +373,8 @@ ThesisController.post('/thesis/:tid/submission', requireToken, upload.array('fil
             return res.status(201).location(`/thesis/${tid}/submission/${thesis._id}`).json({
                 _id: submission._id,
                 submitter: accountID,
-                submitted: submission.submitted
+                submitted: submission.submitted,
+                phase: submission.phase
             })
         } else {
             throw new ServerError(500, 'Could not add submission for a reason');
@@ -387,6 +403,7 @@ ThesisController.get('/thesis/:tid/submission/latest', requireToken, async (req,
                 middleName: submission.submitter.middleName
             },
             submitted: submission.submitted,
+            phase: submission.phase,
             attachments: submission.attachments
         });
     } catch (error) {
@@ -412,6 +429,7 @@ ThesisController.get('/thesis/:tid/submission/:sid', requireToken, async (req, r
                 middleName: submission.submitter.middleName
             },
             submitted: submission.submitted,
+            phase: submission.phase,
             attachments: submission.attachments
         });
     } catch (error) {
@@ -435,7 +453,7 @@ ThesisController.get('/thesis/:tid/submission/:sid/attachment/:aid', requireToke
 });
 
 ThesisController.post('/thesis', requireToken, upload.array('files'), async (req, res) => {
-    const { title, description, authors, advisers, panelists } = req.body;
+    const { title, description, authors, advisers, panelists, phase } = req.body;
     const { accountID, kind } = req.token;
 
     try {
@@ -454,6 +472,7 @@ ThesisController.post('/thesis', requireToken, upload.array('files'), async (req
             description,
             authors,
             advisers,
+            phase: phase,
             panelists: panelists || []
         });
 
@@ -467,7 +486,8 @@ ThesisController.post('/thesis', requireToken, upload.array('files'), async (req
             const submission = await Submission.create({
                 thesis,
                 submitter: accountID,
-                attachments
+                attachments,
+                phase
             });
         }
 

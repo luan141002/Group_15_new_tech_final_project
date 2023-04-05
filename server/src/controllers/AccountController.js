@@ -1,18 +1,20 @@
 const express = require('express');
 const Account = require('../models/Account');
 const requireToken = require('../middleware/requireToken');
+const transacted = require('../middleware/transacted');
 const ServerError = require('../utility/error');
 const multer = require('multer');
 const sharp = require('sharp');
 const randomjs = require('random-js');
 const crypto = require('crypto');
 const isQueryTrue = require('../utility/isQueryTrue');
+const mongoose = require('mongoose');
 
 const AccountController = express.Router();
 const upload = multer();
 
 AccountController.get('/account', requireToken, async (req, res) => {
-    const { type, q } = req.query;
+    const { type, q, all, findDuplicates } = req.query;
     const token = req.token;
     
     try {
@@ -24,14 +26,34 @@ AccountController.get('/account', requireToken, async (req, res) => {
         }
         
         const isAdmin = token.kind.toLowerCase() === 'administrator';
+        if (findDuplicates) {
+            if (!isAdmin) throw new ServerError(403, 'Only administrators can use this query parameter');
+
+            const emails = Buffer.from(findDuplicates, 'base64url').toString().split(/;/);
+            const duplicates = await Account.User.find({ email: { $in: emails } });
+            return res.json(duplicates.map(e => ({
+                _id: e._id,
+                email: e.email,
+                lastName: e.lastName,
+                firstName: e.firstName,
+            })));
+        }
+
+        const $or = [];
 
         let query = {};
         if (q) {
-            query.$or = [
+            $or.push(
                 { lastName:  { $regex: q, $options: 'i' } },
                 { firstName: { $regex: q, $options: 'i' } },
-            ];
+            );
         }
+
+        if (!isQueryTrue(all)) {
+            $or.push({ inactive: false }, { inactive: null });
+        }
+
+        if ($or.length > 0) query.$or = $or;
 
         const results = await schema.find(query).sort('lastName firstName');
         return res.json(results.map(e => ({
@@ -42,6 +64,7 @@ AccountController.get('/account', requireToken, async (req, res) => {
             middleName: e.middleName,
             kind: e.kind.toLowerCase(),
             accessCode: isAdmin ? e.accessCode : undefined,
+            inactive: e.inactive || false
         })));
     } catch (error) {
         return res.error(error, 'Cannot get accounts');
@@ -85,7 +108,7 @@ AccountController.delete('/account/:id', requireToken, async (req, res) => {
         if (!account) throw new ServerError(404, 'Account not found');
 
         if (account.kind.toLowerCase() === 'administrator') throw new ServerError(403, 'Cannot remove administrator account');
-        await Account.User.deleteOne({ _id: id });
+        await Account.User.updateOne({ _id: id }, { inactive: true });
         return res.sendStatus(204);
     } catch (error) {
         return res.error(error, 'Cannot get account');
@@ -213,16 +236,16 @@ AccountController.get('/account/:id/image', requireToken, async (req, res) => {
 
 const TYPES = ['student', 'faculty', 'administrator'];
 
-AccountController.post('/account', requireToken, async (req, res) => {
-    const body = req.body;
+AccountController.post('/account', requireToken, transacted, async (req, res) => {
+    const { body, session } = req;
     let entries = [body];
     if (Array.isArray(body)) entries = body;
 
     const token = req.token;
     const errors = [];
     
-    const added = [];
     try {
+        session.startTransaction();
         const results = [];
     
         const distribution = randomjs.integer(1, 999999);
@@ -241,32 +264,50 @@ AccountController.post('/account', requireToken, async (req, res) => {
                 case 'faculty': schema = Account.Faculty; break;
                 case 'student': schema = Account.Student; break;
             }
-            const seed = seedFromAccount({
-                _id: '000000000000000000000000',
-                lastName,
-                firstName,
-            }, '')
-            const engine = randomjs.MersenneTwister19937.seed(seed);
 
-            const result = await schema.create({
-                email,
-                lastName,
-                firstName,
-                middleName,
-                accessCode: distribution(engine).toString().padStart(6, '0')
-            });
-
-            added.push(result._id);
-            results.push({
-                _id: result._id,
-                email,
-                lastName,
-                firstName,
-                middleName,
-                kind,
-                accessCode: result.accessCode
-            });
+            const other = await schema.findOne({ email }).session(session); // This is the only way to detect duplicate emails
+            if (other) {
+                // we've found a duplicate
+                results.push({
+                    _id: other._id,
+                    email: other.email,
+                    lastName: other.lastName,
+                    firstName: other.firstName,
+                    middleName: other.middleName,
+                    kind: other.kind,
+                    accessCode: other.accessCode,
+                    status: 'duplicate'
+                });
+            } else {
+                const seed = seedFromAccount({
+                    _id: '000000000000000000000000',
+                    lastName,
+                    firstName,
+                }, '')
+                const engine = randomjs.MersenneTwister19937.seed(seed);
+    
+                const result = await schema.create({
+                    email,
+                    lastName,
+                    firstName,
+                    middleName,
+                    accessCode: distribution(engine).toString().padStart(6, '0')
+                }, { session });
+    
+                results.push({
+                    _id: result._id,
+                    email,
+                    lastName,
+                    firstName,
+                    middleName,
+                    kind,
+                    accessCode: result.accessCode,
+                    status: 'created'
+                });
+            }
         }
+
+        await session.commitTransaction();
 
         if (results.length === 1) {
             const result = results[0];
@@ -275,10 +316,7 @@ AccountController.post('/account', requireToken, async (req, res) => {
             return res.status(200).json(results);
         }
     } catch (error) {
-        for (const id of added) {
-            await Account.User.deleteOne({ _id: id });
-        }
-
+        await session.abortTransaction();
         return res.error(error, 'Cannot create account');
     }
 });

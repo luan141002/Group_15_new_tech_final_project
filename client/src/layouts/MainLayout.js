@@ -17,7 +17,7 @@ import { Search } from 'react-bootstrap-icons';
 import { AsyncTypeahead, Highlighter, Menu, MenuItem } from 'react-bootstrap-typeahead';
 import { useTranslation } from 'react-i18next';
 import { LinkContainer } from 'react-router-bootstrap';
-import { Outlet, useNavigate } from 'react-router-dom';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
 import ProfileImage from '../components/ProfileImage';
 import NotificationContext from '../contexts/NotificationContext';
@@ -28,6 +28,7 @@ import SearchService from '../services/SearchService';
 function MainLayout() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
   const { account } = useAccount();
   const [selected, setSelected] = useState([]);
   const [options, setOptions] = useState([]);
@@ -218,7 +219,7 @@ function MainLayout() {
         <Navbar bg="light" expand="lg">
           <Container>
             <LinkContainer to='/'>
-              <Navbar.Brand>AnimoPlan</Navbar.Brand>
+              <Navbar.Brand className='fw-bold fs-4'>AnimoPlan</Navbar.Brand>
             </LinkContainer>
             <Navbar.Toggle />
             <Navbar.Collapse className="justify-content-end w-100">
@@ -258,11 +259,11 @@ function MainLayout() {
         <Container>
           <Row className='bg-white'>
             <Col sm={3} md={2} className='pt-3 pb-5 px-5' style={{ backgroundColor: '#f8f8f8' }}>
-              <Nav variant='pills' className='flex-column'>
+              <Nav variant='pills' className='flex-column' activeKey={location.pathname}>
                 {
                   sidebar(account.kind).map(e => (
                     <LinkContainer to={e.path}>
-                      <Nav.Link eventKey={e.path}>{e.name}</Nav.Link>
+                      <Nav.Link eventKey={e.path} className='fw-semibold'>{e.name}</Nav.Link>
                     </LinkContainer>
                   ))
                 }

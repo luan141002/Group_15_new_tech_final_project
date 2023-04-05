@@ -261,6 +261,9 @@ function ThesisEditor(props) {
                     <option value='for_checking'>For checking</option>
                     <option value='checked'>Checked</option>
                     <option value='endorsed'>Endorsed</option>
+                    <option value='pass'>Pass</option>
+                    <option value='fail'>Fail</option>
+                    <option value='final'>Final</option>
                   </Form.Select>
                 </Form.Group>
               </Col>

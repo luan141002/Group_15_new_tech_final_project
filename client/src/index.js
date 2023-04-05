@@ -5,6 +5,7 @@ import App from './App';
 import reportWebVitals from './reportWebVitals';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import dayjs from 'dayjs';
+import advancedFormatPlugin from 'dayjs/plugin/advancedFormat';
 import localizedFormatPlugin from 'dayjs/plugin/localizedFormat';
 import relativeTimePlugin from 'dayjs/plugin/relativeTime';
 import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
@@ -22,6 +23,7 @@ i18next
   lng: 'en'
 });
 
+dayjs.extend(advancedFormatPlugin);
 dayjs.extend(localizedFormatPlugin);
 dayjs.extend(relativeTimePlugin);
 dayjs.extend(isSameOrAfter)

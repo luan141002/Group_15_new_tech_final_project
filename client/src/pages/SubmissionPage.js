@@ -5,13 +5,15 @@ import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import Table from 'react-bootstrap/Table';
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import ThesisService from "../services/ThesisService";
 import { Download } from 'react-bootstrap-icons';
 import renderName from '../utility/renderName';
+import { LinkContainer } from "react-router-bootstrap";
 
 function SubmissionPage() {
   const { tid, sid } = useParams();
+  const navigate = useNavigate();
   const [thesis, setThesis] = useState(null);
   const [submission, setSubmission] = useState(null);
 
@@ -66,6 +68,9 @@ function SubmissionPage() {
           }
         </Col>
         <Col sm={3}>
+          <div className='mb-2'>
+            <Button variant='secondary' onClick={() => navigate(-1)}>Back</Button>
+          </div>
           <Card style={{ width: '18rem' }}>
             <Card.Body>
               <Card.Title>{thesis.title}</Card.Title>
@@ -86,6 +91,9 @@ function SubmissionPage() {
                     ))
                   }
                 </ul>
+                <LinkContainer to={`/thesis/${tid}`}>
+                  <Button>View</Button>
+                </LinkContainer>
               </Card.Text>
             </Card.Body>
           </Card>

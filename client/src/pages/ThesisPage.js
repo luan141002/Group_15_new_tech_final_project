@@ -6,15 +6,14 @@ import Form from 'react-bootstrap/Form';
 import Modal from 'react-bootstrap/Modal';
 import Row from 'react-bootstrap/Row';
 import Spinner from 'react-bootstrap/Spinner';
-import { Download, Pencil, Trash } from "react-bootstrap-icons";
+import { Download, Eye, Pencil, Trash } from "react-bootstrap-icons";
 import { useTranslation } from "react-i18next";
 import { LinkContainer } from "react-router-bootstrap";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import dayjs from "dayjs";
 import PasswordPrompt from '../components/PasswordPrompt';
 import { useAccount } from "../providers/account";
 import ThesisService from "../services/ThesisService";
-import renderName from '../utility/renderName';
 import ProfileImage from "../components/ProfileImage";
 
 function ThesisPage() {
@@ -29,6 +28,7 @@ function ThesisPage() {
   const [remarks, setRemarks] = useState('');
   const [updateGradeDialogOpen, setUpdateGradeDialogOpen] = useState(false);
   const [updating, setUpdating] = useState(false);
+  const [gradeSummaryDialogOpen, setGradeSummaryDialogOpen] = useState(false);
 
   // Password verification
   const [packet, setPacket] = useState(null);
@@ -89,6 +89,16 @@ function ThesisPage() {
     setPasswordDialogOpen(true);
   };
 
+  const handleAdvanceThesis = () => {
+    setPacket({ status: 'new', phase: thesis.phase + 1 });
+    setPasswordDialogOpen(true);
+  };
+
+  const handleLockThesis = () => {
+    setPacket({ status: 'final' });
+    setPasswordDialogOpen(true);
+  };
+
   const handleEndorsement = () => {
     setPacket({ status: 'endorsed' });
     setPasswordDialogOpen(true);
@@ -137,6 +147,7 @@ function ThesisPage() {
       setSubmittingComment(true);
       await ThesisService.commentOnThesis(thesis._id, { text: comment });
       await onLoad();
+      setComment('');
     } catch (error) {
 
     } finally {
@@ -182,13 +193,34 @@ function ThesisPage() {
     return thesis && thesis.advisers.find(e => e._id === account.accountID);
   };
 
+  const renderName = account => <><Link to={`/account/${account._id}`}>{t('values.display_full_name', account)}</Link>;&nbsp;</>;
+  
+  const gradeToDisplay = (() => {
+    if (!thesis) return null;
+    const { grades } = thesis;
+    if (!grades) return null;
+    
+    const gradesThisPhase = grades.filter(e => e.phase === thesis.phase);
+    if (gradesThisPhase.length > 0) {
+      if (gradesThisPhase[0].value < 1.0) {
+        const dateGraded = dayjs(gradesThisPhase[0].date);
+        if (dayjs().isBefore(dateGraded.add(30, 'day')))
+          return '0.0 (Fail)';
+      } else {
+        return `${gradesThisPhase[0].value.toFixed(1)} (Pass)`;
+      }
+    }
+
+    return null;
+  })();
+
   return thesis ? (
     <>
       <Row>
         <Col sm={9}>
           <h3>{thesis.title}</h3>
-          <h6 className='text-muted'>by {thesis.authors.map(renderName).join('; ')}</h6>
-          <h6 className='text-muted'>advised by {thesis.advisers.map(renderName).join('; ')}</h6>
+          <h6 className='text-muted'>by {thesis.authors.map(renderName)}</h6>
+          <h6 className='text-muted'>advised by {thesis.advisers.map(renderName)}</h6>
           {
             thesis.description ?
               <p>{thesis.description}</p> :
@@ -318,7 +350,7 @@ function ThesisPage() {
                           </div>
                           <div className='d-inline-block'>
                             <div className='align-baseline'>
-                              {t('values.full_name', e.author)}
+                              {t('values.display_full_name', { ...e.author, context: e.inactive })}
                             </div>
                             <div>
                               <small className='text-muted' style={{fontSize: '1rem'}}>{dayjs(e.sent).format('LLL')}</small>
@@ -330,7 +362,7 @@ function ThesisPage() {
                           </div>
                         </Card.Title>
                         <Card.Text className='mt-1'>
-                          <div className='ps-2' style={{ marginInlineStart: '30px' }}>
+                          <div className='ps-2' style={{ marginInlineStart: '30px', whiteSpace: 'pre-wrap' }}>
                             {e.text}
                           </div>
                         </Card.Text>
@@ -374,15 +406,27 @@ function ThesisPage() {
                       <Button onClick={handleEndorsement}>Endorse</Button>
                     </p>
                 }
+                {
+                  (account && account.kind !== 'student') &&
+                    <p>
+                      { thesis.status === 'pass' && thesis.phase === 3 && <Button onClick={handleLockThesis}>Mark thesis as done</Button> }
+                      { thesis.status === 'pass' && thesis.phase < 3 && <Button onClick={handleAdvanceThesis}>Advance to next phase</Button> }
+                    </p>
+                }
                 <h4>Grade</h4>
                 <p>
-                  { thesis.grade ? thesis.grade.toFixed(1) + ` (${thesis.grade >= 1.0 ? 'Pass' : 'Fail'})` : 'No grade yet' }
+                  { gradeToDisplay || 'No grade yet' }
                   {
-                    isAdvisory() && thesis.status === 'endorsed' &&
+                    isAdvisory() &&
                       <Button as='a' className='ms-2' bsPrefix='__' onClick={() => setUpdateGradeDialogOpen(true)}>
                         <Pencil />
                       </Button>
                   }
+                </p>
+                <p>
+                  <Button as='a' bsPrefix='__' onClick={() => setGradeSummaryDialogOpen(true)}>
+                    View grade summary
+                  </Button>
                 </p>
                 {
                   thesis.remarks &&
@@ -427,6 +471,30 @@ function ThesisPage() {
             <Button variant='secondary' onClick={() => setUpdateGradeDialogOpen(false)}>Close without saving</Button>
           </Modal.Footer>
         </Form>
+      </Modal>
+      <Modal show={gradeSummaryDialogOpen} animation={false} centered>
+        <Modal.Header>
+          <Modal.Title>Grade summary</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {
+            thesis && thesis.grades && thesis.grades.map(e => (
+              <Row as='dl'>
+                <Col as='dt' sm={3}>
+                  {t(`values.thesis_phase.${e.phase}`)}
+                </Col>
+                <Col as='dt' sm={9}>
+                  <div className='fw-normal'>
+                    {e.value && e.value.toFixed(1)} <span className='text-muted'>(graded on {dayjs(e.date).format('LLL')})</span>
+                  </div>
+                </Col>
+              </Row>
+            ))
+          }
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant='secondary' onClick={() => setGradeSummaryDialogOpen(false)}>Close</Button>
+        </Modal.Footer>
       </Modal>
       <Modal show={!!commentToDelete} animation={false} centered>
         <Modal.Header>

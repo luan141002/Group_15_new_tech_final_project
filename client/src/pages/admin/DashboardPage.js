@@ -3,12 +3,13 @@ import Button from 'react-bootstrap/Button';
 import Card from 'react-bootstrap/Card';
 import Col from 'react-bootstrap/Col';
 import Form from 'react-bootstrap/Form';
+import Modal from 'react-bootstrap/Modal';
 import Row from 'react-bootstrap/Row';
 import { AsyncTypeahead, Highlighter, Menu, MenuItem } from 'react-bootstrap-typeahead';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
-import FullCalendar from '@fullcalendar/react';
-import dayGridPlugin from '@fullcalendar/daygrid';
+import dayjs from 'dayjs';
+import DefenseCalendar from '../../components/DefenseCalendar';
 import ProfileImage from '../../components/ProfileImage';
 import AccountService from '../../services/AccountService';
 import DefenseService from '../../services/DefenseService';
@@ -24,6 +25,7 @@ function DashboardPage() {
   const [searchOptions, setSearchOptions] = useState([]);
   const [searchSelected, setSearchSelected] = useState([]);
   const [defenses, setDefenses] = useState([]);
+  const [selectedEvent, setSelectedEvent] = useState(null);
 
   const load = async () => {
     setAccounts(await AccountService.getAccounts());
@@ -156,7 +158,7 @@ function DashboardPage() {
           <Card>
             <Card.Body>
               <Card.Text className='text-center'>
-                <h2>{theses.length}</h2>
+                <h2>{theses.filter(e => e.status !== 'final').length}</h2>
                 <p><Link to='/thesis' className='stretched-link'>active theses</Link></p>
               </Card.Text>
             </Card.Body>
@@ -178,27 +180,73 @@ function DashboardPage() {
           <Card>
             <Card.Body>
               <Card.Text className='text-center'>
-                <FullCalendar
-                  plugins={[ dayGridPlugin ]}
-                  initialView='dayGridMonth'
-                  selectable
-                  expandRows
-                  height='65vh'
-                  headerToolbar={{
-                    start: 'today,prev,next',
-                    center: 'title',
-                    end: 'gotoPage'
-                  }}
-                  events={defenses.filter(e => e.status === 'confirmed')}
-                  customButtons={{
-                    gotoPage: {
-                      text: 'Go to page',
-                      click: () => {
-                        navigate('/defense');
-                      }
-                    }
-                  }}
-                />
+                <DefenseCalendar defenses={defenses.filter(e => e.status === 'confirmed')} onEventClick={e => setSelectedEvent(e)} />
+                <Modal show={!!selectedEvent} animation={false} centered size='lg'>
+                  <Modal.Header>
+                    <Modal.Title>
+                      Defense Summary
+                    </Modal.Title>
+                  </Modal.Header>
+                  <Modal.Body>
+                    <Row as='dl'>
+                      <Col as='dt' sm={3}>
+                        Thesis title
+                      </Col>
+                      <Col as='dd' sm={9}>
+                        { selectedEvent && selectedEvent.thesis.title }
+                      </Col>
+                      <Col as='dt' sm={3}>
+                        Description
+                      </Col>
+                      <Col as='dd' sm={9}>
+                        { selectedEvent && (selectedEvent.thesis.description || 'No description provided') }
+                      </Col>
+                      <Col as='dt' sm={3}>
+                        Date and time
+                      </Col>
+                      <Col as='dd' sm={9}>
+                        { selectedEvent && `${dayjs(selectedEvent.start).format('LL, LT')} - ${dayjs(selectedEvent.end).format('LT')}` }
+                      </Col>
+                      <Col as='dt' sm={3}>
+                        Authors
+                      </Col>
+                      <Col as='dd' sm={9}>
+                        <ul>
+                          {
+                            selectedEvent && selectedEvent.thesis.authors.map(e => (
+                              <li key={`author-${e._id}`}>{t('values.full_name', e)}</li>
+                            ))
+                          }
+                        </ul>
+                      </Col>
+                      <Col as='dt' sm={3}>
+                        Panelists
+                      </Col>
+                      <Col as='dd' sm={9}>
+                        <ul>
+                          {
+                            selectedEvent && selectedEvent.panelists.map(e => (
+                              <li
+                                key={`panelist-${e.faculty._id}`}
+                              >
+                                {t('values.full_name', e.faculty)} {e.declined ? '(Declined)' : (e.approved ? '(Approved)' : '(Not yet approved)')}
+                              </li>
+                            ))
+                          }
+                        </ul>
+                      </Col>
+                      <Col as='dt' sm={3}>
+                        Status
+                      </Col>
+                      <Col as='dd' sm={9}>
+                        { selectedEvent && t(`values.defense_status.${selectedEvent.status}`) }
+                      </Col>
+                    </Row>
+                  </Modal.Body>
+                  <Modal.Footer>
+                    <Button variant='secondary' onClick={() => setSelectedEvent(null)}>Close</Button>
+                  </Modal.Footer>
+                </Modal>
               </Card.Text>
             </Card.Body>
           </Card>

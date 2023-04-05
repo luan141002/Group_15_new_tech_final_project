@@ -8,19 +8,19 @@ import Modal from 'react-bootstrap/Modal';
 import Row from 'react-bootstrap/Row';
 import Spinner from 'react-bootstrap/Spinner';
 import Table from 'react-bootstrap/Table';
+import { AsyncTypeahead } from 'react-bootstrap-typeahead';
 import { useTranslation } from 'react-i18next';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import dayjs from 'dayjs';
-import DefenseService from '../services/DefenseService';
-import { useAccount } from '../providers/account';
-import ThesisService from '../services/ThesisService';
 import ThesisSelector from '../components/ThesisSelector';
-import { AsyncTypeahead } from 'react-bootstrap-typeahead';
+import { useAccount } from '../providers/account';
 import AccountService from '../services/AccountService';
+import DefenseService from '../services/DefenseService';
+import ThesisService from '../services/ThesisService';
 
 function EditDefenseEventDialog(props) {
   const { account } = useAccount();
@@ -36,6 +36,7 @@ function EditDefenseEventDialog(props) {
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
   const [panelists, setPanelists] = useState([]);
+  const [phase, setPhase] = useState(undefined);
   const edit = !event || event.action === 'create';
 
   const [faculty, setFaculty] = useState([]);
@@ -78,6 +79,7 @@ function EditDefenseEventDialog(props) {
           description,
           start,
           end,
+          phase,
           panelists
         });
         if (result && result.then) {
@@ -133,7 +135,7 @@ function EditDefenseEventDialog(props) {
         setSaving(false);
       }
     }
-  }
+  };
 
   const handleCancel = () => {
     if (onCancel) onCancel();
@@ -150,6 +152,7 @@ function EditDefenseEventDialog(props) {
       setDate(dayjs(event.start).format('YYYY-MM-DD'));
       setStartTime(dayjs(event.start).format('HH:mm'));
       setEndTime(dayjs(event.end).format('HH:mm'));
+      setPhase(event.phase);
       setPanelists(event.panelists ? event.panelists.map(e => e.faculty) : []);
     } else {
       setThesis(null);
@@ -157,6 +160,7 @@ function EditDefenseEventDialog(props) {
       setDate('');
       setStartTime('');
       setEndTime('');
+      setPhase(undefined);
       setPanelists([]);
     }
   }, [event]);
@@ -167,6 +171,7 @@ function EditDefenseEventDialog(props) {
         ...studentThesis.advisers,
         ...studentThesis.panelists
       ]);
+      setPhase(studentThesis.phase);
       setDescription(studentThesis.title);
     }
   }, [open, studentThesis]);
@@ -176,6 +181,7 @@ function EditDefenseEventDialog(props) {
     if (account.kind === 'administrator') return true;
     if (account.kind === 'faculty') return false;
     if (account.kind === 'student') {
+      if (event.status === 'confirmed') return false;
       if (event.action === 'create') return true;
       if (event.thesis.authors.find(e => e._id === account.accountID)) return true;
       return false;
@@ -217,7 +223,10 @@ function EditDefenseEventDialog(props) {
 
   const handleChangeThesis = value => {
     setThesis(value);
-    if (value) setPanelists([...value.advisers, ...value.panelists]);
+    if (value) {
+      setPhase(value.phase);
+      setPanelists([...value.advisers, ...value.panelists]);
+    }
   };
 
   const getTitle = () => {
@@ -407,6 +416,35 @@ function DefenseWeekPage() {
   const [eventDialogOpen, setEventDialogOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
 
+  const colorPalette = {
+    pending: {
+      display: 'Pending',
+      textColor: '#000',
+      backgroundColor: '#ffdfba'
+    },
+    approved: {
+      display: 'Approved',
+      textColor: '#000',
+      backgroundColor: '#ffffba'
+    },
+    confirmed: {
+      display: 'Confirmed',
+      textColor: '#000',
+      backgroundColor: '#baffc9'
+    },
+    declined: {
+      display: 'Declined',
+      textColor: '#000',
+      backgroundColor: '#ffb3ba'
+    },
+    create: {
+      display: 'Create',
+      textColor: '#000',
+      backgroundColor: '#bae1ff',
+      hidden: true
+    }
+  };
+
   const functions = {
     isAuthor: (thesis) => {
       return thesis.authors.find(e => e._id === account.accountID);
@@ -420,8 +458,13 @@ function DefenseWeekPage() {
       return defense.panelists.find(e => e.faculty._id === account.accountID);
     },
 
+    hasAccountApproved: (defense) => {
+      return defense.panelists.some(e => e.faculty._id === account.accountID && e.approved);
+    },
+
     tryAddDefense: (info) => {
-      const { start, end, thesis, description, panelists } = info;
+      const { start, end, thesis, description, phase, panelists } = info;
+      console.log(phase);
       setDefenses(prev => {
         const next = [ ...prev ];
         next.push({
@@ -430,6 +473,7 @@ function DefenseWeekPage() {
           end,
           thesis,
           description,
+          phase,
           panelists,
           action: 'create'
         });
@@ -438,7 +482,7 @@ function DefenseWeekPage() {
     },
 
     tryUpdateDefenseData: (id, info) => {
-      const { start, end, thesis, description, panelists } = info;
+      const { start, end, thesis, description, phase, panelists } = info;
       setDefenses(prev => {
         const defenseI = prev.findIndex(e => e._id === id);
         if (defenseI === -1) return prev;
@@ -448,6 +492,7 @@ function DefenseWeekPage() {
           defense.start = start;
           defense.end = end;
           defense.thesis = thesis;
+          defense.phase = phase;
           defense.description = description;
           defense.panelists = panelists;
         } else {
@@ -584,7 +629,7 @@ function DefenseWeekPage() {
     getEvents: () => {
       const filter = e => {
         if (account.kind === 'student') {
-          return true;
+          return thesis && e.phase === thesis.phase;
         } else if (account.kind === 'faculty') {
           return true;
         } else if (account.kind === 'administrator') {
@@ -596,30 +641,27 @@ function DefenseWeekPage() {
 
       return defenses.filter(filter).map(e => {
         let className = '';
-        
-        switch (e.status) {
-          case 'approved':
-          case 'pending': className = 'bg-warning'; break;
-          case 'declined': className = 'bg-danger'; break;
-          case 'confirmed': className = 'bg-success'; break;
-          default: break;
-        }
+
+        const paletteEntry = colorPalette[e.status];
+        let { textColor, backgroundColor } = paletteEntry;
 
         if (e.action) {
           switch (e.action) {
-            case 'create': className = 'bg-primary bg-edit'; break;
-            case 'delete': className = 'bg-danger bg-edit'; break;
-            case 'approve': className = 'bg-info bg-edit'; break;
-            case 'confirm': className = 'bg-success bg-edit'; break;
-            case 'decline': className = 'bg-danger bg-edit'; break;
+            case 'create': backgroundColor = colorPalette.create.backgroundColor; className = 'bg-edit'; break;
+            case 'delete': backgroundColor = colorPalette.declined.backgroundColor; className = 'bg-edit'; break;
             default: break;
           }
         }
 
         let display = '';
+        let title = e.description || e.thesis.title;
         if (account.kind === 'faculty') {
           if (!functions.isPanelist(e)) {
             display = 'background';
+          } else {
+            if (e.status === 'pending' && !functions.hasAccountApproved(e)) {
+              title = `*${title}`;
+            }
           }
         }
 
@@ -627,9 +669,11 @@ function DefenseWeekPage() {
           id: e._id,
           start: e.start,
           end: e.end,
-          title: e.description || e.thesis.title,
+          title,
           display: e.display || display,
-          className
+          className,
+          textColor,
+          backgroundColor
         };
       });
     }
@@ -645,6 +689,7 @@ function DefenseWeekPage() {
             end: e.end,
             description: thesis.title,
             thesis: thesis,
+            phase: thesis.phase,
             panelists: [...thesis.advisers, ...thesis.panelists]
           });
           api.unselect();
@@ -755,7 +800,7 @@ function DefenseWeekPage() {
     <>
       <Row>
         <Col>
-          <h3>Defense schedule</h3>
+          <h3>Defense Schedule</h3>
         </Col>
         <Col className='d-flex flex-column align-items-end'>
           <div className='d-flex flex-row align-items-center'>
@@ -816,26 +861,14 @@ function DefenseWeekPage() {
             <Card.Body>
               <Card.Title>Legend</Card.Title>
               <Card.Text>
-                <div className='d-flex flex-row align-items-center'>
-                  <div className='bg-light me-2' style={{ width: 16, height: 16, borderRadius: '50%' }}></div>
-                  <div>Available</div>
-                </div>
-                {/* <div className='d-flex flex-row align-items-center'>
-                  <div className='bg-dark me-2' style={{ width: 16, height: 16, borderRadius: '50%' }}></div>
-                  <div>Unavailable</div>
-                </div> */}
-                <div className='d-flex flex-row align-items-center'>
-                  <div className='bg-warning me-2' style={{ width: 16, height: 16, borderRadius: '50%' }}></div>
-                  <div>Pending</div>
-                </div>
-                <div className='d-flex flex-row align-items-center'>
-                  <div className='bg-danger me-2' style={{ width: 16, height: 16, borderRadius: '50%' }}></div>
-                  <div>Declined</div>
-                </div>
-                <div className='d-flex flex-row align-items-center'>
-                  <div className='bg-success me-2' style={{ width: 16, height: 16, borderRadius: '50%' }}></div>
-                  <div>Confirmed</div>
-                </div>
+                {
+                  Object.values(colorPalette).filter(e => !e.hidden).map(e => (
+                    <div className='d-flex flex-row align-items-center'>
+                      <div className='me-2' style={{ width: 16, height: 16, borderRadius: '50%', border: '1px solid #ccc', backgroundColor: e.backgroundColor }}></div>
+                      <div>{e.display}</div>
+                    </div>
+                  ))
+                }
               </Card.Text>
             </Card.Body>
           </Card>
@@ -851,18 +884,18 @@ function DefenseWeekPage() {
                     }
                     {
                       thesis && thesis.status === 'endorsed' &&
-                        defenses && functions.getOwnRequests().length < 1 && 'You have not requested any slots for defense.'
+                        defenses && functions.getOwnRequests().filter(e => e.phase === thesis.phase).length < 1 && 'You have not requested any slots for defense.'
                     }
                     {
                       thesis && thesis.status === 'endorsed' &&
-                        defenses && functions.getOwnRequests().filter(e => e.status === 'confirmed').length > 0 && 'You are now set for defense.' 
+                        defenses && functions.getOwnRequests().filter(e => e.status === 'confirmed' && e.phase === thesis.phase).length > 0 && 'You are now set for defense.' 
                     }
                     {
                       thesis && thesis.status === 'endorsed' &&
                         <ul>
-                          <li>{ defenses && functions.getOwnRequests().filter(e => e.status === 'pending').length } slot(s) pending</li>
-                          <li>{ defenses && functions.getOwnRequests().filter(e => e.status === 'declined').length } slot(s) declined</li>
-                          <li>{ defenses && functions.getOwnRequests().filter(e => e.status === 'confirmed').length } slot(s) confirmed</li>
+                          <li>{ defenses && functions.getOwnRequests().filter(e => e.phase === thesis.phase && e.status === 'pending').length } slot(s) pending</li>
+                          <li>{ defenses && functions.getOwnRequests().filter(e => e.phase === thesis.phase && e.status === 'declined').length } slot(s) declined</li>
+                          <li>{ defenses && functions.getOwnRequests().filter(e => e.phase === thesis.phase && e.status === 'confirmed').length } slot(s) confirmed</li>
                         </ul>
                     }
                   </Card.Text>

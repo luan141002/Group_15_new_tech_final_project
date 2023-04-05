@@ -31,7 +31,7 @@ const ThesisService = {
     form.append('description', thesis.description);
     for (const author of thesis.authors) form.append('authors', typeof author === 'object' ? author._id : author);
     for (const adviser of thesis.advisers) form.append('advisers', typeof adviser === 'object' ? adviser._id : adviser);
-    for (const panelist of thesis.panelists) form.append('panelists', typeof adviser === 'object' ? panelist._id : panelist);
+    for (const panelist of thesis.panelists) form.append('panelists', typeof panelist === 'object' ? panelist._id : panelist);
     for (const attachment of thesis.attachments) form.append('files', attachment);
 
     const response = await WebService.postForm('/thesis', form);

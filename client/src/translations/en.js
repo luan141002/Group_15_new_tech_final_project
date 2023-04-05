@@ -24,8 +24,9 @@ const en = {
       checked: 'Checked',
       endorsed: 'Endorsed',
       redefense: 'Redefense',
-      pass: 'Final',
-      fail: 'Final'
+      pass: 'Pass',
+      fail: 'Fail',
+      final: 'Final'
     },
     defense_status: {
       pending: 'Pending',
@@ -39,7 +40,9 @@ const en = {
       '3': 'Third'
     },
     full_name: '{{lastName}}, {{firstName}}',
-    full_name_regular: '{{firstName}} {{lastName}}'
+    full_name_regular: '{{firstName}} {{lastName}}',
+    display_full_name: '{{lastName}}, {{firstName}}',
+    display_full_name_inactive: '{{lastName}}, {{firstName}} (Inactive)',
   }
 };
 
