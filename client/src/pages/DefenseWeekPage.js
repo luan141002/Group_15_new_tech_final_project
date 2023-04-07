@@ -47,11 +47,15 @@ function EditDefenseEventDialog(props) {
     const form = e.currentTarget;
     e.preventDefault();
     if (onAction) {
-
       if (form.checkValidity() === false) {
         e.stopPropagation();
         //setDialogValidated(true);
         _setError('Please fill out the necessary fields.');
+        return;
+      }
+
+      if (!thesis) {
+        _setError('The thesis must be selected from the search dropdown list.');
         return;
       }
   
@@ -142,7 +146,7 @@ function EditDefenseEventDialog(props) {
   }
 
   useEffect(() => {
-    setErrorOpen(!!error);
+    setErrorOpen(!!error || !!_error);
   }, [error, _error]);
 
   useEffect(() => {
@@ -230,11 +234,11 @@ function EditDefenseEventDialog(props) {
   };
 
   const getTitle = () => {
-    if (!edit) return 'Defense event summary';
+    if (!edit) return 'Defense Summary';
     if (account) {
-      if (account.kind === 'student') return 'Request defense slot';
+      if (account.kind === 'student') return 'Request Defense Slot';
     }
-    return 'Create defense slot';
+    return 'Create Defense Slot';
   };
 
   return (
@@ -246,9 +250,9 @@ function EditDefenseEventDialog(props) {
       </Modal.Header>
       <Form onSubmit={handleSubmit}>
         <Modal.Body>
-          { (error || _error) && errorOpen && <Alert variant='danger' onClose={() => setErrorOpen(false)} dismissible>{error || _error}</Alert> }
           {
             edit ? <>
+              { (error || _error) && errorOpen && <Alert variant='danger' onClose={() => setErrorOpen(false)} dismissible>{error || _error}</Alert> }
               {
                 account && account.kind === 'administrator' &&
                   <Form.Group className="mb-3" controlId="formTitle">
@@ -774,7 +778,7 @@ function DefenseWeekPage() {
     }
   };
 
-  const handleRangeSelect = e => {
+  const handleRangeSelect = async e => {
     if (calendarRef.current) {
       const api = calendarRef.current.getApi();
       if (api.view.type === 'timeGridWeek') {
@@ -788,6 +792,9 @@ function DefenseWeekPage() {
             panelists: [...thesis.advisers, ...thesis.panelists]
           });
           api.unselect();
+          const pending = functions.getAllTentativeChanges();
+          await DefenseService.processDefenseSlots(pending);
+          functions.applyAllActions(pending);
         }
       }
     }
@@ -836,14 +843,23 @@ function DefenseWeekPage() {
   const handleEventAction = async (action, data) => {
     if (action === 'create') {
       functions.tryAddDefense(data);
+      const pending = functions.getAllTentativeChanges();
+      await DefenseService.processDefenseSlots(pending);
+      functions.applyAllActions(pending);
       setSelectedEvent(null);
       setEventDialogOpen(false);
     } else if (action === 'update') {
       functions.tryUpdateDefenseData(data._id, data);
+      const pending = functions.getAllTentativeChanges();
+      await DefenseService.processDefenseSlots(pending);
+      functions.applyAllActions(pending);
       setSelectedEvent(null);
       setEventDialogOpen(false);
     } else if (action === 'delete') {
       functions.tryRemoveDefense(data);
+      const pending = functions.getAllTentativeChanges();
+      await DefenseService.processDefenseSlots(pending);
+      functions.applyAllActions(pending);
       setSelectedEvent(null);
       setEventDialogOpen(false);
     } else if (action === 'approve' || action === 'decline' || action === 'confirm') {
@@ -911,11 +927,11 @@ function DefenseWeekPage() {
                     account.kind === 'administrator' &&
                       <Button className='ms-2' onClick={() => setAdjustScheduleDialogOpen(true)}>Adjust schedule</Button>
                   }
-                  <Button className='ms-2' onClick={handleSaveDefense} disabled={!functions.hasTentativeChanges() || saving}>Save</Button>
-                  <Button className='ms-2' variant='secondary' onClick={handleResetDefense} disabled={!functions.hasTentativeChanges() || saving}>Reset</Button>
+                  {/*<Button className='ms-2' onClick={handleSaveDefense} disabled={!functions.hasTentativeChanges() || saving}>Save</Button>
+                  <Button className='ms-2' variant='secondary' onClick={handleResetDefense} disabled={!functions.hasTentativeChanges() || saving}>Reset</Button>*/}
                 </>
             }
-            <Button className='ms-2' variant='secondary' onClick={() => navigate(-1)} disabled={saving}>Back</Button>
+            {/*<Button className='ms-2' variant='secondary' onClick={() => navigate(-1)} disabled={saving}>Back</Button>*/}
           </div>
         </Col>
       </Row>

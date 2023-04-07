@@ -265,6 +265,8 @@ DefenseController.get('/defenseweek', requireToken, async (req, res) => {
                 start: e2.start,
                 end: e2.end
             })),
+            startTime: e.startTime,
+            endTime: e.endTime,
             phase: e.phase
         })));
     } catch (error) {
@@ -283,10 +285,12 @@ DefenseController.post('/defenseweek', requireToken, transacted, async (req, res
         session.startTransaction();
         
         for (const entry of entries) {
-            const { phase, dates } = entry;
+            const { phase, dates, startTime, endTime } = entry;
             const defenseWeek = await DefenseWeek.findOne({ phase }, { session });
             if (defenseWeek) {
                 defenseWeek.dates = dates;
+                defenseWeek.startTime = startTime;
+                defenseWeek.endTime = endTime;
                 await defenseWeek.save();
             } else {
                 await DefenseWeek.create({ phase, dates }, { session });
