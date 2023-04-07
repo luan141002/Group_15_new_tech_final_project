@@ -174,6 +174,16 @@ function DashboardPage() {
             </Card.Body>
           </Card>
         </Col>
+        <Col>
+          <Card>
+            <Card.Body>
+              <Card.Text className='text-center'>
+                <h2>{defenses.filter(e => e.status === 'approved').length}</h2>
+                <p><Link to='/defense' className='stretched-link'>active defense requests</Link></p>
+              </Card.Text>
+            </Card.Body>
+          </Card>
+        </Col>
       </Row>
       <Row>
         <Col>

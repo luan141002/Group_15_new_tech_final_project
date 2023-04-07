@@ -399,6 +399,87 @@ function EditDefenseEventDialog(props) {
   );
 }
 
+function AdjustScheduleDialog(props) {
+  const { open, onClose } = props;
+  const [schedule, setSchedule] = useState({});
+
+  const load = async () => {
+    const list = await DefenseService.getDefenseSchedule();
+    const obj = list.reduce((p, e) => ({ ...p, [e.phase.toString()]: p }), {});
+    setSchedule(obj);
+  };
+
+  const handleClose = () => {
+    if (onClose) onClose();
+  };
+
+  const handleEdit = () => {
+    
+  };
+
+  useEffect(() => {
+    if (open) {
+      load();
+    } else {
+      setSchedule({});
+    }
+  }, [open]);
+
+  return (
+    <Modal show={open} animation={false} centered size='lg'>
+      <Modal.Header>
+        <Modal.Title>
+          Adjust Schedule
+        </Modal.Title>
+      </Modal.Header>
+      <Modal.Body>
+        <Row>
+          <Col>
+            <p>First Phase</p>
+            {
+              schedule['1'] ?
+                schedule['1'].dates.map(e => <>
+                  <>{e.start}</>
+                  <>{e.end}</>
+                </>)
+                :
+                <>No schedule</>
+            }
+          </Col>
+          <Col>
+            <p>Second Phase</p>
+            {
+              schedule['2'] ?
+                schedule['2'].dates.map(e => <>
+                  <>{e.start}</>
+                  <>{e.end}</>
+                </>)
+                :
+                <>No schedule</>
+            }
+          </Col>
+          <Col>
+            <p>Third Phase</p>
+            {
+              schedule['3'] ?
+                schedule['3'].dates.map(e => <>
+                  <>{e.start}</>
+                  <>{e.end}</>
+                </>)
+                :
+                <>No schedule</>
+            }
+          </Col>
+        </Row>
+      </Modal.Body>
+      <Modal.Footer>
+        <Button onClick={handleEdit}>Start editing</Button>
+        <Button variant='secondary' onClick={handleClose}>Cancel</Button>
+      </Modal.Footer>
+    </Modal>
+  );
+}
+
 function DefenseWeekPage() {
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -412,6 +493,8 @@ function DefenseWeekPage() {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [endorseNotice, setEndorseNotice] = useState(true);
+
+  const [adjustScheduleDialogOpen, setAdjustScheduleDialogOpen] = useState(false);
 
   const [eventDialogOpen, setEventDialogOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
@@ -642,13 +725,25 @@ function DefenseWeekPage() {
       return defenses.filter(filter).map(e => {
         let className = '';
 
-        const paletteEntry = colorPalette[e.status];
+        let paletteEntry = colorPalette[e.status];
+        if (!paletteEntry) {
+          paletteEntry = colorPalette.create;
+        }
+        
         let { textColor, backgroundColor } = paletteEntry;
 
         if (e.action) {
           switch (e.action) {
-            case 'create': backgroundColor = colorPalette.create.backgroundColor; className = 'bg-edit'; break;
-            case 'delete': backgroundColor = colorPalette.declined.backgroundColor; className = 'bg-edit'; break;
+            case 'create':
+              textColor = colorPalette.create.textColor;
+              backgroundColor = colorPalette.create.backgroundColor;
+              className = 'bg-edit';
+              break;
+            case 'delete':
+              textColor = colorPalette.declined.textColor;
+              backgroundColor = colorPalette.declined.backgroundColor;
+              className = 'bg-edit';
+              break;
             default: break;
           }
         }
@@ -792,6 +887,10 @@ function DefenseWeekPage() {
     }
   };
 
+  const handleAdjustSchedule = async () => {
+    
+  };
+
   useEffect(() => {
     load();
   }, [account]);
@@ -808,6 +907,10 @@ function DefenseWeekPage() {
             {
               (account.kind !== 'student' || (thesis && thesis.status === 'endorsed')) &&
                 <>
+                  {
+                    account.kind === 'administrator' &&
+                      <Button className='ms-2' onClick={() => setAdjustScheduleDialogOpen(true)}>Adjust schedule</Button>
+                  }
                   <Button className='ms-2' onClick={handleSaveDefense} disabled={!functions.hasTentativeChanges() || saving}>Save</Button>
                   <Button className='ms-2' variant='secondary' onClick={handleResetDefense} disabled={!functions.hasTentativeChanges() || saving}>Reset</Button>
                 </>
@@ -946,6 +1049,7 @@ function DefenseWeekPage() {
             </Modal.Footer>
           </Modal>
       }
+      <AdjustScheduleDialog open={adjustScheduleDialogOpen} onClose={() => setAdjustScheduleDialogOpen(false)} />
     </>
   );
 }

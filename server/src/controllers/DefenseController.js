@@ -1,9 +1,11 @@
 const express = require('express');
 const requireToken = require('../middleware/requireToken');
+const transacted = require('../middleware/transacted');
 const Account = require('../models/Account');
 const Defense = require('../models/Defense');
 const Thesis = require('../models/Thesis');
 const ServerError = require('../utility/error');
+const DefenseWeek = require('../models/DefenseWeek');
 
 const DefenseController = express.Router();
 const CURRENT_TERM = process.env.CURRENT_TERM;
@@ -180,7 +182,7 @@ DefenseController.post('/defense', requireToken, async (req, res) => {
                         thesis: e.thesis,
                         phase: allThesisIDs[e.thesis].phase,
                         term: CURRENT_TERM,
-                        panelists: e.panelists || [],
+                        panelists: e.panelists ? e.panelists.map(e2 => ({ faculty: e2 })) : [],
                         status: 'confirmed'
                     };
                 } else if (e.action === 'update') {
@@ -252,6 +254,50 @@ DefenseController.post('/defense', requireToken, async (req, res) => {
         }
     } catch (error) {
         return res.error(error, 'Could not create defense schedule.')
+    }
+});
+
+DefenseController.get('/defenseweek', requireToken, async (req, res) => {
+    try {
+        const week = await DefenseWeek.find();
+        return res.json(week.map(e => ({
+            dates: e.dates.map(e2 => ({
+                start: e2.start,
+                end: e2.end
+            })),
+            phase: e.phase
+        })));
+    } catch (error) {
+        return res.error(error, 'Could not get defense schedule.')
+    }
+});
+
+DefenseController.post('/defenseweek', requireToken, transacted, async (req, res) => {
+    const { body, token, session } = req;
+    const { accountID, kind } = token;
+    const entries = Array.isArray(body) ? body : [body];
+
+    try {
+        if (kind !== 'administrator') throw new ServerError(403, 'You cannot modify the defense schedule');
+        
+        session.startTransaction();
+        
+        for (const entry of entries) {
+            const { phase, dates } = entry;
+            const defenseWeek = await DefenseWeek.findOne({ phase }, { session });
+            if (defenseWeek) {
+                defenseWeek.dates = dates;
+                await defenseWeek.save();
+            } else {
+                await DefenseWeek.create({ phase, dates }, { session });
+            }
+        }
+
+        await session.commitTransaction();
+
+        return res.sendStatus(204);
+    } catch (error) {
+        return res.error(error, 'Could not post defense schedule.')
     }
 });
 
