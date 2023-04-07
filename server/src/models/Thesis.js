@@ -68,6 +68,11 @@ const ThesisSchema = new Schema({
             'final'
         ],
         default: 'new'
+    },
+    approved: {
+        type: Boolean,
+        required: true,
+        default: true
     }
 });
 

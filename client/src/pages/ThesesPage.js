@@ -5,9 +5,11 @@ import Col from 'react-bootstrap/Col';
 import Row from 'react-bootstrap/Row';
 import { useAccount } from '../providers/account';
 import { LinkContainer } from 'react-router-bootstrap';
+import { useSearchParams } from 'react-router-dom';
 
 function ThesesPage() {
   const { account } = useAccount();
+  const [url] = useSearchParams();
   const [all, setAll] = useState(false);
 
   useEffect(() => {
@@ -35,6 +37,9 @@ function ThesesPage() {
         userKind={account.kind}
         filter
         pagination
+        initialState={{
+          showPending: url.get('showPending') || ''
+        }}
       />
     </>
   )

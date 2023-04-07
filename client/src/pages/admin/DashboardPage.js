@@ -3,13 +3,12 @@ import Button from 'react-bootstrap/Button';
 import Card from 'react-bootstrap/Card';
 import Col from 'react-bootstrap/Col';
 import Form from 'react-bootstrap/Form';
-import Modal from 'react-bootstrap/Modal';
 import Row from 'react-bootstrap/Row';
 import { AsyncTypeahead, Highlighter, Menu, MenuItem } from 'react-bootstrap-typeahead';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
-import dayjs from 'dayjs';
 import DefenseCalendar from '../../components/DefenseCalendar';
+import DefenseSummaryDialog from '../../components/DefenseSummaryDialog';
 import ProfileImage from '../../components/ProfileImage';
 import AccountService from '../../services/AccountService';
 import DefenseService from '../../services/DefenseService';
@@ -29,7 +28,7 @@ function DashboardPage() {
 
   const load = async () => {
     setAccounts(await AccountService.getAccounts());
-    setTheses(await ThesisService.getTheses({ all: true }));
+    setTheses(await ThesisService.getTheses({ all: true, showPending: 'all' }));
     setDefenses(await DefenseService.getDefenses());
   };
 
@@ -158,8 +157,18 @@ function DashboardPage() {
           <Card>
             <Card.Body>
               <Card.Text className='text-center'>
-                <h2>{theses.filter(e => e.status !== 'final').length}</h2>
+                <h2>{theses.filter(e => e.approved && e.status !== 'final').length}</h2>
                 <p><Link to='/thesis' className='stretched-link'>active theses</Link></p>
+              </Card.Text>
+            </Card.Body>
+          </Card>
+        </Col>
+        <Col>
+          <Card>
+            <Card.Body>
+              <Card.Text className='text-center'>
+                <h2>{theses.filter(e => e.approved === false).length}</h2>
+                <p><Link to='/thesis?showPending=show' className='stretched-link'>active theses requests</Link></p>
               </Card.Text>
             </Card.Body>
           </Card>
@@ -191,72 +200,7 @@ function DashboardPage() {
             <Card.Body>
               <Card.Text className='text-center'>
                 <DefenseCalendar defenses={defenses.filter(e => e.status === 'confirmed')} onEventClick={e => setSelectedEvent(e)} />
-                <Modal show={!!selectedEvent} animation={false} centered size='lg'>
-                  <Modal.Header>
-                    <Modal.Title>
-                      Defense Summary
-                    </Modal.Title>
-                  </Modal.Header>
-                  <Modal.Body>
-                    <Row as='dl'>
-                      <Col as='dt' sm={3}>
-                        Thesis title
-                      </Col>
-                      <Col as='dd' sm={9}>
-                        { selectedEvent && selectedEvent.thesis.title }
-                      </Col>
-                      <Col as='dt' sm={3}>
-                        Description
-                      </Col>
-                      <Col as='dd' sm={9}>
-                        { selectedEvent && (selectedEvent.thesis.description || 'No description provided') }
-                      </Col>
-                      <Col as='dt' sm={3}>
-                        Date and time
-                      </Col>
-                      <Col as='dd' sm={9}>
-                        { selectedEvent && `${dayjs(selectedEvent.start).format('LL, LT')} - ${dayjs(selectedEvent.end).format('LT')}` }
-                      </Col>
-                      <Col as='dt' sm={3}>
-                        Authors
-                      </Col>
-                      <Col as='dd' sm={9}>
-                        <ul>
-                          {
-                            selectedEvent && selectedEvent.thesis.authors.map(e => (
-                              <li key={`author-${e._id}`}>{t('values.full_name', e)}</li>
-                            ))
-                          }
-                        </ul>
-                      </Col>
-                      <Col as='dt' sm={3}>
-                        Panelists
-                      </Col>
-                      <Col as='dd' sm={9}>
-                        <ul>
-                          {
-                            selectedEvent && selectedEvent.panelists.map(e => (
-                              <li
-                                key={`panelist-${e.faculty._id}`}
-                              >
-                                {t('values.full_name', e.faculty)} {e.declined ? '(Declined)' : (e.approved ? '(Approved)' : '(Not yet approved)')}
-                              </li>
-                            ))
-                          }
-                        </ul>
-                      </Col>
-                      <Col as='dt' sm={3}>
-                        Status
-                      </Col>
-                      <Col as='dd' sm={9}>
-                        { selectedEvent && t(`values.defense_status.${selectedEvent.status}`) }
-                      </Col>
-                    </Row>
-                  </Modal.Body>
-                  <Modal.Footer>
-                    <Button variant='secondary' onClick={() => setSelectedEvent(null)}>Close</Button>
-                  </Modal.Footer>
-                </Modal>
+                <DefenseSummaryDialog show={!!selectedEvent} defense={selectedEvent} onClose={() => setSelectedEvent(null)} />
               </Card.Text>
             </Card.Body>
           </Card>

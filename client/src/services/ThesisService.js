@@ -89,6 +89,10 @@ const ThesisService = {
       }
     });
   },
+
+  deleteThesis: async (tid) => {
+    await WebService.delete(`/thesis/${tid}`);
+  }
 };
 
 export default ThesisService;

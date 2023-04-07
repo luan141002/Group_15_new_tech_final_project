@@ -39,21 +39,21 @@ AccountController.get('/account', requireToken, async (req, res) => {
             })));
         }
 
+        const $and = [];
         const $or = [];
 
         let query = {};
         if (q) {
-            $or.push(
-                { lastName:  { $regex: q, $options: 'i' } },
-                { firstName: { $regex: q, $options: 'i' } },
-            );
+            $or.push({ lastName:  { $regex: q, $options: 'i' } });
+            $or.push({ firstName:  { $regex: q, $options: 'i' } });
         }
 
         if (!isQueryTrue(all)) {
-            $or.push({ inactive: false }, { inactive: null });
+            $and.push({ $or: [{ inactive: false }, { inactive: null }] });
         }
 
-        if ($or.length > 0) query.$or = $or;
+        if ($or.length > 0) $and.push({ $or });
+        if ($and.length > 0) query.$and = $and;
 
         const results = await schema.find(query).sort('lastName firstName');
         return res.json(results.map(e => ({
@@ -286,13 +286,13 @@ AccountController.post('/account', requireToken, transacted, async (req, res) =>
                 }, '')
                 const engine = randomjs.MersenneTwister19937.seed(seed);
     
-                const result = await schema.create({
+                const result = await schema.create([{
                     email,
                     lastName,
                     firstName,
                     middleName,
                     accessCode: distribution(engine).toString().padStart(6, '0')
-                }, { session });
+                }], { session });
     
                 results.push({
                     _id: result._id,

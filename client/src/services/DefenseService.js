@@ -25,7 +25,7 @@ const DefenseService = {
   },
 
   postDefenseSchedule: async (schedules) => {
-    await WebService.post('/defenseweek', schedules);
+    await WebService.postJson('/defenseweek', schedules);
   }
 };
 

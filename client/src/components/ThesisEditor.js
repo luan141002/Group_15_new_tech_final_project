@@ -197,12 +197,21 @@ function ThesisEditor(props) {
     onLoad();
   }, [thesis]);
 
+  useEffect(() => {
+    if (thesis) return;
+    if (account && account.kind === 'student') {
+      setAuthors([{ _id: account.accountID, lastName: account.lastName, firstName: account.firstName }]);
+    } else {
+      setAuthors([]);
+    }
+  }, [account]);
+
   return (
     <>
       <Form onSubmit={handleSubmit}>
         <Row>
           <Col>
-            <h3>{ thesis ? 'Edit' : 'Add' } thesis</h3>
+            <h3>{ thesis ? 'Edit' : (account.kind === 'student' ? 'Request' : 'Add') } Thesis</h3>
           </Col>
           <Col className='d-flex flex-column align-items-end'>
             <div className='d-flex flex-row align-items-center'>
@@ -229,7 +238,7 @@ function ThesisEditor(props) {
               <Form.Control type="file" value={file} onChange={handleAddAttachment} />
             </Form.Group>
         }
-        {
+        {/*
           (account.kind === 'student') && (attachments.length > 0 &&
             <Table striped bordered hover size="sm">
               <thead>
@@ -249,7 +258,7 @@ function ThesisEditor(props) {
                 }
               </tbody>
             </Table>)
-        }
+        */}
         {
           (account.kind !== 'student') && (
             <Row>

@@ -58,12 +58,13 @@ const getColumns = ({ t, hasActions }) => {
 function ThesisTable(props) {
   const { account } = useAccount();
   const { t } = useTranslation();
-  const { theses, header, footer, all, filter, pagination, status, userKind } = props;
+  const { theses, header, footer, all, filter, pagination, status, userKind, initialState } = props;
   const [thesesInternal, setThesesInternal] = useState([]);
   const columns = getColumns({ t });
   const [allInternal, setAllInternal] = useState(false);
   const [phase, setPhase] = useState(undefined);
   const [loading, setLoading] = useState(false);
+  const [showPending, setShowPending] = useState(initialState.showPending);
 
   const thesisList = theses || thesesInternal;
 
@@ -74,6 +75,7 @@ function ThesisTable(props) {
       if (all || allInternal) opts.all = true;
       if (status) opts.status = status;
       if (phase) opts.phase = phase;
+      if (showPending) opts.showPending = showPending;
       const list = await ThesisService.getTheses(opts);
       setThesesInternal(list);
     } catch (error) {
@@ -99,7 +101,7 @@ function ThesisTable(props) {
     if (!theses) {
       load();
     }
-  }, [all, allInternal, phase]);
+  }, [all, allInternal, phase, showPending]);
 
   const defaultHeader = () => (
     <Row className='mb-2'>
@@ -123,6 +125,13 @@ function ThesisTable(props) {
               <option value='1'>First</option>
               <option value='2'>Second</option>
               <option value='3'>Third</option>
+            </Form.Select>
+          </Col>
+          <Col>
+            <Form.Select value={showPending} onChange={e => setShowPending(e.currentTarget.value)}>
+              <option value=''>Hide theses pending approval</option>
+              <option value='show'>Show only theses to approve</option>
+              <option value='all'>Show all</option>
             </Form.Select>
           </Col>
         </Row>

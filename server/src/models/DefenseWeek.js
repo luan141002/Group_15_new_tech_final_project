@@ -2,12 +2,7 @@ const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
 const DefenseWeekSchema = new Schema({
-    dates: [{
-        startDate: { type: Date, required: true },
-        endDate: { type: Date, required: true }
-    }],
-    startTime: { type: Number, required: true },
-    endTime: { type: Number, required: true },
+    dates: [Date],
     phase: Number
 });
 

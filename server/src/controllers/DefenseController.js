@@ -6,6 +6,7 @@ const Defense = require('../models/Defense');
 const Thesis = require('../models/Thesis');
 const ServerError = require('../utility/error');
 const DefenseWeek = require('../models/DefenseWeek');
+const dayjs = require('dayjs');
 
 const DefenseController = express.Router();
 const CURRENT_TERM = process.env.CURRENT_TERM;
@@ -32,7 +33,7 @@ DefenseController.get('/defense', requireToken, async (req, res) => {
             .populate(thesisPopulate)
             .populate('panelists.faculty');
 
-        return res.json(schedules.map(e => ({
+        return res.json(schedules.filter(e => e.thesis.status !== 'final').map(e => ({
             _id: e._id,
             start: e.start,
             end: e.end,
@@ -261,12 +262,7 @@ DefenseController.get('/defenseweek', requireToken, async (req, res) => {
     try {
         const week = await DefenseWeek.find();
         return res.json(week.map(e => ({
-            dates: e.dates.map(e2 => ({
-                start: e2.start,
-                end: e2.end
-            })),
-            startTime: e.startTime,
-            endTime: e.endTime,
+            dates: e.dates.map(e2 => dayjs(e2).format('YYYY-MM-DD')),
             phase: e.phase
         })));
     } catch (error) {
@@ -285,15 +281,13 @@ DefenseController.post('/defenseweek', requireToken, transacted, async (req, res
         session.startTransaction();
         
         for (const entry of entries) {
-            const { phase, dates, startTime, endTime } = entry;
-            const defenseWeek = await DefenseWeek.findOne({ phase }, { session });
+            const { phase, dates } = entry;
+            const defenseWeek = await DefenseWeek.findOne({ phase }).session(session);
             if (defenseWeek) {
                 defenseWeek.dates = dates;
-                defenseWeek.startTime = startTime;
-                defenseWeek.endTime = endTime;
                 await defenseWeek.save();
             } else {
-                await DefenseWeek.create({ phase, dates }, { session });
+                await DefenseWeek.create([{ phase, dates }], { session });
             }
         }
 

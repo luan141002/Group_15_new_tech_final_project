@@ -2,9 +2,9 @@ import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import listPlugin from '@fullcalendar/list';
 import interactionPlugin from '@fullcalendar/interaction';
-import dayjs from 'dayjs';
 import { useNavigate } from 'react-router-dom';
 import { useRef } from 'react';
+import colorPalette from '../themes/legendColorPalette';
 
 function DefenseCalendar(props) {
   const navigate = useNavigate();
@@ -36,6 +36,7 @@ function DefenseCalendar(props) {
         end: e.end,
         title: e.description || e.thesis.title,
         classNames: 'cursor-pointer',
+        backgroundColor: colorPalette[e.status].backgroundColor
       }))}
       customButtons={{
         gotoPage: {

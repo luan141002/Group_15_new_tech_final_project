@@ -257,7 +257,7 @@ function MainLayout() {
           </Container>
         </Navbar>
         <Container>
-          <Row className='bg-white'>
+          <Row className='bg-white' style={{ minHeight: '100vh' }}>
             <Col sm={3} md={2} className='pt-3 pb-5 px-5' style={{ backgroundColor: '#f8f8f8' }}>
               <Nav variant='pills' className='flex-column' activeKey={location.pathname}>
                 {

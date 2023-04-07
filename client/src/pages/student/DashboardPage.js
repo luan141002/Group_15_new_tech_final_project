@@ -9,9 +9,9 @@ import { X } from 'react-bootstrap-icons';
 import { useTranslation } from 'react-i18next';
 import { LinkContainer } from 'react-router-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
-import FullCalendar from '@fullcalendar/react';
-import dayGridPlugin from '@fullcalendar/daygrid';
 import dayjs from 'dayjs';
+import DefenseCalendar from '../../components/DefenseCalendar';
+import DefenseSummaryDialog from '../../components/DefenseSummaryDialog';
 import ProfileImage from '../../components/ProfileImage';
 import AnnouncementService from '../../services/AnnouncementService';
 import ThesisService from '../../services/ThesisService';
@@ -24,6 +24,7 @@ function DashboardPage() {
   const [loading, setLoading] = useState(false);
   const [announcements, setAnnouncements] = useState([]);
   const [defenses, setDefenses] = useState([]);
+  const [selectedEvent, setSelectedEvent] = useState(null);
 
   const onLoad = async () => {
     try {
@@ -67,18 +68,19 @@ function DashboardPage() {
           <Alert variant='warning'>
             <Row>
               <Col className='d-flex flex-row align-items-middle'>
-                <p className='my-auto'>You or your group has not uploaded your thesis yet. Ask for assistance from an administrator.</p>
+                <p className='my-auto'>You or your group has not uploaded your thesis yet.</p>
               </Col>
-              {/*<Col className='d-flex flex-row align-items-end'>
+              <Col className='d-flex flex-row align-items-end'>
                 <LinkContainer to='/thesis/new'>
-                  <Button color='primary' className='ms-auto'>Add thesis</Button>
+                  <Button color='primary' className='ms-auto'>Request Thesis</Button>
                 </LinkContainer>
-              </Col>*/}
+              </Col>
             </Row>
           </Alert>
       }
       {
         !loading && (theses && theses[0] && theses[0].status === 'endorsed') &&
+        defenses.filter(e => theses && theses[0] && theses[0]._id === e.thesis._id && e.phase === theses[0].phase && e.status === 'confirmed').length < 1 &&
           <Alert>
             <Row>
               <Col className='d-flex flex-row align-items-middle'>
@@ -182,27 +184,11 @@ function DashboardPage() {
           <Card className='mb-4'>
             <Card.Body>
               <Card.Text className='text-center'>
-                <FullCalendar
-                  plugins={[ dayGridPlugin ]}
-                  initialView='dayGridMonth'
-                  selectable
-                  expandRows
-                  height='65vh'
-                  headerToolbar={{
-                    start: 'today,prev,next',
-                    center: 'title',
-                    end: 'gotoPage'
-                  }}
-                  events={defenses.filter(e => theses && theses[0] && theses[0]._id === e.thesis._id && e.status === 'confirmed')}
-                  customButtons={{
-                    gotoPage: {
-                      text: 'Go to page',
-                      click: () => {
-                        navigate('/defense');
-                      }
-                    }
-                  }}
+                <DefenseCalendar
+                  defenses={defenses.filter(e => theses && theses[0] && theses[0]._id === e.thesis._id && e.status === 'confirmed')}
+                  onEventClick={e => setSelectedEvent(e)}
                 />
+                <DefenseSummaryDialog show={!!selectedEvent} defense={selectedEvent} onClose={() => setSelectedEvent(null)} />
               </Card.Text>
             </Card.Body>
           </Card>

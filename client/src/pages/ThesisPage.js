@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import Alert from "react-bootstrap/Alert";
 import Button from "react-bootstrap/Button";
 import Card from 'react-bootstrap/Card';
 import Col from 'react-bootstrap/Col';
@@ -22,6 +23,7 @@ function ThesisPage() {
   const { account } = useAccount();
   const navigate = useNavigate();
   const [thesis, setThesis] = useState(null);
+  const [noThesis, setNoThesis] = useState(false);
   
   // Grade form
   const [grade, setGrade] = useState('');
@@ -56,6 +58,8 @@ function ThesisPage() {
       if (theses && theses[0]) {
         setThesis(theses[0]);
         setComments(await ThesisService.getCommentsOnThesis(theses[0]._id));
+      } else {
+        setNoThesis(true);
       }
     }
   };
@@ -168,13 +172,28 @@ function ThesisPage() {
     }
   };
 
+  const handleApproveThesisRequest = () => {
+    setPacket({ approved: true });
+    setPasswordDialogOpen(true);
+  };
+
+  const handleDeleteThesis = () => {
+    setPacket({ delete: true });
+    setPasswordDialogOpen(true);
+  }
+
   const handlePasswordEntry = async (password) => {
     setPasswordDialogOpen(false);
     setUpdating(true);
     try {
       if (packet) {
-        await ThesisService.updateStatus(thesis._id, { ...packet, password });
-        await onLoad();
+        if (packet.delete) {
+          await ThesisService.deleteThesis(thesis._id);
+          navigate('/thesis');
+        } else {
+          await ThesisService.updateStatus(thesis._id, { ...packet, password });
+          await onLoad();
+        }
       }
       setPacket(null);
       setUpdateGradeDialogOpen(false);
@@ -216,6 +235,24 @@ function ThesisPage() {
 
   return thesis ? (
     <>
+      {
+        !thesis.approved && (account && account.kind === 'student') &&
+          <Alert variant='info'>Your thesis requires approval from an administrator before you can start submitting.</Alert>
+      }
+      { 
+        !thesis.approved && (account && account.kind === 'administrator') &&
+          <Alert variant='info'>
+            <Row>
+              <Col className='d-flex flex-row align-items-middle'>
+                <p className='my-auto'>This thesis requires approval from you or another administrator.</p>
+              </Col>
+              <Col className='d-flex flex-row align-items-end'>
+                <Button color='primary' className='ms-auto me-2' onClick={handleApproveThesisRequest}>Approve Thesis</Button>
+                <Button color='primary' onClick={handleDeleteThesis}>Delete Thesis</Button>
+              </Col>
+            </Row>
+          </Alert>
+      }
       <Row>
         <Col sm={9}>
           <h3>{thesis.title}</h3>
@@ -226,49 +263,53 @@ function ThesisPage() {
               <p>{thesis.description}</p> :
               <p className='text-muted'>No description provided.</p>
           }
-          <h5>Media and Files</h5>
           {
-            (thesis.submissions && thesis.submissions.length > 0) ?
-              <>
-                <h6 className='text-muted'>Last updated on {dayjs(thesis.submissions[0].submitted).format('LLL')}</h6>
-                <ul>
-                  {
-                    thesis.submissions[0].attachments.map(e => (
-                      <li>
-                        <Button as='a' bsPrefix='__' onClick={() => downloadFile(thesis.submissions[0]._id, e)}>
-                          {e.originalName}
-                        </Button>
-                        <Button as='a' className='ms-2' bsPrefix='__' onClick={() => downloadFile(thesis.submissions[0]._id, e)}>
-                          <Download />
-                        </Button>
-                      </li>
-                    ))
-                  }
-                </ul>
-                {
-                  (account.kind === 'student' && !submitting) && (
-                    <Button onClick={() => setSubmitting(!submitting)}>Submit again</Button>
-                  )
-                }
-              </>
-              :
-              (
-                isAuthor() ?
-                  (
-                    !submitting && (
-                      <>
-                        <p>You have not made any submissions for your thesis.</p>
-                        <Button onClick={() => setSubmitting(!submitting)}>Submit</Button>
-                      </>
-                    )
-                  )
+            thesis.approved && <>
+              <h5>Media and Files</h5>
+              {
+                (thesis.submissions && thesis.submissions.length > 0) ?
+                  <>
+                    <h6 className='text-muted'>Last updated on {dayjs(thesis.submissions[0].submitted).format('LLL')}</h6>
+                    <ul>
+                      {
+                        thesis.submissions[0].attachments.map(e => (
+                          <li>
+                            <Button as='a' bsPrefix='__' onClick={() => downloadFile(thesis.submissions[0]._id, e)}>
+                              {e.originalName}
+                            </Button>
+                            <Button as='a' className='ms-2' bsPrefix='__' onClick={() => downloadFile(thesis.submissions[0]._id, e)}>
+                              <Download />
+                            </Button>
+                          </li>
+                        ))
+                      }
+                    </ul>
+                    {
+                      (account.kind === 'student' && !submitting) && (
+                        <Button onClick={() => setSubmitting(!submitting)}>Submit again</Button>
+                      )
+                    }
+                  </>
                   :
                   (
-                    <>
-                      <p>There are no submissions for this thesis.</p>
-                    </>
+                    isAuthor() ?
+                      (
+                        !submitting && (
+                          <>
+                            <p>You have not made any submissions for your thesis.</p>
+                            <Button onClick={() => setSubmitting(!submitting)}>Submit</Button>
+                          </>
+                        )
+                      )
+                      :
+                      (
+                        <>
+                          <p>There are no submissions for this thesis.</p>
+                        </>
+                      )
                   )
-              )
+              }
+            </>
           }
           {
             submitting && (
@@ -314,67 +355,71 @@ function ThesisPage() {
               </Card>
             )
           }
-          <h5 className='mt-3'>Comments</h5>
           {
-            (isAuthor() || isAdvisory()) &&
-              <Form onSubmit={handleSubmitComment}>
-                <Form.Group className="mb-3" controlId="formComment">
-                  <Form.Control
-                    as='textarea'
-                    placeholder='Type your comment...'
-                    rows={3}
-                    value={comment}
-                    onChange={e => setComment(e.currentTarget.value)}
-                    disabled={submittingComment}
-                  />
-                </Form.Group>
-                <Button type='submit' disabled={submittingComment}>Post</Button>
-              </Form>
-          }
-          {
-            comments.length > 0 ?
-              <div className='mt-3'>
-                {
-                  comments.map(e => (
-                    <Card className='mb-3'>
-                      <Card.Body>
-                        <Card.Title>
-                          <div className='d-inline-block align-top'>
-                            <ProfileImage
-                              roundedCircle
-                              width={30}
-                              thumbnail
-                              accountID={e.author._id}
-                              className='me-2'
-                            />
-                          </div>
-                          <div className='d-inline-block'>
-                            <div className='align-baseline'>
-                              {t('values.display_full_name', { ...e.author, context: e.inactive })}
-                            </div>
-                            <div>
-                              <small className='text-muted' style={{fontSize: '1rem'}}>{dayjs(e.sent).format('LLL')}</small>
-                              {
-                                e.author._id === account.accountID &&
-                                  <Button variant='link' onClick={() => setCommentToDelete(e._id)}><Trash /></Button>
-                              }
-                            </div>
-                          </div>
-                        </Card.Title>
-                        <Card.Text className='mt-1'>
-                          <div className='ps-2' style={{ marginInlineStart: '30px', whiteSpace: 'pre-wrap' }}>
-                            {e.text}
-                          </div>
-                        </Card.Text>
-                      </Card.Body>
-                    </Card>
-                  ))
-                }
-              </div>
-              :
-              <p className='mt-2 text-center text-muted'>
-                There are no comments.
-              </p>
+            thesis.approved && <>
+              <h5 className='mt-3'>Comments</h5>
+              {
+                (isAuthor() || isAdvisory()) &&
+                  <Form onSubmit={handleSubmitComment}>
+                    <Form.Group className="mb-3" controlId="formComment">
+                      <Form.Control
+                        as='textarea'
+                        placeholder='Type your comment...'
+                        rows={3}
+                        value={comment}
+                        onChange={e => setComment(e.currentTarget.value)}
+                        disabled={submittingComment}
+                      />
+                    </Form.Group>
+                    <Button type='submit' disabled={submittingComment}>Post</Button>
+                  </Form>
+              }
+              {
+                comments.length > 0 ?
+                  <div className='mt-3'>
+                    {
+                      comments.map(e => (
+                        <Card className='mb-3'>
+                          <Card.Body>
+                            <Card.Title>
+                              <div className='d-inline-block align-top'>
+                                <ProfileImage
+                                  roundedCircle
+                                  width={30}
+                                  thumbnail
+                                  accountID={e.author._id}
+                                  className='me-2'
+                                />
+                              </div>
+                              <div className='d-inline-block'>
+                                <div className='align-baseline'>
+                                  {t('values.display_full_name', { ...e.author, context: e.inactive })}
+                                </div>
+                                <div>
+                                  <small className='text-muted' style={{fontSize: '1rem'}}>{dayjs(e.sent).format('LLL')}</small>
+                                  {
+                                    e.author._id === account.accountID &&
+                                      <Button variant='link' onClick={() => setCommentToDelete(e._id)}><Trash /></Button>
+                                  }
+                                </div>
+                              </div>
+                            </Card.Title>
+                            <Card.Text className='mt-1'>
+                              <div className='ps-2' style={{ marginInlineStart: '30px', whiteSpace: 'pre-wrap' }}>
+                                {e.text}
+                              </div>
+                            </Card.Text>
+                          </Card.Body>
+                        </Card>
+                      ))
+                    }
+                  </div>
+                  :
+                  <p className='mt-2 text-center text-muted'>
+                    There are no comments.
+                  </p>
+              }
+            </>
           }
         </Col>
         <Col sm={3}>
@@ -510,7 +555,13 @@ function ThesisPage() {
       </Modal>
       <PasswordPrompt show={passwordDialogOpen} onSubmit={handlePasswordEntry} onCancel={() => setPasswordDialogOpen(false)} />
     </>
-  ) : null;
+  ) : (noThesis &&
+    <>
+      <h3>My Thesis</h3>
+      <p>This page is empty, which means that you have not registered your thesis project with the system.</p>
+      <p>Why not <Link to='/thesis/new'>request that your thesis project be added by an administrator</Link>?</p>
+    </>
+  );
 }
 
 export default ThesisPage;

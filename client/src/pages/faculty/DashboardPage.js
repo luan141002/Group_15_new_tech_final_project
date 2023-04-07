@@ -7,9 +7,9 @@ import { X } from 'react-bootstrap-icons';
 import { useTranslation } from 'react-i18next';
 import { LinkContainer } from 'react-router-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
-import FullCalendar from '@fullcalendar/react';
-import dayGridPlugin from '@fullcalendar/daygrid';
 import dayjs from 'dayjs';
+import DefenseCalendar from '../../components/DefenseCalendar';
+import DefenseSummaryDialog from '../../components/DefenseSummaryDialog';
 import ThesisTable from '../../components/ThesisTable';
 import AnnouncementService from '../../services/AnnouncementService';
 import DefenseService from '../../services/DefenseService';
@@ -21,6 +21,7 @@ function DashboardPage() {
   const [theses, setTheses] = useState([]);
   const [announcements, setAnnouncements] = useState({ items: [] });
   const [defenses, setDefenses] = useState([]);
+  const [selectedEvent, setSelectedEvent] = useState(null);
   const [loading, setLoading] = useState(false);
   const thesesToCheck = theses.filter(e => e.status === 'for_checking');
   const thesesByPhase = theses.reduce((p, e) => {
@@ -112,7 +113,9 @@ function DashboardPage() {
           <Card className='mb-4'>
             <Card.Body>
               <Card.Text className='text-center'>
-                <FullCalendar
+                <DefenseCalendar defenses={defenses.filter(e => e.status !== 'declined')} onEventClick={e => setSelectedEvent(e)} />
+                <DefenseSummaryDialog show={!!selectedEvent} defense={selectedEvent} onClose={() => setSelectedEvent(null)} />
+                {/*<FullCalendar
                   plugins={[ dayGridPlugin ]}
                   initialView='dayGridMonth'
                   selectable
@@ -132,7 +135,7 @@ function DashboardPage() {
                       }
                     }
                   }}
-                />
+                />*/}
               </Card.Text>
             </Card.Body>
           </Card>

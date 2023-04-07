@@ -21,13 +21,13 @@ import { useAccount } from '../providers/account';
 import AccountService from '../services/AccountService';
 import DefenseService from '../services/DefenseService';
 import ThesisService from '../services/ThesisService';
+import colorPalette from '../themes/legendColorPalette';
 
 function EditDefenseEventDialog(props) {
   const { account } = useAccount();
   const { t } = useTranslation();
-  const { open, event, error, onCancel, onAction, studentThesis } = props;
+  const { open, event, error, onCancel, onAction, studentThesis, minTime, maxTime, validDates } = props;
   const [_error, _setError] = useState('');
-  const [errorOpen, setErrorOpen] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const [thesis, setThesis] = useState(null);
@@ -54,20 +54,40 @@ function EditDefenseEventDialog(props) {
         return;
       }
 
-      if (!thesis) {
+      if (!studentThesis && !thesis) {
         _setError('The thesis must be selected from the search dropdown list.');
         return;
       }
+
+      const djNow = dayjs();
+      const djStart = dayjs(`${date}T${startTime}`);
+      const djEnd = dayjs(`${date}T${endTime}`);
+      const djMin = dayjs(`${date}T${minTime}`);
+      const djMax = dayjs(`${date}T${maxTime}`);
   
-      if (dayjs(`${date}T${startTime}`).isSameOrAfter(`${date}T${endTime}`)) {
+      if (djStart.isSameOrAfter(djEnd)) {
         _setError('Start time must be earlier than end time.');
         //setDialogValidated(true);
         return;
       }
   
-      if (dayjs().isAfter(`${date}T${startTime}`)) {
+      if (djNow.isAfter(djStart)) {
         _setError('Cannot schedule a defense in the past.');
         //setDialogValidated(true);
+        return;
+      }
+  
+      if (djMin.isAfter(djStart) ||
+          djMin.isAfter(djEnd) ||
+          djMax.isBefore(djStart) ||
+          djMax.isBefore(djEnd)) {
+        _setError(`Event must be within ${djMin.format('LT')} and ${djMax.format('LT')}.`);
+        //setDialogValidated(true);
+        return;
+      }
+
+      if (validDates && !validDates.includes(date)) {
+        _setError('Event must be within the dates designated by the administrator.');
         return;
       }
   
@@ -79,7 +99,7 @@ function EditDefenseEventDialog(props) {
       try {
         const result = onAction(action, {
           _id: event ? event._id : undefined,
-          thesis,
+          thesis: studentThesis || thesis,
           description,
           start,
           end,
@@ -146,10 +166,6 @@ function EditDefenseEventDialog(props) {
   }
 
   useEffect(() => {
-    setErrorOpen(!!error || !!_error);
-  }, [error, _error]);
-
-  useEffect(() => {
     if (event) {
       setThesis(event.thesis);
       setDescription(event.description);
@@ -170,6 +186,10 @@ function EditDefenseEventDialog(props) {
   }, [event]);
 
   useEffect(() => {
+    if (open) {
+      _setError('');
+    }
+
     if (studentThesis) {
       setPanelists([
         ...studentThesis.advisers,
@@ -252,18 +272,15 @@ function EditDefenseEventDialog(props) {
         <Modal.Body>
           {
             edit ? <>
-              { (error || _error) && errorOpen && <Alert variant='danger' onClose={() => setErrorOpen(false)} dismissible>{error || _error}</Alert> }
-              {
-                account && account.kind === 'administrator' &&
-                  <Form.Group className="mb-3" controlId="formTitle">
-                    <Form.Label>Thesis</Form.Label>
-                    <ThesisSelector value={thesis} onChange={handleChangeThesis} required disabled={saving} />
-                  </Form.Group>
-              }
+              { (error || _error) && <Alert variant='danger' onClose={() => _setError(false)} dismissible>{error || _error}</Alert> }
               <Form.Group className="mb-3" controlId="formTitle">
+                <Form.Label>Thesis</Form.Label>
+                <ThesisSelector value={studentThesis || thesis} onChange={handleChangeThesis} required disabled={(!account || account.kind === 'student') || saving} />
+              </Form.Group>
+              {/*<Form.Group className="mb-3" controlId="formTitle">
                 <Form.Label>Description</Form.Label>
                 <Form.Control as='textarea' rows={3} value={description} onChange={e => setDescription(e.currentTarget.value)} disabled={saving} />
-              </Form.Group>
+              </Form.Group>*/}
               <Row>
                 <Col>
                   <Form.Group className="mb-3" controlId="formDate">
@@ -340,12 +357,12 @@ function EditDefenseEventDialog(props) {
                 <Col as='dd' sm={9}>
                   { event && event.thesis.title }
                 </Col>
-                <Col as='dt' sm={3}>
+                {/*<Col as='dt' sm={3}>
                   Description
                 </Col>
                 <Col as='dd' sm={9}>
                   { event && (event.thesis.description || 'No description provided') }
-                </Col>
+                </Col>*/}
                 <Col as='dt' sm={3}>
                   Date and time
                 </Col>
@@ -405,11 +422,17 @@ function EditDefenseEventDialog(props) {
 
 function AdjustScheduleDialog(props) {
   const { open, onClose } = props;
-  const [schedule, setSchedule] = useState({});
+  const { t } = useTranslation();
+  const [schedule, setSchedule] = useState({ '1': { dates: [] }, '2': { dates: []}, '3': { dates: [] } });
+  const [edit, setEdit] = useState(false);
+  const [phase, setPhase] = useState('');
+  const calendarRef = useRef(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
 
   const load = async () => {
     const list = await DefenseService.getDefenseSchedule();
-    const obj = list.reduce((p, e) => ({ ...p, [e.phase.toString()]: p }), {});
+    const obj = list.reduce((p, e) => ({ ...p, [e.phase.toString()]: e }), {});
     setSchedule(obj);
   };
 
@@ -417,8 +440,76 @@ function AdjustScheduleDialog(props) {
     if (onClose) onClose();
   };
 
-  const handleEdit = () => {
+  const handleStartEdit = () => {
+    setPhase('1');
+    setEdit(true);
+  };
+
+  const renderDates = (schedule) => {
+    if (!schedule) return [];
+    const dates = schedule.dates || [];
+    if (dates.length < 1) return [];
+    const ranges = [];
     
+    let firstDate = '';
+    let prevDate = '';
+    for (const date of dates) {
+      const yesterdayCovered = prevDate && dayjs(date).subtract(1, 'day').isSame(prevDate);
+      if (!firstDate) {
+        firstDate = date;
+      } else if (!yesterdayCovered) {
+        ranges.push({ start: firstDate, end: prevDate });
+        firstDate = date;
+      }
+      
+      prevDate = date;
+    }
+    ranges.push({ start: firstDate, end: prevDate });
+
+    return ranges;
+  };
+
+  const handleSelect = async arg => {
+    if (calendarRef.current) {
+      const api = calendarRef.current.getApi();
+      if (api) {
+        const newDates = [];
+        let currentDate = dayjs(arg.start);
+        const endDate = dayjs(arg.end);
+        while (currentDate.isBefore(endDate)) {
+          newDates.push(currentDate.format('YYYY-MM-DD'));
+          currentDate = currentDate.add(1, 'day');
+        }
+
+        setSchedule(prev => {
+          const next = { ...prev };
+          const prevList = next[phase] ? next[phase].dates : [];
+          const datesToAdd = newDates.filter(e => !prevList.includes(e));
+          if (datesToAdd.length > 0) {
+            const nextList = [...prevList, ...datesToAdd];
+            nextList.sort();
+            next[phase] = { dates: nextList };
+          } else {
+            next[phase] = { dates: prevList.filter(e => !newDates.includes(e)) };
+          }
+          return next;
+        });
+        api.unselect();
+      }
+    }
+  }
+
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      const schedules = Object.entries(schedule).map(([key, value]) => ({ phase: Number.parseInt(key), ...value }));
+      await DefenseService.postDefenseSchedule(schedules);
+      setEdit(false);
+    } catch (error) {
+      setError(error.code ? t(error.code) : error.message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   useEffect(() => {
@@ -437,48 +528,92 @@ function AdjustScheduleDialog(props) {
         </Modal.Title>
       </Modal.Header>
       <Modal.Body>
-        <Row>
-          <Col>
-            <p>First Phase</p>
-            {
-              schedule['1'] ?
-                schedule['1'].dates.map(e => <>
-                  <>{e.start}</>
-                  <>{e.end}</>
-                </>)
-                :
-                <>No schedule</>
-            }
-          </Col>
-          <Col>
-            <p>Second Phase</p>
-            {
-              schedule['2'] ?
-                schedule['2'].dates.map(e => <>
-                  <>{e.start}</>
-                  <>{e.end}</>
-                </>)
-                :
-                <>No schedule</>
-            }
-          </Col>
-          <Col>
-            <p>Third Phase</p>
-            {
-              schedule['3'] ?
-                schedule['3'].dates.map(e => <>
-                  <>{e.start}</>
-                  <>{e.end}</>
-                </>)
-                :
-                <>No schedule</>
-            }
-          </Col>
-        </Row>
+        {
+          edit ?
+            <>
+              { error && <Alert variant='danger' onClose={() => setError('')} dismissible>{error}</Alert> }
+              <Row>
+                <Col sm={4}>
+                  <Form.Group className="mb-3" controlId="formPhase">
+                    <Form.Label>Phase</Form.Label>
+                    <Form.Select value={phase} onChange={e => setPhase(e.currentTarget.value)}>
+                      <option value='1'>First</option>
+                      <option value='2'>Second</option>
+                      <option value='3'>Third</option>
+                    </Form.Select>
+                  </Form.Group>
+                  <p>Currently editing the <span className='fw-bold'>{t(`values.thesis_phase.${phase}`)}</span> phase</p>
+                  <p className='fw-bold'>Dates</p>
+                  <ul>
+                    {
+                      edit && renderDates(schedule[phase]).length > 0 ? renderDates(schedule[phase]).map((e, i) => (
+                        <li key={`daterange-${i}`}>{e.start} - {e.end}</li>
+                      )) : <li>No dates selected</li>
+                    }
+                  </ul>
+                </Col>
+                <Col sm={8}>
+                  <FullCalendar
+                    plugins={[ dayGridPlugin, interactionPlugin ]}
+                    initialView='dayGridMonth'
+                    events={schedule[phase] ? schedule[phase].dates.map(e => ({ start: e, display: 'background', allDay: true })) : []}
+                    height={480}
+                    select={handleSelect}
+                    selectable
+                    ref={calendarRef}
+                  />
+                </Col>
+              </Row>
+            </>
+            :
+            <Row>
+              <Col>
+                <p>First Phase</p>
+                <ul>
+                  {
+                    schedule['1'] && renderDates(schedule['1']) ?
+                      renderDates(schedule['1']).map((e, i) => (
+                        <li key={`daterange-${i}`}>{e.start} - {e.end}</li>
+                      ))
+                      :
+                      <li>No schedule</li>
+                  }
+                </ul>
+              </Col>
+              <Col>
+                <p>Second Phase</p>
+                <ul>
+                  {
+                    schedule['2'] && renderDates(schedule['2']) ?
+                      renderDates(schedule['2']).map((e, i) => (
+                        <li key={`daterange-${i}`}>{e.start} - {e.end}</li>
+                      ))
+                      :
+                      <li>No schedule</li>
+                  }
+                </ul>
+              </Col>
+              <Col>
+                <p>Third Phase</p>
+                <ul>
+                  {
+                    schedule['3'] && renderDates(schedule['3']) ?
+                      renderDates(schedule['3']).map((e, i) => (
+                        <li key={`daterange-${i}`}>{e.start} - {e.end}</li>
+                      ))
+                      :
+                      <li>No schedule</li>
+                  }
+                </ul>
+              </Col>
+            </Row>
+        }
       </Modal.Body>
       <Modal.Footer>
-        <Button onClick={handleEdit}>Start editing</Button>
-        <Button variant='secondary' onClick={handleClose}>Cancel</Button>
+        { edit && <Button disabled={saving} onClick={handleSave}>Save changes</Button> }
+        { edit && <Button disabled={saving} variant='secondary' onClick={() => setEdit(false)}>Discard changes</Button> }
+        { !edit && <Button onClick={handleStartEdit}>Start editing</Button> }
+        <Button variant='secondary' disabled={saving} onClick={handleClose}>Cancel</Button>
       </Modal.Footer>
     </Modal>
   );
@@ -488,8 +623,8 @@ function DefenseWeekPage() {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { account } = useAccount();
-  const [startTime, setStartTime] = useState('08:00');
-  const [endTime, setEndTime] = useState('18:00');
+  const [startTime, setStartTime] = useState('07:30');
+  const [endTime, setEndTime] = useState('22:00');
   const [slotInterval, setSlotInterval] = useState(15 * 60 * 1000);
   const [defenses, setDefenses] = useState([]);
   const calendarRef = useRef(null);
@@ -497,40 +632,12 @@ function DefenseWeekPage() {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [endorseNotice, setEndorseNotice] = useState(true);
+  const [defenseDates, setDefenseDates] = useState([]);
 
   const [adjustScheduleDialogOpen, setAdjustScheduleDialogOpen] = useState(false);
 
   const [eventDialogOpen, setEventDialogOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
-
-  const colorPalette = {
-    pending: {
-      display: 'Pending',
-      textColor: '#000',
-      backgroundColor: '#ffdfba'
-    },
-    approved: {
-      display: 'Approved',
-      textColor: '#000',
-      backgroundColor: '#ffffba'
-    },
-    confirmed: {
-      display: 'Confirmed',
-      textColor: '#000',
-      backgroundColor: '#baffc9'
-    },
-    declined: {
-      display: 'Declined',
-      textColor: '#000',
-      backgroundColor: '#ffb3ba'
-    },
-    create: {
-      display: 'Create',
-      textColor: '#000',
-      backgroundColor: '#bae1ff',
-      hidden: true
-    }
-  };
 
   const functions = {
     isAuthor: (thesis) => {
@@ -718,7 +825,7 @@ function DefenseWeekPage() {
         if (account.kind === 'student') {
           return thesis && e.phase === thesis.phase;
         } else if (account.kind === 'faculty') {
-          return true;
+          return functions.isPanelist(e);
         } else if (account.kind === 'administrator') {
           return e.status !== 'pending';
         } else {
@@ -726,7 +833,7 @@ function DefenseWeekPage() {
         }
       };
 
-      return defenses.filter(filter).map(e => {
+      const list = defenses.filter(filter).map(e => {
         let className = '';
 
         let paletteEntry = colorPalette[e.status];
@@ -755,12 +862,8 @@ function DefenseWeekPage() {
         let display = '';
         let title = e.description || e.thesis.title;
         if (account.kind === 'faculty') {
-          if (!functions.isPanelist(e)) {
-            display = 'background';
-          } else {
-            if (e.status === 'pending' && !functions.hasAccountApproved(e)) {
-              title = `*${title}`;
-            }
+          if (e.status === 'pending' && !functions.hasAccountApproved(e)) {
+            title = `*${title}`;
           }
         }
 
@@ -775,6 +878,20 @@ function DefenseWeekPage() {
           backgroundColor
         };
       });
+
+      if (account.kind === 'student') {
+        const bglist = defenseDates.map(e => ({
+          start: e,
+          allDay: true,
+          display: 'inverse-background',
+          groupId: 'valid-defense',
+          backgroundColor: colorPalette.unavailable.backgroundColor,
+          textColor: colorPalette.unavailable.textColor
+        }));
+        return [...list, ...bglist];
+      } else {
+        return list;
+      }
     }
   };
 
@@ -782,19 +899,26 @@ function DefenseWeekPage() {
     if (calendarRef.current) {
       const api = calendarRef.current.getApi();
       if (api.view.type === 'timeGridWeek') {
+        const startDay = dayjs(e.start).startOf('day');
+        const endDay = dayjs(e.end).startOf('day');
         if (account.kind === 'student' && (thesis && thesis.status === 'endorsed')) {
-          functions.tryAddDefense({
-            start: e.start,
-            end: e.end,
-            description: thesis.title,
-            thesis: thesis,
-            phase: thesis.phase,
-            panelists: [...thesis.advisers, ...thesis.panelists]
-          });
-          api.unselect();
-          const pending = functions.getAllTentativeChanges();
-          await DefenseService.processDefenseSlots(pending);
-          functions.applyAllActions(pending);
+          const startDate = startDay.format('YYYY-MM-DD');
+          if (defenseDates.includes(startDate) && startDay.isSame(endDay)) {
+            functions.tryAddDefense({
+              start: e.start,
+              end: e.end,
+              description: thesis.title,
+              thesis: thesis,
+              phase: thesis.phase,
+              panelists: [...thesis.advisers, ...thesis.panelists]
+            });
+            api.unselect();
+            const pending = functions.getAllTentativeChanges();
+            await DefenseService.processDefenseSlots(pending);
+            functions.applyAllActions(pending);
+          } else {
+            api.unselect();
+          }
         }
       }
     }
@@ -826,6 +950,10 @@ function DefenseWeekPage() {
       const theses = await ThesisService.getTheses();
       if (theses && theses.length > 0) {
         setThesis(theses[0]);
+
+        const schedules = await DefenseService.getDefenseSchedule();
+        const scheduleForPhase = schedules.find(e => e.phase === theses[0].phase);
+        if (scheduleForPhase) setDefenseDates(scheduleForPhase.dates);
       }
     }
   };
@@ -940,27 +1068,29 @@ function DefenseWeekPage() {
       </Row>
       <Row className='mt-1'>
         <Col md={9}>
-          <FullCalendar
-            plugins={[ dayGridPlugin, interactionPlugin, timeGridPlugin ]}
-            initialView='dayGridMonth'
-            dateClick={handleDateClick}
-            eventClick={handleEventClick}
-            slotMinTime={startTime}
-            slotMaxTime={endTime}
-            slotDuration={slotInterval}
-            select={handleRangeSelect}
-            selectable
-            hiddenDays={[0]}
-            expandRows
-            height='75vh'
-            headerToolbar={{
-              start: 'today,prev,next',
-              center: 'title',
-              end: 'dayGridMonth,timeGridWeek'
-            }}
-            events={defenses ? functions.getEvents() : []}
-            ref={calendarRef}
-          />
+          <div style={{ fontSize: '0.8em' }}>
+            <FullCalendar
+              plugins={[ dayGridPlugin, interactionPlugin, timeGridPlugin ]}
+              initialView='dayGridMonth'
+              dateClick={handleDateClick}
+              eventClick={handleEventClick}
+              slotMinTime={startTime}
+              slotMaxTime={endTime}
+              slotDuration={slotInterval}
+              select={handleRangeSelect}
+              selectable
+              hiddenDays={[0]}
+              expandRows
+              height='75vh'
+              headerToolbar={{
+                start: 'today,prev,next',
+                center: 'title',
+                end: 'dayGridMonth,timeGridWeek'
+              }}
+              events={defenses ? functions.getEvents() : []}
+              ref={calendarRef}
+            />
+          </div>
           {
             account.kind === 'student' && (thesis && thesis.status === 'endorsed') &&
               <div className='mt-2 d-flex flex-row align-items-center'>
@@ -1048,6 +1178,9 @@ function DefenseWeekPage() {
         onCancel={handleCloseEventDialog}
         onAction={handleEventAction}
         studentThesis={thesis}
+        minTime={startTime}
+        maxTime={endTime}
+        validDates={defenseDates.length > 0 ? defenseDates : null}
       />
       {
         account.kind === 'student' && thesis &&
