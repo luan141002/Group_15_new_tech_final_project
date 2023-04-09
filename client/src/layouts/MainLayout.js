@@ -14,7 +14,6 @@ import Row from 'react-bootstrap/Row';
 import Toast from 'react-bootstrap/Toast';
 import ToastContainer from 'react-bootstrap/ToastContainer';
 import { Search } from 'react-bootstrap-icons';
-import { AsyncTypeahead, Highlighter, Menu, MenuItem } from 'react-bootstrap-typeahead';
 import { useTranslation } from 'react-i18next';
 import { LinkContainer } from 'react-router-bootstrap';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
@@ -23,7 +22,9 @@ import ProfileImage from '../components/ProfileImage';
 import NotificationContext from '../contexts/NotificationContext';
 import { useAccount } from '../providers/account';
 import AuthService from '../services/AuthService';
-import SearchService from '../services/SearchService';
+import SearchBox from '../components/SearchBox';
+import { Typeahead } from 'react-bootstrap-typeahead';
+import Modal from 'react-bootstrap/Modal';
 
 function MainLayout() {
   const { t } = useTranslation();
@@ -31,8 +32,6 @@ function MainLayout() {
   const location = useLocation();
   const { account } = useAccount();
   const [selected, setSelected] = useState([]);
-  const [options, setOptions] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [toastTimer, setToastTimer] = useState(0);
   const [showSearch, setShowSearch] = useState(false);
@@ -42,73 +41,9 @@ function MainLayout() {
     navigate('/auth/login');
   };
 
-  const handleSearch = async (q) => {
-    q = q.trim();
-    if (q.length < 2) return;
-
-    setLoading(true);
-    const options = await SearchService.search(q);
-    setOptions(options);
-    setLoading(false);
-  };
-
-  const handleOption = (option) => {
-    navigate(`/thesis/${option._id}`);
+  const handleResult = (type, value) => {
+    navigate(`/thesis/${value._id}`);
     setSelected([]);
-  };
-
-  const handleSearchKey = (e) => {
-    if (e.isComposing || e.keyCode === 229) return;
-
-    if (e.keyCode === 13) {
-      if (selected.length > 0) {
-        const option = selected[0];
-        handleOption(option);
-      }
-    }
-  };
-
-  const renderSearchMenu = (
-    results,
-    {
-      newSelectionPrefix,
-      paginationText,
-      renderMenuItemChildren,
-      ...menuProps
-    },
-    state
-  ) => {
-    if (!results || results.length === 0) {
-      return (
-        <Menu {...menuProps}>
-          <Menu.Header>Test</Menu.Header>
-          <MenuItem position={0}>
-            ABC
-          </MenuItem>
-        </Menu>
-      );
-    }
-
-    let index = 0;
-    const items = results.map(e => {
-      if (e.type === 'thesis') {
-        const thesis = e.value;
-        const item = (
-          <MenuItem key={thesis._id} option={thesis} position={index}>
-            <Highlighter search={state.name}>{thesis.title}</Highlighter>
-            <div>
-              <small>{thesis.authors.map(e => t('values.full_name', e)).join('; ')}</small>
-            </div>
-          </MenuItem>
-        );
-  
-        index += 1;
-        return item;
-      } else {
-        return <></>;
-      }
-    });
-    return <Menu {...menuProps}>{items}</Menu>
   };
 
   useEffect(() => {
@@ -167,7 +102,23 @@ function MainLayout() {
 
   return (
     <>
-      <Offcanvas
+      <Modal show={showSearch} size='xl' onHide={() => setShowSearch(false)}>
+        <Modal.Header closeButton>
+          Search
+        </Modal.Header>
+        <Modal.Body>
+          <SearchBox
+            autoFocus
+            typeFilter={{
+              theses: true,
+              accounts: account && account.kind === 'administrator'
+            }}
+            placeholder={account && account.kind === 'administrator' ? 'Search theses, accounts...' : 'Search theses...'}
+            onResult={handleResult}
+          />
+        </Modal.Body>
+      </Modal>
+      {/*<Offcanvas
         show={showSearch}
         onHide={() => setShowSearch(false)}
         placement='top'
@@ -181,27 +132,10 @@ function MainLayout() {
           </Offcanvas.Header>
           <Offcanvas.Body>
             <Form className="d-flex ms-auto w-100">
-              <AsyncTypeahead
-                id='formSearch'
-                className="mx-2 w-100"
-                filterBy={() => true}
-                isLoading={loading}
-                labelKey='title'
-                renderMenu={renderSearchMenu}
-                onSearch={handleSearch}
-                options={options}
-                aria-label="Search"
-                placeholder="Search..."
-                selected={selected}
-                onChange={setSelected}
-                onKeyDown={handleSearchKey}
-                selectHint={false}
-              />
-              <Button variant="outline-success">Search</Button>
             </Form>
           </Offcanvas.Body>
         </Container>
-      </Offcanvas>
+      </Offcanvas>*/}
       <NotificationContext.Provider value={{ notifications, pushNotification }}>
         <ToastContainer id={`toast-${toastTimer}`} className='position-fixed bottom-0 end-0 mb-4 me-4' style={{ zIndex: 11 }}>
           {
