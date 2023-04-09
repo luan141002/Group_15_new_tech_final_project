@@ -656,23 +656,40 @@ function DefenseWeekPage() {
       return defense.panelists.some(e => e.faculty._id === account.accountID && e.approved);
     },
 
-    tryAddDefense: (info) => {
+    tryAddDefense: (info, commit) => {
       const { start, end, thesis, description, phase, panelists } = info;
-      console.log(phase);
-      setDefenses(prev => {
-        const next = [ ...prev ];
-        next.push({
-          _id: start.getTime().toString(),
-          start,
-          end,
-          thesis,
-          description,
-          phase,
-          panelists,
-          action: 'create'
+      if (commit) {
+        setDefenses(prev => {
+          const next = [ ...prev ];
+          next.push({
+            _id: start.getTime().toString(),
+            start,
+            end,
+            thesis,
+            description,
+            phase,
+            panelists,
+            status: 'pending'
+          });
+          return next;
         });
-        return next;
-      });
+      } else {
+        setDefenses(prev => {
+          const next = [ ...prev ];
+          next.push({
+            _id: start.getTime().toString(),
+            start,
+            end,
+            thesis,
+            description,
+            phase,
+            panelists,
+            action: 'create'
+          });
+          return next;
+        });
+      }
+      return { ...info, action: 'create' };
     },
 
     tryUpdateDefenseData: (id, info) => {
@@ -699,13 +716,13 @@ function DefenseWeekPage() {
       });
     },
 
-    tryRemoveDefense: id => {
+    tryRemoveDefense: (id, commit) => {
       setDefenses(prev => {
         const defenseI = prev.findIndex(e => e._id === id);
         if (defenseI === -1) return prev;
 
         const defense = { ...prev[defenseI] };
-        if (defense.action === 'create') {
+        if (defense.action === 'create' || commit) {
           return prev.filter((_, i) => i !== defenseI);
         } else {
           defense.action = 'delete';
@@ -714,6 +731,7 @@ function DefenseWeekPage() {
           return next;
         }
       });
+      return { _id: id, action: 'delete' };
     },
 
     hasTentativeChanges: () => {
@@ -970,10 +988,8 @@ function DefenseWeekPage() {
 
   const handleEventAction = async (action, data) => {
     if (action === 'create') {
-      functions.tryAddDefense(data);
-      const pending = functions.getAllTentativeChanges();
-      await DefenseService.processDefenseSlots(pending);
-      functions.applyAllActions(pending);
+      const action = [functions.tryAddDefense(data, true)];
+      await DefenseService.processDefenseSlots(action);
       setSelectedEvent(null);
       setEventDialogOpen(false);
     } else if (action === 'update') {
@@ -984,10 +1000,8 @@ function DefenseWeekPage() {
       setSelectedEvent(null);
       setEventDialogOpen(false);
     } else if (action === 'delete') {
-      functions.tryRemoveDefense(data);
-      const pending = functions.getAllTentativeChanges();
-      await DefenseService.processDefenseSlots(pending);
-      functions.applyAllActions(pending);
+      const action = [functions.tryRemoveDefense(data)];
+      await DefenseService.processDefenseSlots(action);
       setSelectedEvent(null);
       setEventDialogOpen(false);
     } else if (action === 'approve' || action === 'decline' || action === 'confirm') {
@@ -995,44 +1009,6 @@ function DefenseWeekPage() {
       await DefenseService.processDefenseSlots(allActions);
       functions.applyAllActions(allActions);
     }
-  };
-
-  const handleSelectRequest = request => {
-    /*if (calendarRef.current) {
-      if (selectedRequest === request) {
-        setSelectedRequest(null);
-        setTentativeDefenses(null);
-      } else {
-        setSelectedRequest(request);
-
-        const api = calendarRef.current.getApi();
-        const slots = [...request.freeSlots];
-
-        slots.sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
-        api.changeView('timeGridWeek', slots[0].start);
-      }
-    }*/
-  };
-
-  const handleResetDefense = () => {
-    functions.revertAllActions();
-  };
-
-  const handleSaveDefense = async () => {
-    try {
-      setSaving(true);
-      const pending = functions.getAllTentativeChanges();
-      await DefenseService.processDefenseSlots(pending);
-      functions.applyAllActions();
-    } catch (error) {
-      setError(error.code ? t(error.code) : error.message);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleAdjustSchedule = async () => {
-    
   };
 
   useEffect(() => {

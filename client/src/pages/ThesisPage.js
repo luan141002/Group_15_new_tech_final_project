@@ -286,7 +286,7 @@ function ThesisPage() {
                     </ul>
                     {
                       (account.kind === 'student' && !submitting) && (
-                        <Button onClick={() => setSubmitting(!submitting)}>Submit again</Button>
+                        <Button onClick={() => setSubmitting(!submitting)}>Upload Files</Button>
                       )
                     }
                   </>
@@ -297,7 +297,7 @@ function ThesisPage() {
                         !submitting && (
                           <>
                             <p>You have not made any submissions for your thesis.</p>
-                            <Button onClick={() => setSubmitting(!submitting)}>Submit</Button>
+                            <Button onClick={() => setSubmitting(!submitting)}>Upload Files</Button>
                           </>
                         )
                       )
@@ -317,6 +317,7 @@ function ThesisPage() {
                 <Card.Body>
                   <Card.Title>Submit files</Card.Title>
                   <Card.Text>
+                    <p className='text-muted'>You can add multiple files by clicking "Add file" again.</p>
                     <Form.Group className="mb-3" controlId="formDocument">
                       <Form.Label>Add file</Form.Label>
                       <Form.Control type="file" value={file} onChange={handleAddFile} disabled={uploading} />
