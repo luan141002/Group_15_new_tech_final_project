@@ -64,7 +64,7 @@ function ThesisTable(props) {
   const [allInternal, setAllInternal] = useState(false);
   const [phase, setPhase] = useState(undefined);
   const [loading, setLoading] = useState(false);
-  const [showPending, setShowPending] = useState(initialState.showPending);
+  const [showPending, setShowPending] = useState((initialState || {}).showPending);
 
   const thesisList = theses || thesesInternal;
 

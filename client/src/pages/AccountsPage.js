@@ -67,8 +67,9 @@ function ImportAccountsDialog(props) {
         const row = worksheet.getRow(i);
         const lastName = row.getCell(lastNameCol).value;
         const firstName = row.getCell(firstNameCol).value;
-        const middleName = middleNameCol !== -1 ? row.getCell(middleNameCol) : undefined;
-        const email = row.getCell(emailCol).value.text;
+        const middleName = middleNameCol !== -1 ? row.getCell(middleNameCol).value : undefined;
+        const emailCell = row.getCell(emailCol);
+        const email = emailCell.value.text || emailCell.value;
         const kind = typeCol !== -1 ? row.getCell(typeCol) : defaultAccountType;
         importedAccounts.push({ lastName, firstName, middleName, kind, email });
       }
