@@ -231,14 +231,14 @@ function ThesisEditor(props) {
           <Form.Label className='fw-bold'>Description</Form.Label>
           <Form.Control as='textarea' type="text" value={description} onChange={e => setDescription(e.currentTarget.value)} />
         </Form.Group>
-        {
+        {/*
           (account.kind === 'student') && 
             <Form.Group className="mb-3" controlId="formDocument">
               <Form.Label className='fw-bold'>Documents</Form.Label>
               <Form.Control type="file" value={file} onChange={handleAddAttachment} />
             </Form.Group>
         }
-        {/*
+        {
           (account.kind === 'student') && (attachments.length > 0 &&
             <Table striped bordered hover size="sm">
               <thead>
