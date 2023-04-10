@@ -104,7 +104,8 @@ function EditDefenseEventDialog(props) {
           start,
           end,
           phase,
-          panelists
+          panelists,
+          status: account && account.kind === 'administrator' ? 'confirmed' : undefined
         });
         if (result && result.then) {
           await result;
@@ -670,7 +671,7 @@ function DefenseWeekPage() {
             description,
             phase,
             panelists: panelists.map(e => ({ faculty: e.faculty ? e.faculty._id : e })),
-            status: 'pending'
+            status: info.status || 'pending'
           });
           return next;
         });

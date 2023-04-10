@@ -217,10 +217,10 @@ function AccountsPage() {
   const [showActive, setShowActive] = useState('');
 
   const load = async () => {
-    const accounts = await AccountService.getAccounts(type);
+    const accounts = await AccountService.getAccounts(type, { showActive });
     setAccounts(accounts.map(e => ({
       ...e,
-      fullName: t('values.full_name', e)
+      fullName: `${t('values.full_name', e)} ${e.inactive ? '(Inactive)' : ''}`
     })));
   };
 
@@ -242,7 +242,7 @@ function AccountsPage() {
 
   useEffect(() => {
     load();
-  }, []);
+  }, [showActive]);
 
   const headers = [
     {
@@ -268,12 +268,7 @@ function AccountsPage() {
     {
       title: 'Name',
       prop: 'fullName',
-      isFilterable: true,
-      cell: (row) => (
-        <>
-          <span>{t('values.full_name', row)}</span>
-        </>
-      )
+      isFilterable: true
     },
     {
       title: 'Type',

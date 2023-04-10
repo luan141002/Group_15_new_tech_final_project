@@ -48,7 +48,15 @@ AccountController.get('/account', requireToken, async (req, res) => {
             $or.push({ firstName:  { $regex: q, $options: 'i' } });
         }
 
-        if (!isQueryTrue(all)) {
+        /*if (!isQueryTrue(all)) {
+            $and.push({ $or: [{ inactive: false }, { inactive: null }] });
+        }*/
+
+        if (showActive) {
+            if (showActive === 'inactive') {
+                $and.push({ inactive: true });
+            }
+        } else {
             $and.push({ $or: [{ inactive: false }, { inactive: null }] });
         }
 
