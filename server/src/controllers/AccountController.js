@@ -101,10 +101,10 @@ AccountController.delete('/account/:id', requireToken, async (req, res) => {
     const token = req.token;
     
     try {
-        const isAdmin = token.kind.toLowerCase() === 'administrator';
+        const isAdmin = token.kind === 'administrator';
         if (!isAdmin) throw new ServerError(403, 'Only administrators can delete accounts');
 
-        const account = Account.User.findById(id);
+        const account = await Account.User.findById(id);
         if (!account) throw new ServerError(404, 'Account not found');
 
         if (account.kind.toLowerCase() === 'administrator') throw new ServerError(403, 'Cannot remove administrator account');

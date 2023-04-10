@@ -38,7 +38,7 @@ AnnouncementController.get('/announcement', requireToken, async (req, res) => {
         }
 
         if (count === 0) {
-            const empty = { items: [] };
+            let empty = { items: [] };
             if (isPaginated) {
                 empty = {
                     page: 1,

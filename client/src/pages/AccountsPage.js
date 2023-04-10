@@ -214,7 +214,7 @@ function AccountsPage() {
   const [importAccountDialogOpen, setImportAccountDialogOpen] = useState(false);
   const [deleteID, setDeleteID] = useState('');
   const [deleteError, setDeleteError] = useState('');
-  const [test, setTest] = useState('');
+  const [showActive, setShowActive] = useState('');
 
   const load = async () => {
     const accounts = await AccountService.getAccounts(type);
@@ -296,6 +296,17 @@ function AccountsPage() {
 
   return (
     <>
+      <Row className='mb-3'>
+        <Col>
+          <h3>Accounts</h3>
+        </Col>
+        <Col className='d-flex flex-column align-items-end'>
+          <div className='d-flex flex-row align-items-center'>
+            <Button className='me-2' onClick={() => setImportAccountDialogOpen(true)}>Import Accounts...</Button>
+            <LinkContainer to='/account/new'><Button className='me-2' as='a'>Add Account</Button></LinkContainer>
+          </div>
+        </Col>
+      </Row>
       <DatatableWrapper
         headers={headers}
         body={accounts}
@@ -306,23 +317,20 @@ function AccountsPage() {
           }
         }}
       >
-        <Row className='mb-2'>
-          <Col>
-            <h3>Accounts</h3>
-          </Col>
-          <Col className='d-flex flex-column align-items-end'>
-            <div>
-            </div>
-          </Col>
-        </Row>
         <Row>
           <Col className='d-flex flex-col justify-content-start align-items-end mb-2 mb-sm-0'>
             <Filter placeholder='Filter accounts' />
           </Col>
           <Col className='d-flex flex-col justify-content-end align-items-end'>
-            <Button className='me-2' onClick={() => setImportAccountDialogOpen(true)}>Add accounts from file...</Button>
-            <LinkContainer to='/account/new'><Button className='me-2' as='a'>Add account</Button></LinkContainer>
-            <Button variant='secondary' onClick={() => navigate(-1)}>Back</Button>
+            <Row>
+              <Col>
+                <Form.Select value={showActive} onChange={e => setShowActive(e.currentTarget.value)}>
+                  <option value=''>Show only active accounts</option>
+                  <option value='inactive'>Show only inactive accounts</option>
+                  <option value='all'>Show all</option>
+                </Form.Select>
+              </Col>
+            </Row>
           </Col>
         </Row>
         <Table striped hover size="sm">

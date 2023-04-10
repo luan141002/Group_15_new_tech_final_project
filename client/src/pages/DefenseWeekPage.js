@@ -178,8 +178,8 @@ function EditDefenseEventDialog(props) {
       setThesis(null);
       setDescription('');
       setDate('');
-      setStartTime('');
-      setEndTime('');
+      setStartTime('00:00');
+      setEndTime('00:00');
       setPhase(undefined);
       setPanelists([]);
     }

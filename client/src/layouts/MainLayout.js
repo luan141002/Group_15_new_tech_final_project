@@ -118,24 +118,6 @@ function MainLayout() {
           />
         </Modal.Body>
       </Modal>
-      {/*<Offcanvas
-        show={showSearch}
-        onHide={() => setShowSearch(false)}
-        placement='top'
-        style={{
-          height: '128px'
-        }}
-      >
-        <Container>
-          <Offcanvas.Header closeButton>
-            <Offcanvas.Title>Search</Offcanvas.Title>
-          </Offcanvas.Header>
-          <Offcanvas.Body>
-            <Form className="d-flex ms-auto w-100">
-            </Form>
-          </Offcanvas.Body>
-        </Container>
-      </Offcanvas>*/}
       <NotificationContext.Provider value={{ notifications, pushNotification }}>
         <ToastContainer id={`toast-${toastTimer}`} className='position-fixed bottom-0 end-0 mb-4 me-4' style={{ zIndex: 11 }}>
           {
@@ -192,7 +174,7 @@ function MainLayout() {
         </Navbar>
         <Container>
           <Row className='bg-white' style={{ minHeight: '100vh' }}>
-            <Col sm={3} md={2} className='pt-3 pb-5 px-5' style={{ backgroundColor: '#f8f8f8' }}>
+            <Col sm={4} md={3} lg={2} className='pt-3 pb-5 px-3' style={{ backgroundColor: '#f8f8f8' }}>
               <Nav variant='pills' className='flex-column' activeKey={location.pathname}>
                 {
                   sidebar(account.kind).map(e => (
@@ -203,7 +185,7 @@ function MainLayout() {
                 }
               </Nav>
             </Col>
-            <Col sm={9} md={10} className='pt-3 pb-5'>
+            <Col sm={8} md={9} lg={10} className='pt-3 pb-5'>
               <Outlet />
             </Col>
           </Row>

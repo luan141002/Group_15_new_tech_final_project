@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Alert from "react-bootstrap/Alert";
 import Button from "react-bootstrap/Button";
 import Card from 'react-bootstrap/Card';
@@ -48,6 +48,8 @@ function ThesisPage() {
   const [submittingComment, setSubmittingComment] = useState(false);
   const [commentToDelete, setCommentToDelete] = useState(false);
   const [commentDeleting, setCommentDeleting] = useState(false);
+
+  const addFileButtonRef = useRef(null);
 
   const onLoad = async () => {
     if (tid) {
@@ -317,10 +319,9 @@ function ThesisPage() {
                 <Card.Body>
                   <Card.Title>Submit files</Card.Title>
                   <Card.Text>
-                    <p className='text-muted'>You can add multiple files by clicking "Add file" again.</p>
-                    <Form.Group className="mb-3" controlId="formDocument">
+                    <Form.Group className="mb-3" controlId="formDocument" style={{ display: 'none' }}>
                       <Form.Label>Add file</Form.Label>
-                      <Form.Control type="file" value={file} onChange={handleAddFile} disabled={uploading} />
+                      <Form.Control type="file" value={file} onChange={handleAddFile} disabled={uploading} ref={addFileButtonRef} />
                     </Form.Group>
                     {
                       files.length > 0 ?
@@ -347,6 +348,12 @@ function ThesisPage() {
                           No files added.
                         </div>
                     }
+                    <>
+                      <Button onClick={() => (addFileButtonRef.current && addFileButtonRef.current.click())} className='mt-2'>
+                        { files.length > 0 ? 'Add another file' : 'Add file' }
+                      </Button>
+                      <hr />
+                    </>
                     <div className='mt-3'>
                       <Button onClick={handleUploadFiles} disabled={files.length < 1 || uploading} className='me-1'>Submit</Button>
                       <Button variant='secondary' onClick={() => { setFiles([]); setSubmitting(false); }} disabled={uploading}>Cancel</Button>
