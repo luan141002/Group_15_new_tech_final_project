@@ -106,6 +106,8 @@ DefenseController.post('/defense', requireToken, async (req, res) => {
                         _id: e._id,
                         action: 'delete'
                     };
+                } else {
+                    return { action: 'none' };
                 }
             });
 
@@ -254,7 +256,7 @@ DefenseController.post('/defense', requireToken, async (req, res) => {
             throw new ServerError(403, 'No permission to create defense schedules');
         }
     } catch (error) {
-        return res.error(error, 'Could not create defense schedule.')
+        return res.error(error, 'Could not update defense schedule.')
     }
 });
 

@@ -214,6 +214,10 @@ function ThesisPage() {
     return thesis && thesis.advisers.find(e => e._id === account.accountID);
   };
 
+  const isAdmin = () => {
+    return account.kind === 'administrator';
+  };
+
   const renderName = account => <><Link to={`/account/${account._id}`}>{t('values.display_full_name', account)}</Link>;&nbsp;</>;
   
   const gradeToDisplay = (() => {
@@ -367,7 +371,7 @@ function ThesisPage() {
             thesis.approved && <>
               <h5 className='mt-3'>Comments</h5>
               {
-                (isAuthor() || isAdvisory()) &&
+                (isAuthor() || isAdvisory() || isAdmin()) &&
                   <Form onSubmit={handleSubmitComment}>
                     <Form.Group className="mb-3" controlId="formComment">
                       <Form.Control

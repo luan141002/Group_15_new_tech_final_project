@@ -922,18 +922,16 @@ function DefenseWeekPage() {
         if (account.kind === 'student' && (thesis && thesis.status === 'endorsed')) {
           const startDate = startDay.format('YYYY-MM-DD');
           if (defenseDates.includes(startDate) && startDay.isSame(endDay)) {
-            functions.tryAddDefense({
+            const action = [functions.tryAddDefense({
               start: e.start,
               end: e.end,
               description: thesis.title,
               thesis: thesis,
               phase: thesis.phase,
               panelists: [...thesis.advisers, ...thesis.panelists]
-            });
+            }, true)];
             api.unselect();
-            const pending = functions.getAllTentativeChanges();
-            await DefenseService.processDefenseSlots(pending);
-            functions.applyAllActions(pending);
+            await DefenseService.processDefenseSlots(action);
           } else {
             api.unselect();
           }
@@ -1000,7 +998,7 @@ function DefenseWeekPage() {
       setSelectedEvent(null);
       setEventDialogOpen(false);
     } else if (action === 'delete') {
-      const action = [functions.tryRemoveDefense(data)];
+      const action = [functions.tryRemoveDefense(data, true)];
       await DefenseService.processDefenseSlots(action);
       setSelectedEvent(null);
       setEventDialogOpen(false);
