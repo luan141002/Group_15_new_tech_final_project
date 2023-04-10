@@ -658,17 +658,18 @@ function DefenseWeekPage() {
 
     tryAddDefense: (info, commit) => {
       const { start, end, thesis, description, phase, panelists } = info;
+      const id = start.getTime().toString();
       if (commit) {
         setDefenses(prev => {
           const next = [ ...prev ];
           next.push({
-            _id: start.getTime().toString(),
+            _id: id,
             start,
             end,
             thesis,
             description,
             phase,
-            panelists,
+            panelists: panelists.map(e => ({ faculty: e.faculty ? e.faculty._id : e })),
             status: 'pending'
           });
           return next;
@@ -677,7 +678,7 @@ function DefenseWeekPage() {
         setDefenses(prev => {
           const next = [ ...prev ];
           next.push({
-            _id: start.getTime().toString(),
+            _id: id,
             start,
             end,
             thesis,
@@ -689,7 +690,20 @@ function DefenseWeekPage() {
           return next;
         });
       }
-      return { ...info, action: 'create' };
+      return { ...info, _id: id, action: 'create' };
+    },
+
+    tryUpdateId: (oldid, newid) => {
+      setDefenses(prev => {
+        const next = [...prev];
+        const entry = next.findIndex(e => e._id === oldid);
+        if (entry !== -1) {
+          const copy = { ...next[entry], _id: newid };
+          console.log(copy)
+          next[entry] = copy;
+        }
+        return next;
+      });
     },
 
     tryUpdateDefenseData: (id, info) => {
@@ -931,7 +945,8 @@ function DefenseWeekPage() {
               panelists: [...thesis.advisers, ...thesis.panelists]
             }, true)];
             api.unselect();
-            await DefenseService.processDefenseSlots(action);
+            const [result] = await DefenseService.processDefenseSlots(action);
+            functions.tryUpdateId(action[0]._id, result._id);
           } else {
             api.unselect();
           }
@@ -942,12 +957,9 @@ function DefenseWeekPage() {
 
   const handleEventClick = e => {
     if (calendarRef.current) {
-      const api = calendarRef.current.getApi();
-      if (api.view.type === 'timeGridWeek') {
-        const event = functions.getEvent(e.event.id);
-        setSelectedEvent(event);
-        setEventDialogOpen(true);
-      }
+      const event = functions.getEvent(e.event.id);
+      setSelectedEvent(event);
+      setEventDialogOpen(true);
     }
   };
 
@@ -986,8 +998,10 @@ function DefenseWeekPage() {
 
   const handleEventAction = async (action, data) => {
     if (action === 'create') {
+      console.log(data);
       const action = [functions.tryAddDefense(data, true)];
-      await DefenseService.processDefenseSlots(action);
+      const [result] = await DefenseService.processDefenseSlots(action);
+      functions.tryUpdateId(action[0]._id, result._id);
       setSelectedEvent(null);
       setEventDialogOpen(false);
     } else if (action === 'update') {
@@ -1027,7 +1041,15 @@ function DefenseWeekPage() {
                 <>
                   {
                     account.kind === 'administrator' &&
-                      <Button className='ms-2' onClick={() => setAdjustScheduleDialogOpen(true)}>Adjust schedule</Button>
+                      <Button variant='secondary' className='ms-2' onClick={() => setAdjustScheduleDialogOpen(true)}>Adjust schedule</Button>
+                  }
+                  {
+                    account.kind === 'student' && (thesis && thesis.status === 'endorsed') &&
+                      <Button className='ms-2' onClick={handleOpenEventDialog} disabled={saving}>Request a slot</Button>
+                  }
+                  {
+                    account.kind === 'administrator' &&
+                      <Button className='ms-2' onClick={handleOpenEventDialog} disabled={saving}>Create a slot</Button>
                   }
                   {/*<Button className='ms-2' onClick={handleSaveDefense} disabled={!functions.hasTentativeChanges() || saving}>Save</Button>
                   <Button className='ms-2' variant='secondary' onClick={handleResetDefense} disabled={!functions.hasTentativeChanges() || saving}>Reset</Button>*/}
@@ -1069,13 +1091,6 @@ function DefenseWeekPage() {
             account.kind === 'student' && (thesis && thesis.status === 'endorsed') &&
               <div className='mt-2 d-flex flex-row align-items-center'>
                 <p className='text-muted'>You can request defense slots by dragging on the available slots.</p>
-                <Button className='ms-auto' onClick={handleOpenEventDialog} disabled={saving}>Request a slot</Button>
-              </div>
-          }
-          {
-            account.kind === 'administrator' &&
-              <div className='mt-2 d-flex flex-row align-items-center'>
-                <Button className='ms-auto' onClick={handleOpenEventDialog} disabled={saving}>Create a slot</Button>
               </div>
           }
         </Col>

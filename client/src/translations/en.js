@@ -30,7 +30,7 @@ const en = {
     },
     defense_status: {
       pending: 'Pending',
-      approved: 'Approved',
+      approved: 'Approved by panelists',
       confirmed: 'Confirmed',
       declined: 'Declined'
     },

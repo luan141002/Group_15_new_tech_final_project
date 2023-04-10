@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 import ProfileImage from '../components/ProfileImage';
 import AccountService from '../services/AccountService';
+import { useNotification } from '../contexts/NotificationContext';
 
 function AccountPage() {
   const { aid } = useParams();
@@ -25,6 +26,8 @@ function AccountPage() {
   const [locked, setLocked] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [backToList, setBackToList] = useState(true);
+  const { pushNotification } = useNotification();
   /* const [image, setImage] = useState(null);
   const imageRef = useRef(); */
 
@@ -54,7 +57,15 @@ function AccountPage() {
       try {
         setSaving(true);
         const account = await AccountService.createAccount({ email, lastName, firstName, middleName, kind: type });
-        navigate(`/account/${account._id}`, { replace: true });
+        if (backToList) {
+          pushNotification({
+            title: 'Account created',
+            message: `Account ${t('values.full_name', { firstName, lastName })} has been created.`
+          });
+          navigate('/account', { replace: true });
+        } else {
+          navigate(`/account/${account._id}`, { replace: true });
+        }
       } catch (error) {
         setError(error.code ? t(error.code) : error.message);
       } finally {

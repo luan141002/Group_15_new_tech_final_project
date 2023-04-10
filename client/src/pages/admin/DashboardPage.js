@@ -45,11 +45,11 @@ function DashboardPage() {
 
   return (
     <>
-      <Row className='mb-4'>
+      {/*<Row className='mb-4'>
         <Form className="d-flex w-100">
           <SearchBox typeFilter={{ theses: true, accounts: true }} placeholder='Search theses, accounts...' onResult={handleResult} />
         </Form>
-      </Row>
+      </Row>*/}
       <Row className='mb-4'>
         <Col>
           <Card>

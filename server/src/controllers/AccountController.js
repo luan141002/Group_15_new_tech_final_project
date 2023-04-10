@@ -14,7 +14,7 @@ const AccountController = express.Router();
 const upload = multer();
 
 AccountController.get('/account', requireToken, async (req, res) => {
-    const { type, q, all, findDuplicates } = req.query;
+    const { type, q, all, findDuplicates, showActive } = req.query;
     const token = req.token;
     
     try {
