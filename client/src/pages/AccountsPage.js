@@ -70,7 +70,7 @@ function ImportAccountsDialog(props) {
         const middleName = middleNameCol !== -1 ? row.getCell(middleNameCol).value : undefined;
         const emailCell = row.getCell(emailCol);
         const email = emailCell.value.text || emailCell.value;
-        const kind = typeCol !== -1 ? row.getCell(typeCol) : defaultAccountType;
+        const kind = typeCol !== -1 ? row.getCell(typeCol).value : defaultAccountType;
         importedAccounts.push({ lastName, firstName, middleName, kind, email });
       }
 
