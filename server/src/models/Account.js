@@ -5,45 +5,26 @@ const Schema = mongoose.Schema;
 
 const options = { discriminatorKey: 'kind' };
 
+// Represents a user of the system
 const AccountSchema = new Schema({
-    lastName: {
-        type: String,
-        required: true
-    },
-    firstName: {
-        type: String,
-        required: true
-    },
+    // Name of the user
+    lastName: { type: String, required: true },
+    firstName: { type: String, required: true },
     middleName: String,
-    email: {
-        type: String,
-        required: true,
-        unique: true
-    },
-    password: String,
-    photo: Buffer,
-    photoType: String,
-    joined: {
-        type: Date,
-        required: true,
-        default: Date.now
-    },
-    activated: {
-        type: Boolean,
-        required: false,
-        default: false
-    },
-    inactive: {
-        type: Boolean,
-        required: true,
-        default: false
-    },
-    accessCode: String,
-    locked: {
-        type: Boolean,
-        default: false
-    },
-    status: String
+
+    email: { type: String, required: true, unique: true },          // Email address used to log in
+    password: String,                                               // bcrypt-encoded password
+    photo: Buffer,                                                  // Profile image (Image blob)
+    photoType: String,                                              // MIME type of image blob stored in `photo`
+    joined: { type: Date, required: true, default: Date.now },      // Join date
+    activated: { type: Boolean, required: false, default: false },  // Account is activated upon registration and confirmation
+    inactive: { type: Boolean, required: true, default: false },    // Whether account can log in
+    accessCode: String,                                             // Access code given stuff
+    locked: { type: Boolean, default: false },                      // Unknown purpose
+    status: String,                                                 // Unknown purpose
+    schedule: [
+        { }
+    ]
 }, options);
 
 AccountSchema.pre('save', function(next) {

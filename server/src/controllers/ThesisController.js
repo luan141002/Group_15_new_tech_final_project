@@ -533,7 +533,7 @@ ThesisController.delete('/thesis/:id', requireToken, async (req, res) => {
         if (!thesis) throw new ServerError(404, 'Cannot find thesis');
 
         if (!thesis.approved) {
-            await Thesis.deleteOne({ _id: id });
+            await Thesis.updateOne({ _id: id }, { inactive: true });
         } else {
             thesis.locked = true;
             await thesis.save();

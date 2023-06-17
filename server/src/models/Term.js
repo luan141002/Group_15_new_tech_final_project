@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
+// TODO: this indicates the current term
 const TermSchema = new Schema({
     name: { type: String, required: true },
     startDate: { type: Date, required: true },

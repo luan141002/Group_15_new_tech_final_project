@@ -1,5 +1,6 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
+const transacted = require('../middleware/transacted');
 const ServerError = require('../utility/error');
 const mailer = require('../utility/mailer');
 const Account = require('../models/Account');
@@ -72,14 +73,15 @@ AccountController.post('/auth/token', requireToken, async (req, res) => {
     return res.json(req.token);
 });
 
-AccountController.post('/auth/register', async (req, res) => {
-    const { userID, email } = req.body;
+AccountController.post('/auth/register', transacted, async (req, res) => {
+    const { body, session } = req;
+    const { userID, email } = body;
 
     try {
-        /*if (!userID) throw new ServerError(400, 'User ID required');*/
+        session.startTransaction();
         if (!email) throw new ServerError(400, 'error.validation.email', 'Email required', { field: 'email' });
 
-        const user = await Account.User.findOne({ /*idnum: userID,*/ email });
+        const user = await Account.User.findOne({ email });
         if (user) {
             const validity = Number.parseInt(process.env.VERIFICATION_VALIDITY || 10);
             const token = jwt.sign({
@@ -94,8 +96,10 @@ AccountController.post('/auth/register', async (req, res) => {
             });
         }
 
+        await session.commitTransaction();
         return res.sendStatus(204);
     } catch (error) {
+        await session.abortTransaction();
         return res.error(error, 'Could not register account.');
     }
 });

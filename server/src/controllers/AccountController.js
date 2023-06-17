@@ -246,6 +246,8 @@ const TYPES = ['student', 'faculty', 'administrator'];
 
 AccountController.post('/account', requireToken, transacted, async (req, res) => {
     const { body, session } = req;
+
+    // Always expect a 1-D array of account entries
     let entries = [body];
     if (Array.isArray(body)) entries = body;
 
@@ -329,13 +331,15 @@ AccountController.post('/account', requireToken, transacted, async (req, res) =>
     }
 });
 
-AccountController.patch('/account/:id', requireToken, upload.single('photo'), async (req, res) => {
+AccountController.patch('/account/:id', requireToken, transacted, upload.single('photo'), async (req, res) => {
+    const { session } = req;
     const { id } = req.params;
     const token = req.token;
 
     console.log(req.file);
 
     try {
+        session.startTransaction();
         const isAdmin = token.kind.toLowerCase() === 'administrator';
         const isCurrentUser = id === token.accountID;
 
@@ -367,8 +371,11 @@ AccountController.patch('/account/:id', requireToken, upload.single('photo'), as
 
         await account.save();
 
+        await session.commitTransaction();
+
         return res.sendStatus(204);
     } catch (error) {
+        await session.abortTransaction();
         return res.error(error, 'Cannot get account');
     }
 });

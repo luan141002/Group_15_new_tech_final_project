@@ -2,6 +2,7 @@ const express = require('express');
 const requirePass = require('../middleware/requirePass');
 const requireToken = require('../middleware/requireToken');
 const Announcement = require('../models/Announcement');
+const Thesis = require('../models/Thesis');
 const AnnouncementRead = require('../models/AnnouncementRead');
 const ServerError = require('../utility/error');
 const isQueryTrue = require('../utility/isQueryTrue');
@@ -9,15 +10,30 @@ const isQueryTrue = require('../utility/isQueryTrue');
 const AnnouncementController = express.Router();
 
 AnnouncementController.get('/announcement', requireToken, async (req, res) => {
-    const { accountID } = req.token;
+    const { accountID, kind } = req.token;
     const { all, items, page } = req.query;
 
     try {
         const query = {};
+        const $and = [];
         if (!isQueryTrue(all)) {
             const allRead = await AnnouncementRead.find({ account: accountID });
-            query._id = { $nin: allRead.map(e => e.announcement.toString()) };
+            $and.push({ _id: { $nin: allRead.map(e => e.announcement.toString()) } });
         }
+
+        if (!isQueryTrue(all) || kind !== 'administrator') {
+            if (kind === 'student') {
+                const thesis = await Thesis.findOne({ authors: accountID });
+                if (thesis) {
+                    $and.push({ $or: [{ filterPhase: null }, { filterPhase: thesis.phase }] });
+                } else {
+                    $and.push({ filterPhase: null });
+                }
+            }
+            $and.push({ filterTypes: kind });
+        }
+
+        if ($and.length > 0) query.$and = $and;
 
         const count = await Announcement.countDocuments(query);
         let isPaginated = false;
@@ -93,11 +109,13 @@ AnnouncementController.get('/announcement', requireToken, async (req, res) => {
     }
 });
 
-AnnouncementController.post('/announcement', requireToken, async (req, res) => {
+AnnouncementController.post('/announcement', requireToken, transacted, async (req, res) => {
+    const { session } = req;
     const { accountID, kind, lastName, firstName, middleName } = req.token;
     const { title, text } = req.body;
 
     try {
+        session.startTransaction();
         if (kind !== 'administrator') throw new ServerError(403, 'You must be an administrator to create announcements');
 
         const announcement = await Announcement.create({
@@ -105,6 +123,8 @@ AnnouncementController.post('/announcement', requireToken, async (req, res) => {
             title,
             text
         });
+
+        await session.commitTransaction();
 
         return res.status(201).location(`/announcement/${announcement._id}`).json({
             _id: announcement._id,
@@ -118,11 +138,13 @@ AnnouncementController.post('/announcement', requireToken, async (req, res) => {
             sent: announcement.sent
         })
     } catch (error) {
+        await session.abortTransaction();
         return res.error(error);
     }
 });
 
-AnnouncementController.put('/announcement/:id', requireToken, async (req, res) => {
+AnnouncementController.put('/announcement/:id', requireToken, transacted, async (req, res) => {
+    const { session } = req;
     const { id } = req.params;
     const { kind } = req.token;
     const { title, text } = req.body;
@@ -136,6 +158,8 @@ AnnouncementController.put('/announcement/:id', requireToken, async (req, res) =
         announcement.title = title;
         announcement.text = text;
         await announcement.save();
+
+        await session.commitTransaction();
 
         return res.sendStatus(204);
     } catch (error) {

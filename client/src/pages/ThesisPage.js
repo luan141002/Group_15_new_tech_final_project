@@ -214,6 +214,10 @@ function ThesisPage() {
     return thesis && thesis.advisers.find(e => e._id === account.accountID);
   };
 
+  const isPanelist = () => {
+    return thesis && thesis.panelists.find(e => e._id === account.accountID);
+  };
+
   const isAdmin = () => {
     return account.kind === 'administrator';
   };
@@ -371,7 +375,7 @@ function ThesisPage() {
             thesis.approved && <>
               <h5 className='mt-3'>Comments</h5>
               {
-                (isAuthor() || isAdvisory() || isAdmin()) &&
+                (isAuthor() || isAdvisory() || isPanelist() || isAdmin()) &&
                   <Form onSubmit={handleSubmitComment}>
                     <Form.Group className="mb-3" controlId="formComment">
                       <Form.Control

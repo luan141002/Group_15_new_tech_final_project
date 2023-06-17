@@ -1,6 +1,8 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
+// Submissions made to a thesis
+// TODO: make it like a storage akin to gdrive
 const SubmissionSchema = new Schema({
     thesis: {
         type: Schema.Types.ObjectId,
