@@ -22,9 +22,7 @@ const AccountSchema = new Schema({
     accessCode: String,                                             // Access code given stuff
     locked: { type: Boolean, default: false },                      // Unknown purpose
     status: String,                                                 // Unknown purpose
-    schedule: [
-        { }
-    ]
+    schedule: [String]                                              // ICAL format
 }, options);
 
 AccountSchema.pre('save', function(next) {

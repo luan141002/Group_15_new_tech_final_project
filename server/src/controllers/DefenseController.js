@@ -72,6 +72,21 @@ DefenseController.get('/defense', requireToken, async (req, res) => {
     }
 });
 
+DefenseController.post('/defense/schedule/:tid', requireToken, async (req, res) => {
+    const { tid } = req.params;
+    const { accountID, kind } = req.token;
+    
+    try {
+        if (kind !== 'administrator') {
+            throw new ServerError(403, 'Not permitted to generate defense schedule');
+        }
+
+        
+    } catch (error) {
+        return res.error(error, 'Could not generate defense schedule.');
+    }
+});
+
 DefenseController.post('/defense', requireToken, async (req, res) => {
     const { accountID, kind } = req.token;
     const slots = Array.isArray(req.body) ? req.body : [req.body];

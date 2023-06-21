@@ -1,6 +1,7 @@
 const express = require('express');
 const requirePass = require('../middleware/requirePass');
 const requireToken = require('../middleware/requireToken');
+const transacted = require('../middleware/transacted');
 const Announcement = require('../models/Announcement');
 const Thesis = require('../models/Thesis');
 const AnnouncementRead = require('../models/AnnouncementRead');

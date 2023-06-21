@@ -375,49 +375,53 @@ function ThesisEditor(props) {
             }
           </tbody>
         </Table>
-        <Form.Group className="mb-3" controlId="formPanelist">
-          <Form.Label className='fw-bold'>Panelists</Form.Label>
-          <Row className="align-items-center">
-            <Col xs={9} sm={10} className="my-1">
-              <AsyncTypeahead
-                id='formPanelist'
-                filterBy={(faculty) => !panelists.includes(faculty._id)}
-                isLoading={facultyLoading}
-                labelKey={(option) => renderName(option)}
-                minLength={2}
-                onSearch={handleSearchPanelist}
-                options={faculty2}
-                onChange={setSelectedFaculty2}
-                selected={selectedFaculty2}
-                placeholder='Search from faculty...'
-                useCache={false}
-              />
-            </Col>
-            <Col xs={3} sm={2} className="my-1">
-              <Button className='w-100' onClick={handleAddPanelist} disabled={!canAddPanelist()}>Add</Button>
-            </Col>
-          </Row>
-        </Form.Group>
-        <Table striped bordered hover size="sm">
-          <thead>
-            <tr>
-              <th>Last Name</th>
-              <th>First Name</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {
-              panelists.length > 0 ? panelists.map(e => (
+        {
+          (account.kind === 'administrator') && <>
+            <Form.Group className="mb-3" controlId="formPanelist">
+              <Form.Label className='fw-bold'>Panelists</Form.Label>
+              <Row className="align-items-center">
+                <Col xs={9} sm={10} className="my-1">
+                  <AsyncTypeahead
+                    id='formPanelist'
+                    filterBy={(faculty) => !panelists.includes(faculty._id)}
+                    isLoading={facultyLoading}
+                    labelKey={(option) => renderName(option)}
+                    minLength={2}
+                    onSearch={handleSearchPanelist}
+                    options={faculty2}
+                    onChange={setSelectedFaculty2}
+                    selected={selectedFaculty2}
+                    placeholder='Search from faculty...'
+                    useCache={false}
+                  />
+                </Col>
+                <Col xs={3} sm={2} className="my-1">
+                  <Button className='w-100' onClick={handleAddPanelist} disabled={!canAddPanelist()}>Add</Button>
+                </Col>
+              </Row>
+            </Form.Group>
+            <Table striped bordered hover size="sm">
+              <thead>
                 <tr>
-                  <td>{e.lastName}</td>
-                  <td>{e.firstName}</td>
-                  <td><Button as='a' variant='link' style={{ padding: 0 }} onClick={() => handleRemovePanelist(e._id)}>Remove</Button></td>
+                  <th>Last Name</th>
+                  <th>First Name</th>
+                  <th>Actions</th>
                 </tr>
-              )) : <tr><td className='text-center' colSpan={3}>No panelists added.</td></tr>
-            }
-          </tbody>
-        </Table>
+              </thead>
+              <tbody>
+                {
+                  panelists.length > 0 ? panelists.map(e => (
+                    <tr>
+                      <td>{e.lastName}</td>
+                      <td>{e.firstName}</td>
+                      <td><Button as='a' variant='link' style={{ padding: 0 }} onClick={() => handleRemovePanelist(e._id)}>Remove</Button></td>
+                    </tr>
+                  )) : <tr><td className='text-center' colSpan={3}>No panelists added.</td></tr>
+                }
+              </tbody>
+            </Table>
+          </>
+        }
         <Button type='submit'>Save</Button>
       </Form>
     </>

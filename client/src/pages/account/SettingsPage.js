@@ -21,9 +21,12 @@ function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [imageFile, setImageFile] = useState(undefined);
   const [image, setImage] = useState(null);
+
+  const [showChangePassword, setShowChangePassword] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [retypePassword, setRetypePassword] = useState('');
+
   const [time, setTime] = useState(0);
   const imageRef = useRef();
 
@@ -152,47 +155,70 @@ function SettingsPage() {
                 <h4>Password</h4>
               </Col>
             </Row>
+            {
+              !showChangePassword && <>
+                <Row>
+                  <Col>
+                    <Button onClick={() => setShowChangePassword(true)}>Change password</Button>
+                  </Col>
+                </Row>
+              </>
+            }
+            {
+              showChangePassword && <>
+                <Row>
+                  <Col>
+                    <Button onClick={() => setShowChangePassword(false)}>Cancel</Button>
+                  </Col>
+                </Row>
+                <Row>
+                  <PasswordField value={currentPassword} onChange={value => setCurrentPassword(value)}>
+                    <Col md={8}>
+                      <Form.Group className="mb-3" controlId="formCurrentPassword">
+                        <Form.Label>Current password</Form.Label>
+                        <PasswordText />
+                      </Form.Group>
+                    </Col>
+                    <Col md={4}>
+                      <Form.Label>&nbsp;</Form.Label>
+                      <PasswordToggler className='mt-2' />
+                    </Col>
+                  </PasswordField>
+                </Row>
+                <Row>
+                  <PasswordField value={newPassword} onChange={value => setNewPassword(value)}>
+                    <Col md={8}>
+                      <Form.Group className="mb-3" controlId="formNewPassword">
+                        <Form.Label>New password</Form.Label>
+                        <PasswordText />
+                      </Form.Group>
+                    </Col>
+                    <Col md={4}>
+                      <Form.Label>&nbsp;</Form.Label>
+                      <PasswordToggler className='mt-2' />
+                    </Col>
+                  </PasswordField>
+                </Row>
+                <Row>
+                  <PasswordField value={retypePassword} onChange={value => setRetypePassword(value)}>
+                    <Col md={8}>
+                      <Form.Group className="mb-3" controlId="formRetypePassword">
+                        <Form.Label>Retype password</Form.Label>
+                        <PasswordText />
+                      </Form.Group>
+                    </Col>
+                    <Col md={4}>
+                      <Form.Label>&nbsp;</Form.Label>
+                      <PasswordToggler className='mt-2' />
+                    </Col>
+                  </PasswordField>
+                </Row>
+              </>
+            }
             <Row>
-              <PasswordField value={currentPassword} onChange={value => setCurrentPassword(value)}>
-                <Col md={8}>
-                  <Form.Group className="mb-3" controlId="formCurrentPassword">
-                    <Form.Label>Current password</Form.Label>
-                    <PasswordText />
-                  </Form.Group>
-                </Col>
-                <Col md={4}>
-                  <Form.Label>&nbsp;</Form.Label>
-                  <PasswordToggler className='mt-2' />
-                </Col>
-              </PasswordField>
-            </Row>
-            <Row>
-              <PasswordField value={newPassword} onChange={value => setNewPassword(value)}>
-                <Col md={8}>
-                  <Form.Group className="mb-3" controlId="formNewPassword">
-                    <Form.Label>New password</Form.Label>
-                    <PasswordText />
-                  </Form.Group>
-                </Col>
-                <Col md={4}>
-                  <Form.Label>&nbsp;</Form.Label>
-                  <PasswordToggler className='mt-2' />
-                </Col>
-              </PasswordField>
-            </Row>
-            <Row>
-              <PasswordField value={retypePassword} onChange={value => setRetypePassword(value)}>
-                <Col md={8}>
-                  <Form.Group className="mb-3" controlId="formRetypePassword">
-                    <Form.Label>Retype password</Form.Label>
-                    <PasswordText />
-                  </Form.Group>
-                </Col>
-                <Col md={4}>
-                  <Form.Label>&nbsp;</Form.Label>
-                  <PasswordToggler className='mt-2' />
-                </Col>
-              </PasswordField>
+              <Col>
+                <h4>Schedule</h4>
+              </Col>
             </Row>
           </Col>
           <Col md={4} className='d-flex flex-column align-items-end'>
