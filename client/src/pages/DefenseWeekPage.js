@@ -620,6 +620,310 @@ function AdjustScheduleDialog(props) {
   );
 }
 
+function GenerateDefenseDialog(props) {
+  const { account } = useAccount();
+  const { t } = useTranslation();
+  const { open, event, error, onCancel, onAction } = props;
+  const [_error, _setError] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const [thesis, setThesis] = useState(null);
+  const [description, setDescription] = useState('');
+  const [date, setDate] = useState('');
+  const [startTime, setStartTime] = useState('');
+  const [endTime, setEndTime] = useState('');
+  const [panelists, setPanelists] = useState([]);
+  const [phase, setPhase] = useState(undefined);
+  const edit = !event || event.action === 'create';
+
+  const [faculty, setFaculty] = useState([]);
+  const [facultyLoading, setFacultyLoading] = useState(false);
+  const [selectedFaculty, setSelectedFaculty] = useState([]);
+
+  const [generated, setGenerated] = useState([]);
+
+  const handleSubmit = async e => {
+    const form = e.currentTarget;
+    e.preventDefault();
+    if (onAction) {
+      if (form.checkValidity() === false) {
+        e.stopPropagation();
+        //setDialogValidated(true);
+        _setError('Please fill out the necessary fields.');
+        return;
+      }
+
+      if (!thesis) {
+        _setError('The thesis must be selected from the search dropdown list.');
+        return;
+      }
+
+      /*const djNow = dayjs();
+      const djStart = dayjs(`${date}T${startTime}`);
+      const djEnd = dayjs(`${date}T${endTime}`);
+      const djMin = dayjs(`${date}T${minTime}`);
+      const djMax = dayjs(`${date}T${maxTime}`);
+  
+      if (djStart.isSameOrAfter(djEnd)) {
+        _setError('Start time must be earlier than end time.');
+        //setDialogValidated(true);
+        return;
+      }
+  
+      if (djNow.isAfter(djStart)) {
+        _setError('Cannot schedule a defense in the past.');
+        //setDialogValidated(true);
+        return;
+      }
+  
+      if (djMin.isAfter(djStart) ||
+          djMin.isAfter(djEnd) ||
+          djMax.isBefore(djStart) ||
+          djMax.isBefore(djEnd)) {
+        _setError(`Event must be within ${djMin.format('LT')} and ${djMax.format('LT')}.`);
+        //setDialogValidated(true);
+        return;
+      }
+
+      if (validDates && !validDates.includes(date)) {
+        _setError('Event must be within the dates designated by the administrator.');
+        return;
+      }
+  
+      const start = new Date(`${date}T${startTime}`);
+      const end = new Date(`${date}T${endTime}`);
+
+      const action = event ? 'update' : 'create';
+      setSaving(true);
+      try {
+        const result = onAction(action, {
+          _id: event ? event._id : undefined,
+          thesis: studentThesis || thesis,
+          description,
+          start,
+          end,
+          phase,
+          panelists,
+          status: account && account.kind === 'administrator' ? 'confirmed' : undefined
+        });
+        if (result && result.then) {
+          await result;
+        }
+      } catch (error) {
+        _setError(error.code ? t(error.code) : error.message);
+      } finally {
+        setSaving(false);
+      }*/
+    }
+  };
+
+  const handleSearchFaculty = async (q) => {
+    setFacultyLoading(true);
+    const faculty = await AccountService.getFaculty({ q });
+    setFaculty(faculty);
+    setFacultyLoading(false);
+  };
+
+  const canAddFaculty = () => {
+    if (selectedFaculty.length < 1) return false;
+    if (panelists.find(e => e._id === selectedFaculty[0]._id)) return false;
+    if (panelists.length >= 4) return false;
+    return true;
+  };
+
+  const handleAddFaculty = () => {
+    if (selectedFaculty.length < 1) return;
+    if (!canAddFaculty()) return;
+    setPanelists(prev => {
+      const value = faculty.find(e => e._id === selectedFaculty[0]._id);
+      return [ ...prev, value ];
+    });
+    setSelectedFaculty([]);
+  };
+
+  const handleRemoveFaculty = (id) => {
+    setPanelists(prev => prev.filter(e => e._id !== id));
+  };
+
+  const doAction = async action => {
+    if (onAction) {
+      setSaving(true);
+      try {
+        const result = onAction(action, event ? event._id : undefined);
+        if (result && result.then) {
+          await result;
+        }
+      } catch (error) {
+        _setError(error.code ? t(error.code) : error.message);
+      } finally {
+        setSaving(false);
+      }
+    }
+  };
+
+  const handleCancel = () => {
+    if (onCancel) onCancel();
+  }
+
+  const handleGenerate = async () => {
+    setSaving(true);
+    try {
+      setGenerated([]);
+      const schedules = await DefenseService.generateSlots(thesis._id);
+      setGenerated(schedules);
+    } catch (error) {
+      _setError(error.code ? t(error.code) : error.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  useEffect(() => {
+    if (event) {
+      setThesis(event.thesis);
+      setDescription(event.description);
+      setDate(dayjs(event.start).format('YYYY-MM-DD'));
+      setStartTime(dayjs(event.start).format('HH:mm'));
+      setEndTime(dayjs(event.end).format('HH:mm'));
+      setPhase(event.phase);
+      setPanelists(event.panelists ? event.panelists.map(e => e.faculty) : []);
+    } else {
+      setThesis(null);
+      setDescription('');
+      setDate('');
+      setStartTime('00:00');
+      setEndTime('00:00');
+      setPhase(undefined);
+      setPanelists([]);
+    }
+  }, [event]);
+
+  useEffect(() => {
+    if (open) {
+      _setError('');
+    }
+  }, [open]);
+
+  const handleChangeThesis = value => {
+    setThesis(value);
+    if (value) {
+      setPhase(value.phase);
+      setPanelists([...value.advisers, ...value.panelists]);
+    }
+  };
+
+  return (
+    <Modal show={open} animation={false} centered size='lg'>
+      <Modal.Header>
+        <Modal.Title>
+          Generate Schedule
+        </Modal.Title>
+      </Modal.Header>
+      <Form onSubmit={handleSubmit}>
+        <Modal.Body>
+          { (error || _error) && <Alert variant='danger' onClose={() => _setError(false)} dismissible>{error || _error}</Alert> }
+          <Form.Group className="mb-3" controlId="formTitle">
+            <Form.Label>Thesis</Form.Label>
+            <ThesisSelector value={thesis} onChange={handleChangeThesis} required disabled={(!account || account.kind === 'student') || saving} />
+          </Form.Group>
+          {/*<Form.Group className="mb-3" controlId="formTitle">
+            <Form.Label>Description</Form.Label>
+            <Form.Control as='textarea' rows={3} value={description} onChange={e => setDescription(e.currentTarget.value)} disabled={saving} />
+          </Form.Group>*/}
+          <Row>
+            <Col>
+              <Form.Group className="mb-3" controlId="formDate">
+                <Form.Label>Date</Form.Label>
+                <Form.Control type='date' value={date} onChange={e => setDate(e.currentTarget.value)} required disabled={saving} />
+              </Form.Group>
+            </Col>
+            <Col>
+              <Form.Group className="mb-3" controlId="formStartTime">
+                <Form.Label>Start time</Form.Label>
+                <Form.Control type='time' value={startTime} onChange={e => setStartTime(e.currentTarget.value)} required disabled={saving} />
+              </Form.Group>
+            </Col>
+            <Col>
+              <Form.Group className="mb-3" controlId="formEndTime">
+                <Form.Label>End time</Form.Label>
+                <Form.Control type='time' value={endTime} onChange={e => setEndTime(e.currentTarget.value)} required disabled={saving} />
+              </Form.Group>
+            </Col>
+          </Row>
+          <Form.Group className="mb-3" controlId="formAdviser">
+            <Form.Label>Panelists</Form.Label>
+            <Row className="align-items-center">
+              <Col xs={9} sm={10} className="my-1">
+                <AsyncTypeahead
+                  id='formFaculty'
+                  filterBy={(faculty) => !panelists.includes(faculty._id)}
+                  isLoading={facultyLoading}
+                  labelKey={(option) => t('values.full_name', option)}
+                  minLength={2}
+                  onSearch={handleSearchFaculty}
+                  options={faculty}
+                  onChange={setSelectedFaculty}
+                  selected={selectedFaculty}
+                  placeholder='Search from faculty...'
+                  useCache={false}
+                  disabled={saving}
+                />
+              </Col>
+              <Col xs={3} sm={2} className="my-1">
+                <Button className='w-100' onClick={handleAddFaculty} disabled={!canAddFaculty() || saving}>Add</Button>
+              </Col>
+            </Row>
+          </Form.Group>
+          <Table striped bordered hover size="sm">
+            <thead>
+              <tr>
+                <th>Last Name</th>
+                <th>First Name</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {
+                panelists.length > 0 ? panelists.map(e => (
+                  <tr>
+                    <td>{e.lastName}</td>
+                    <td>{e.firstName}</td>
+                    <td>
+                      <Button as='a' variant='link' style={{ padding: 0 }} onClick={() => handleRemoveFaculty(e._id)} disabled={saving}>
+                        Remove
+                      </Button>
+                    </td>
+                  </tr>
+                )) : <tr><td className='text-center' colSpan={3}>No panelists added.</td></tr>
+              }
+            </tbody>
+          </Table>
+          <Row as='dl'>
+            <Col as='dt' sm={3}>
+              Schedule
+            </Col>
+            <Col as='dd' sm={9}>
+              <ul>
+                {
+                  generated.map(e => (
+                    <li>
+                      {new Date(e.start).toLocaleString()} - {new Date(e.end).toLocaleString()}
+                    </li>
+                  ))
+                }
+              </ul>
+            </Col>
+          </Row>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant='primary' onClick={handleGenerate} disabled={saving || !thesis}>Generate</Button>
+          <Button variant='secondary' onClick={handleCancel} disabled={saving}>Close</Button>
+        </Modal.Footer>
+      </Form>
+    </Modal>
+  );
+}
+
 function DefenseWeekPage() {
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -639,6 +943,8 @@ function DefenseWeekPage() {
 
   const [eventDialogOpen, setEventDialogOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
+
+  const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
 
   const functions = {
     isAuthor: (thesis) => {
@@ -997,6 +1303,14 @@ function DefenseWeekPage() {
     setSelectedEvent(null);
   };
 
+  const handleOpenGenerateDialog = () => {
+    setGenerateDialogOpen(true);
+  };
+
+  const handleCloseGenerateDialog = () => {
+    setGenerateDialogOpen(false);
+  };
+
   const handleEventAction = async (action, data) => {
     if (action === 'create') {
       console.log(data);
@@ -1051,6 +1365,10 @@ function DefenseWeekPage() {
                   {
                     account.kind === 'administrator' &&
                       <Button className='ms-2' onClick={handleOpenEventDialog} disabled={saving}>Create a slot</Button>
+                  }
+                  {
+                    account.kind === 'administrator' &&
+                      <Button className='ms-2' onClick={handleOpenGenerateDialog} disabled={saving}>Generate group schedule</Button>
                   }
                   {/*<Button className='ms-2' onClick={handleSaveDefense} disabled={!functions.hasTentativeChanges() || saving}>Save</Button>
                   <Button className='ms-2' variant='secondary' onClick={handleResetDefense} disabled={!functions.hasTentativeChanges() || saving}>Reset</Button>*/}
@@ -1171,6 +1489,11 @@ function DefenseWeekPage() {
         minTime={startTime}
         maxTime={endTime}
         validDates={defenseDates.length > 0 ? defenseDates : null}
+      />
+      <GenerateDefenseDialog
+        open={generateDialogOpen}
+        onCancel={handleCloseGenerateDialog}
+        
       />
       {
         account.kind === 'student' && thesis &&

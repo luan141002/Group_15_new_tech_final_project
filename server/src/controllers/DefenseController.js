@@ -7,6 +7,8 @@ const Thesis = require('../models/Thesis');
 const ServerError = require('../utility/error');
 const DefenseWeek = require('../models/DefenseWeek');
 const dayjs = require('dayjs');
+const Scheduler = require('../utility/scheduler');
+const ical = require('node-ical');
 
 const DefenseController = express.Router();
 const CURRENT_TERM = process.env.CURRENT_TERM;
@@ -81,17 +83,76 @@ DefenseController.post('/defense/schedule/:tid', requireToken, async (req, res) 
             throw new ServerError(403, 'Not permitted to generate defense schedule');
         }
 
-        
+        const thesis = await Thesis.findById(tid);
+        if (!thesis) throw new ServerError(404, 'Thesis not found');
+
+        const members = [...thesis.authors, ...thesis.advisers, ...thesis.panelists];
+        //console.log(members);
+
+        const accounts = await Account.User.find({ _id: { $in: members } });
+        //console.log(accounts);
+
+        const frees = await DefenseWeek.find({ phase: thesis.phase });
+        if (frees.length < 1) return res.json([]);
+
+        // TODO: dates are in local time zone; map them to UTC first
+        //console.log(frees[0].dates)
+        const freeSorted = frees[0].dates.map(e => new Date(e.getTime() - 8 * 3600 * 1000));
+        //console.log(freeSorted)
+
+        // TODO: fix this
+        const freeRanges = freeSorted.map(e => ({ start: new Date(e.getTime() + 8 * 3600 * 1000), end: new Date(e.getTime() + 22 * 3600 * 1000) }));
+        const freeRange = Scheduler.GetScheduleRange(freeRanges);
+
+        const schedulesRaw = accounts.map(e => e.schedule);
+
+        const schedules = schedulesRaw.map(e => e.map(e2 => {
+            const schedule = [];
+            if (e2.format === 'ics') {
+                const events = ical.sync.parseICS(e2.value);
+                for (const event of Object.values(events)) {
+                    if (event.type !== 'VEVENT') continue;
+
+                    const tdiff = event.end.getTime() - event.start.getTime();
+                    if (event.rrule) {
+                        const recurrences = event.rrule.between(freeRange.start, freeRange.end);
+                        for (const recurrence of recurrences) {
+                            schedule.push({
+                                start: recurrence,
+                                end: new Date(recurrence.getTime() + tdiff)
+                            })
+                        }
+                    } else {
+                        schedule.push({
+                            start: new Date(event.start.getTime()),
+                            end: new Date(event.end.getTime())
+                        });
+                    }
+                }
+            } else if (e2.format === 'custom') {
+                
+            }
+            
+            return schedule;
+        }));
+        //console.dir(schedules, { depth: 4 });
+
+        const tentative = Scheduler.AutoSchedule(freeRanges, schedules);
+
+        return res.json(tentative);
+
     } catch (error) {
         return res.error(error, 'Could not generate defense schedule.');
     }
 });
 
-DefenseController.post('/defense', requireToken, async (req, res) => {
+DefenseController.post('/defense', requireToken, transacted, async (req, res) => {
+    const { session } = req;
     const { accountID, kind } = req.token;
     const slots = Array.isArray(req.body) ? req.body : [req.body];
 
     try {
+        session.startTransaction();
         if (kind === 'student') {
             let thesisQuery = { authors: accountID, locked: false };
             const thesis = await Thesis.findOne(thesisQuery);
@@ -262,6 +323,8 @@ DefenseController.post('/defense', requireToken, async (req, res) => {
             await Defense.updateMany({ _id: { $in: idsToDecline }}, { status: 'declined' });
             await Defense.deleteMany({ _id: { $in: slotsToDelete.map(e => e._id) }});
 
+            await session.commitTransaction();
+
             return res.json([
                 ...(results),
                 ...(idsToConfirm.map(e => ({ _id: e, status: 'confirmed' }))),
@@ -271,6 +334,7 @@ DefenseController.post('/defense', requireToken, async (req, res) => {
             throw new ServerError(403, 'No permission to create defense schedules');
         }
     } catch (error) {
+        await session.abortTransaction();
         return res.error(error, 'Could not update defense schedule.')
     }
 });
@@ -312,6 +376,7 @@ DefenseController.post('/defenseweek', requireToken, transacted, async (req, res
 
         return res.sendStatus(204);
     } catch (error) {
+        await session.abortTransaction();
         return res.error(error, 'Could not post defense schedule.')
     }
 });

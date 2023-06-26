@@ -16,6 +16,15 @@ const ThesisService = {
     return await response.json();
   },
 
+  getDeadlines: async () => {
+    const response = await WebService.get(`/thesis/deadline`);
+    return await response.json();
+  },
+
+  postDeadlines: async (deadlines) => {
+    await WebService.postJson('/thesis/deadline', deadlines);
+  },
+
   getAttachment: async (tid, sid, aid) => {
     const response = await WebService.get(`/thesis/${tid}/submission/${sid}/attachment/${aid}`);
     return await response.blob();

@@ -24,6 +24,7 @@ function ThesisPage() {
   const navigate = useNavigate();
   const [thesis, setThesis] = useState(null);
   const [noThesis, setNoThesis] = useState(false);
+  const [deadlines, setDeadlines] = useState(null);
   
   // Grade form
   const [grade, setGrade] = useState('');
@@ -52,13 +53,27 @@ function ThesisPage() {
   const addFileButtonRef = useRef(null);
 
   const onLoad = async () => {
+    const deadlines = await ThesisService.getDeadlines();
     if (tid) {
-      setThesis(await ThesisService.getThesis(tid, { getSubmissions: true }));
-      setComments(await ThesisService.getCommentsOnThesis(tid));
+      const thesis = await ThesisService.getThesis(tid, { getSubmissions: true });
+      if (thesis) {
+        setThesis(thesis);
+        const phase = thesis.phase;
+        if (deadlines[phase.toString()]) {
+          setDeadlines(deadlines[phase.toString()]);
+        }
+        setComments(await ThesisService.getCommentsOnThesis(tid));
+      } else {
+        setNoThesis(true);
+      }
     } else if (account.kind === 'student') {
       const theses = await ThesisService.getTheses({ getSubmissions: true });
       if (theses && theses[0]) {
         setThesis(theses[0]);
+        const phase = theses[0].phase;
+        if (deadlines[phase.toString()]) {
+          setDeadlines(deadlines[phase.toString()]);
+        }
         setComments(await ThesisService.getCommentsOnThesis(theses[0]._id));
       } else {
         setNoThesis(true);
@@ -295,8 +310,10 @@ function ThesisPage() {
                       }
                     </ul>
                     {
-                      (account.kind === 'student' && !submitting) && (
-                        <Button onClick={() => setSubmitting(!submitting)}>Upload Files</Button>
+                      (account.kind === 'student' && !submitting && deadlines) && (
+                        deadlines.getTime() < Date.now()
+                          ? <>You cannot upload files beyond the deadline.</>
+                          : <Button onClick={() => setSubmitting(!submitting)}>Upload Files</Button>
                       )
                     }
                   </>
@@ -304,10 +321,14 @@ function ThesisPage() {
                   (
                     isAuthor() ?
                       (
-                        !submitting && (
+                        !submitting && deadlines && (
                           <>
                             <p>You have not made any submissions for your thesis.</p>
-                            <Button onClick={() => setSubmitting(!submitting)}>Upload Files</Button>
+                            {
+                              deadlines.getTime() < Date.now()
+                                ? <>You cannot upload files beyond the deadline.</>
+                                : <Button onClick={() => setSubmitting(!submitting)}>Upload Files</Button>
+                            }
                           </>
                         )
                       )
@@ -460,6 +481,8 @@ function ThesisPage() {
                     { updating && <Spinner className='ms-2' size='sm' /> }
                   </div>
                 </p>
+                <h4>Deadline</h4>
+                <p className='d-flex'>{dayjs(deadlines).format('LLL')}</p>
                 {
                   (isAdvisory() && (thesis.status === 'for_checking' || thesis.status === 'checked')) &&
                     <p>

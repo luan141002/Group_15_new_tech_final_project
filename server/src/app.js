@@ -3,9 +3,16 @@ const data = require('./data');
 const seed = require('./data/seed');
 const cors = require('cors');
 const path = require('path');
+const dayjs = require('dayjs');
+const timezone = require('dayjs/plugin/timezone');
+const utc = require('dayjs/plugin/utc');
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 const dotenv = require('dotenv')
 dotenv.config()
+
+dayjs.tz.setDefault(process.env.TZ);
 
 const app = express();
 

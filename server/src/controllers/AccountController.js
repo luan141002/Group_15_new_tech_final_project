@@ -97,7 +97,8 @@ AccountController.get('/account/:id', requireToken, async (req, res) => {
             kind: result.kind.toLowerCase(),
             email: canSeePrivate ? result.email : undefined,
             accessCode: isAdmin ? result.accessCode : undefined,
-            joined: result.joined
+            joined: result.joined,
+            schedule: canSeePrivate ? (result.schedule || []) : undefined
         });
     } catch (error) {
         return res.error(error, 'Cannot get account');
@@ -336,8 +337,6 @@ AccountController.patch('/account/:id', requireToken, transacted, upload.single(
     const { id } = req.params;
     const token = req.token;
 
-    console.log(req.file);
-
     try {
         session.startTransaction();
         const isAdmin = token.kind.toLowerCase() === 'administrator';
@@ -347,7 +346,7 @@ AccountController.patch('/account/:id', requireToken, transacted, upload.single(
         if (!account) throw new ServerError(404, 'Account not found');
 
         if (isCurrentUser || isAdmin) {
-            const { currentPassword, newPassword, retypePassword } = req.body;
+            const { currentPassword, newPassword, retypePassword, schedules } = req.body;
             if (newPassword) {
                 if (!currentPassword) throw new ServerError(400, 'error.validation.current_password', 'Current password is required');
                 if (!retypePassword) throw new ServerError(400, 'error.validation.retype_password', 'Password must be retyped');
@@ -360,8 +359,9 @@ AccountController.patch('/account/:id', requireToken, transacted, upload.single(
             }
 
             if (req.file) {
-                account.photo = req.file.buffer;
-                account.photoType = req.file.mimetype;
+                const photoFile = req.file;
+                account.photo = photoFile.buffer;
+                account.photoType = photoFile.mimetype;
             }
         }
 
@@ -377,6 +377,44 @@ AccountController.patch('/account/:id', requireToken, transacted, upload.single(
     } catch (error) {
         await session.abortTransaction();
         return res.error(error, 'Cannot get account');
+    }
+});
+
+AccountController.patch('/account/:id/schedule', requireToken, transacted, async (req, res) => {
+    const { body, session } = req;
+    const { id } = req.params;
+    const token = req.token;
+
+    try {
+        session.startTransaction();
+
+        const account = await Account.User.findById(id);
+        if (!account) throw new ServerError(404, 'Account not found');
+
+        let schedules = [...account.schedule] || [];
+        console.log(schedules);
+        console.log(body);
+        for (const entry of body) {
+            if (entry.action === 'add') {
+                schedules.push({
+                    format: entry.format,
+                    value: entry.value,
+                    name: entry.name
+                });
+            } else if (entry.action === 'remove') {
+                schedules = schedules.filter(e => e._id.toString() !== entry._id.toString());
+            }
+            // TODO: update
+        }
+        console.log(schedules);
+        account.schedule = schedules;
+        await account.save();
+
+        await session.commitTransaction();
+        return res.sendStatus(204);
+    } catch (error) {
+        await session.abortTransaction();
+        return res.error(error, 'Cannot change account schedule');
     }
 });
 

@@ -2,6 +2,7 @@ const bcrypt = require('bcrypt');
 const mongoose = require('mongoose');
 const ServerError = require('../utility/error');
 const Schema = mongoose.Schema;
+const SchemaTypes = mongoose.SchemaTypes;
 
 const options = { discriminatorKey: 'kind' };
 
@@ -22,7 +23,8 @@ const AccountSchema = new Schema({
     accessCode: String,                                             // Access code given stuff
     locked: { type: Boolean, default: false },                      // Unknown purpose
     status: String,                                                 // Unknown purpose
-    schedule: [String]                                              // ICAL format
+
+    schedule: [{ format: String, name: String, value: SchemaTypes.Mixed, uploaded: { type: Date, default: Date.now} }]
 }, options);
 
 AccountSchema.pre('save', function(next) {

@@ -42,8 +42,24 @@ const AccountService = {
     if (values.photo) {
       form.append('photo', values.photo);
     }
+
+    const removes = [];
+    if (values.schedule) {
+      for (const entry of values.schedule) {
+        if (entry.mode === 'add') {
+          form.append('scheduleFiles', entry.value);
+        } else if (entry.mode === 'remove') {
+          removes.push(entry._id);
+        }
+      }
+    }
+    form.append('scheduleRemove', JSON.stringify(removes));
     
     await WebService.patchForm(`/account/${accountID}`, form);
+  },
+
+  updateSchedule: async (accountID, patchSchedules) => {
+    await WebService.patchJson(`/account/${accountID}/schedule`, patchSchedules);
   },
 
   deleteAccount: async (accountID) => {

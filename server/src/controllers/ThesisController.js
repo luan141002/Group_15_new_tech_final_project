@@ -4,9 +4,11 @@ const requirePass = require('../middleware/requirePass');
 const requireToken = require('../middleware/requireToken');
 const Comment = require('../models/Comment');
 const Submission = require('../models/Submission');
+const SubmissionDate = require('../models/SubmissionDate');
 const Thesis = require('../models/Thesis');
 const ServerError = require('../utility/error');
 const isQueryTrue = require('../utility/isQueryTrue');
+const transacted = require('../middleware/transacted');
 
 const ThesisController = express.Router();
 
@@ -101,6 +103,43 @@ ThesisController.get('/thesis', requireToken, async (req, res) => {
             approved: e.approved !== false
         })));
     } catch (error) {
+        return res.error(error);
+    }
+});
+
+ThesisController.get('/thesis/deadline', requireToken, async (req, res) => {
+    try {
+        const deadlines = await SubmissionDate.find();
+        return res.json(deadlines.reduce((p, v) => ({ ...p, [v.phase]: v.date }), {}));
+    } catch (error) {
+        return res.error(error);
+    }
+});
+
+ThesisController.post('/thesis/deadline', requireToken, transacted, async (req, res) => {
+    const { session } = req;
+    const { kind } = req.token;
+    const entries = req.body;
+    
+    try {
+        session.startTransaction();
+        if (kind.toLowerCase() !== 'administrator') throw new ServerError(403, 'Only administrators can adjust the thesis submission deadlines.');
+
+        for (const [phase, date] of Object.entries(entries)) {
+            const deadline = await SubmissionDate.findOne({ phase }).session(session);
+            if (deadline) {
+                deadline.date = date;
+                await deadline.save();
+            } else {
+                await SubmissionDate.create([{ phase, date }], { session });
+            }
+        }
+
+        await session.commitTransaction();
+
+        return res.sendStatus(204);
+    } catch (error) {
+        await session.abortTransaction();
         return res.error(error);
     }
 });
@@ -364,10 +403,15 @@ ThesisController.post('/thesis/:tid/submission', requireToken, upload.array('fil
 
     try {
         const thesis = await Thesis.findById(tid);
+        
         if (kind.toLowerCase() !== 'student') throw new ServerError(403, 'Only students can submit new files.');
         if (!thesis) throw new ServerError(404, 'Thesis not found');
         if (thesis.locked) throw new ServerError(403, 'Thesis is locked and cannot be edited.');
         if (!thesis.authors.find(e => e.toString() === accountID)) throw new ServerError(403, 'You cannot submit to a thesis in which you are not the author.');
+        
+        const deadline = await SubmissionDate.findOne({ phase: thesis.phase });
+        if (!deadline) throw new ServerError(403, 'Cannot submit thesis without deadline');
+        if (deadline.date.getTime() < Date.now()) throw new ServerError(403, 'Cannot submit thesis beyond deadline');
 
         let submission = null;
         if (req.files) {

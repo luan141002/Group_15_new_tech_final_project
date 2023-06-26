@@ -19,6 +19,11 @@ const DefenseService = {
     return await response.json();
   },
 
+  generateSlots: async (thesisID) => {
+    const response = await WebService.postJson(`/defense/schedule/${thesisID}`);
+    return await response.json();
+  },
+
   getDefenseSchedule: async (queries) => {
     const response = await WebService.get('/defenseweek', queries);
     return await response.json();
