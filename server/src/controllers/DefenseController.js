@@ -130,7 +130,13 @@ DefenseController.post('/defense/schedule/:tid', requireToken, async (req, res) 
                     }
                 }
             } else if (e2.format === 'custom') {
-                
+                const events = e2.value;
+                for (const event of events) {
+                    schedule.push({
+                        start: new Date(event.start.getTime()),
+                        end: new Date(event.end.getTime())
+                    });
+                }
             }
             
             return schedule;
