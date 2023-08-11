@@ -2,7 +2,6 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const transacted = require('../middleware/transacted');
 const ServerError = require('../utility/error');
-const mailer = require('../utility/mailer');
 const Account = require('../models/Account');
 const requireToken = require('../middleware/requireToken');
 
@@ -32,7 +31,7 @@ AccountController.post('/auth/login', async (req, res) => {
 
         const user = await Account.User.authenticate(email, password);
         const tokenInfo = buildTokenInfo(user);
-        const token = jwt.sign(tokenInfo, 'secret'); // TODO: change secret
+        const token = jwt.sign(tokenInfo, process.env.JWT_SECRET);
 
         return res.json({
             token: token,
@@ -57,8 +56,6 @@ AccountController.post('/auth/code', async (req, res) => {
 
         const user = await Account.User.findOne({ email, accessCode: code });
         if (!user) throw new ServerError(401, 'Invalid access code or email');
-        //const tokenInfo = buildTokenInfo(user);
-        //const token = jwt.sign(tokenInfo, 'secret'); // TODO: change secret
 
         user.password = password;
         user.activated = true;
@@ -88,13 +85,7 @@ AccountController.post('/auth/register', transacted, async (req, res) => {
             const token = jwt.sign({
                 exp: Math.floor(Date.now() / 1000) + (60 * validity),
                 data: { userID, email }
-            }, 'secret'); // TODO: change secret
-
-            await mailer.sendMail({
-                to: email,
-                subject: 'Complete your registration',
-                body: `<div><h1>Registration</h1><p><a href="${process.env.CLIENT_HOST}/auth/complete?token=${token}">Click here</a> to complete your registration.</div>`
-            });
+            }, process.env.JWT_SECRET);
         }
 
         await session.commitTransaction();
@@ -113,7 +104,7 @@ AccountController.post('/auth/verify', async (req, res) => {
         if (!password) throw new ServerError(400, 'error.validation.password', 'Password required', { field: 'password' });
         if (password !== repeat) throw new ServerError(400, 'error.validation.password_mismatch', 'Password mismatch', { field: 'repeat' });
 
-        const { data } = jwt.verify(token, 'secret'); // TODO: change secret
+        const { data } = jwt.verify(token, process.env.JWT_SECRET);
         const user = await Account.User.findOne({ /*idnum: data.userID,*/ email: data.email });
         if (!user) throw new ServerError(401, 'error.auth.verify_not_present', 'User does not exist');
 

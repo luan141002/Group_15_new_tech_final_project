@@ -78,14 +78,6 @@ AnnouncementController.get('/announcement', requireToken, async (req, res) => {
         }
 
         const announcements = await announcementsQuery;
-        if (!isQueryTrue(all)) {
-            /*const read = announcements.map(e => ({ announcement: e._id, account: accountID }));
-            try {
-                await AnnouncementRead.create(read);
-            } catch (err) {
-                // no error handling
-            }*/
-        }
 
         const results = {
             items: announcements.map(e => ({
