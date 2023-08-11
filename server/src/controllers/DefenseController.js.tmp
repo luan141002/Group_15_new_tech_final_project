@@ -36,7 +36,7 @@ DefenseController.get('/defense', requireToken, async (req, res) => {
             .populate(thesisPopulate)
             .populate('panelists.faculty');
 
-        return res.json(schedules.filter(e => e.thesis && e.thesis.status !== 'final').map(e => ({
+        return res.json(schedules.filter(e => e.thesis.status !== 'final').map(e => ({
             _id: e._id,
             start: e.start,
             end: e.end,
@@ -377,13 +377,17 @@ DefenseController.post('/defenseweek', requireToken, transacted, async (req, res
         session.startTransaction();
         
         for (const entry of entries) {
-            const { phase, dates } = entry;
-            const defenseWeek = await DefenseWeek.findOne({ phase }).session(session);
-            if (defenseWeek) {
-                defenseWeek.dates = dates;
-                await defenseWeek.save();
+            const { action, phase, subphase, dates } = entry;
+            if (action === 'delete') {
+                await DefenseWeek.deleteOne({ phase, subphase }).session(session);
             } else {
-                await DefenseWeek.create([{ phase, dates }], { session });
+                const defenseWeek = await DefenseWeek.findOne({ phase, subphase }).session(session);
+                if (defenseWeek) {
+                    defenseWeek.dates = dates;
+                    await defenseWeek.save();
+                } else {
+                    await DefenseWeek.create([{ phase, subphase, dates }], { session });
+                }
             }
         }
 

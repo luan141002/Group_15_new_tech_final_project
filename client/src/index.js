@@ -10,6 +10,7 @@ import localizedFormatPlugin from 'dayjs/plugin/localizedFormat';
 import relativeTimePlugin from 'dayjs/plugin/relativeTime';
 import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
 import isSameOrAfter from 'dayjs/plugin/isSameOrAfter';
+import utc from 'dayjs/plugin/utc';
 import i18next from 'i18next';
 import { initReactI18next } from "react-i18next";
 import en from './translations/en';
@@ -28,6 +29,7 @@ dayjs.extend(localizedFormatPlugin);
 dayjs.extend(relativeTimePlugin);
 dayjs.extend(isSameOrAfter)
 dayjs.extend(isSameOrBefore)
+dayjs.extend(utc)
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(

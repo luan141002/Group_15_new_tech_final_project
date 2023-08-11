@@ -16,7 +16,7 @@ import dayjs from 'dayjs';
 function AdjustScheduleDialog(props) {
   const { open, onClose } = props;
   const { t } = useTranslation();
-  const [schedules, setSchedules] = useState({ '1': '', '2': '', '3': '' });
+  const [schedules, setSchedules] = useState({ '1': [], '2': [], '3': [] });
   const [edit, setEdit] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -25,7 +25,9 @@ function AdjustScheduleDialog(props) {
     const list = await ThesisService.getDeadlines();
     //const obj = list.reduce((p, e) => ({ ...p, [e.phase.toString()]: e }), {});
     for (const key of Object.keys(list)) {
-      list[key] = list[key] ? list[key].substr(0, 16) : '';
+      for (let i = 0; i < list[key].length; i++) {
+        list[key][i] = list[key][i].substr(0, 16);
+      }
     }
 
     setSchedules(list);
@@ -88,7 +90,7 @@ function AdjustScheduleDialog(props) {
       setError('');
       load();
     } else {
-      setSchedules({ '1': '', '2': '', '3': '' });
+      setSchedules({ '1': [], '2': [], '3': [] });
     }
   }, [open]);
 
@@ -99,8 +101,24 @@ function AdjustScheduleDialog(props) {
     });
   };
 
+  const addEntry = (phase) => {
+    setSchedules(prev => {
+      const dates = [...prev[phase], ''];
+      return { ...prev, [phase]: dates };
+    });
+  };
+
+  const removeEntry = (phase, i) => {
+    console.log(`${phase}, ${i}`)
+    setSchedules(prev => {
+      const dates = [...prev[phase]];
+      dates.splice(i, 1);
+      return { ...prev, [phase]: dates };
+    });
+  };
+
   return (
-    <Modal show={open} animation={false} centered size='lg'>
+    <Modal show={open} animation={false} centered size='xl'>
       <Modal.Header>
         <Modal.Title>
           Adjust Deadlines
@@ -114,21 +132,58 @@ function AdjustScheduleDialog(props) {
               <Row>
                 <Col>
                   <p>{t('values.thesis_phase.1')}</p>
-                  <Form.Group className="mb-3" controlId="formPhase1">
-                    <Form.Control type='datetime-local' value={schedules['1']} onChange={e => setDate('1', e.currentTarget.value)} required disabled={saving} />
-                  </Form.Group>
+                  {
+                    schedules['1'].map((e, i)=> <>
+                      <Form.Group className="mb-3" controlId="formPhase1">
+                        <Row>
+                          <Col sm={8}>
+                            <Form.Control type='datetime-local' value={e} onChange={e => setDate('1', i, e.currentTarget.value)} required disabled={saving} />
+                          </Col>
+                          <Col sm={4}>
+                            <Button onClick={() => removeEntry('1', i)}>Delete</Button>
+                          </Col>
+                        </Row>
+                      </Form.Group>
+                    </>)
+                  }
+                  <Button onClick={() => addEntry('1')}>Add</Button>
                 </Col>
                 <Col>
                   <p>{t('values.thesis_phase.2')}</p>
-                  <Form.Group className="mb-3" controlId="formPhase2">
-                    <Form.Control type='datetime-local' value={schedules['2']} onChange={e => setDate('2', e.currentTarget.value)} required disabled={saving} />
-                  </Form.Group>
+                  {
+                    schedules['2'] ? schedules['2'].map((e, i) => <>
+                      <Form.Group className="mb-3" controlId="formPhase2">
+                        <Row>
+                          <Col sm={8}>
+                            <Form.Control type='datetime-local' value={e} onChange={e => setDate('2', i, e.currentTarget.value)} required disabled={saving} />
+                          </Col>
+                          <Col sm={4}>
+                            <Button onClick={() => removeEntry('2', i)}>Delete</Button>
+                          </Col>
+                        </Row>
+                      </Form.Group>
+                    </>) : <>
+                    </>
+                  }
+                  <Button onClick={() => addEntry('2')}>Add</Button>
                 </Col>
                 <Col>
                   <p>{t('values.thesis_phase.3')}</p>
-                  <Form.Group className="mb-3" controlId="formPhase3">
-                    <Form.Control type='datetime-local' value={schedules['3']} onChange={e => setDate('3', e.currentTarget.value)} required disabled={saving} />
-                  </Form.Group>
+                  {
+                    schedules['3'] ? schedules['3'].map((e, i) => <>
+                      <Form.Group className="mb-3" controlId="formPhase3">
+                        <Row>
+                          <Col sm={8}>
+                            <Form.Control type='datetime-local' value={e} onChange={e => setDate('3', i, e.currentTarget.value)} required disabled={saving} />
+                          </Col>
+                          <Col sm={4}>
+                            <Button onClick={() => removeEntry('3', i)}>Delete</Button>
+                          </Col>
+                        </Row>
+                      </Form.Group>
+                    </>) : <></>
+                  }
+                  <Button onClick={() => addEntry('3')}>Add</Button>
                 </Col>
               </Row>
             </>
@@ -136,15 +191,27 @@ function AdjustScheduleDialog(props) {
             <Row>
               <Col>
                 <p>{t('values.thesis_phase.1')}</p>
-                <p>{dayjs(schedules['1']).format('LLL') || <><span style={{fontStyle: 'italic'}}>None</span></>}</p>
+                {
+                  schedules['1'].length > 0 ?
+                    <>{schedules['1'].map(e => (<p>{dayjs(e).format('LLL')}</p>))}</> :
+                    <p><span style={{fontStyle: 'italic'}}>None</span></p>
+                }
               </Col>
               <Col>
                 <p>{t('values.thesis_phase.2')}</p>
-                <p>{dayjs(schedules['2']).format('LLL') || <><span style={{fontStyle: 'italic'}}>None</span></>}</p>
+                {
+                  schedules['2'].length > 0 ?
+                    <>{schedules['2'].map(e => (<p>{dayjs(e).format('LLL')}</p>))}</> :
+                    <p><span style={{fontStyle: 'italic'}}>None</span></p>
+                }
               </Col>
               <Col>
                 <p>{t('values.thesis_phase.3')}</p>
-                <p>{dayjs(schedules['3']).format('LLL') || <><span style={{fontStyle: 'italic'}}>None</span></>}</p>
+                {
+                  schedules['3'].length > 0 ?
+                    <>{schedules['3'].map(e => (<p>{dayjs(e).format('LLL')}</p>))}</> :
+                    <p><span style={{fontStyle: 'italic'}}>None</span></p>
+                }
               </Col>
             </Row>
         }

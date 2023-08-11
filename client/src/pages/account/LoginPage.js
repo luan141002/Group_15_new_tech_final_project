@@ -54,7 +54,8 @@ function LoginPage() {
             <Form.Control type='password' value={password} onChange={e => setPassword(e.target.value)} />
           </Form.Group>
           { error && <Alert variant='danger' dismissible>{error}</Alert> }
-          <p>No account? <Link to='/auth/register'>Register here</Link>.</p>
+          {/*<p>No account? <Link to='/auth/register'>Register here</Link>.</p>*/}
+          <p><Link to='/auth/code'>Activate with access code</Link></p>
           <Button variant='primary' type='submit'>Sign in</Button>
         </Form>
       </Card.Body>

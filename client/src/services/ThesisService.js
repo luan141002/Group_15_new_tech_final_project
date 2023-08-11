@@ -30,6 +30,11 @@ const ThesisService = {
     return await response.blob();
   },
 
+  exportProjects: async () => {
+    const response = await WebService.get(`/thesis/export`);
+    return await response.blob();
+  },
+
   /**
    * Creates a new thesis entry.
    * @param {{title: string, description?: string, authors: {_id:string}[], advisers: {_id:string}[], attachments?: File[]}} thesis 

@@ -262,7 +262,7 @@ AccountController.post('/account', requireToken, transacted, async (req, res) =>
         const distribution = randomjs.integer(1, 999999);
 
         for (let i = 0; i < entries.length; i++) {
-            const { email, lastName, firstName, middleName, kind } = entries[i];
+            const { email, lastName, firstName, middleName, password, kind } = entries[i];
             if (!email) errors.push({ fieldName: 'email', index: i, message: 'Email address is required' });
             if (!lastName) errors.push({ fieldName: 'lastName', index: i, message: 'Last name is required' });
             if (!firstName) errors.push({ fieldName: 'firstName', index: i, message: 'First name is required' });
@@ -302,6 +302,8 @@ AccountController.post('/account', requireToken, transacted, async (req, res) =>
                     lastName,
                     firstName,
                     middleName,
+                    password: password || undefined,
+                    activated: !!password,
                     accessCode: distribution(engine).toString().padStart(6, '0')
                 }], { session });
     
@@ -345,8 +347,14 @@ AccountController.patch('/account/:id', requireToken, transacted, upload.single(
         const account = await Account.User.findById(id);
         if (!account) throw new ServerError(404, 'Account not found');
 
-        if (isCurrentUser || isAdmin) {
-            const { currentPassword, newPassword, retypePassword, schedules } = req.body;
+        if (isAdmin) {
+            const { lastName, firstName, middleName, newPassword } = req.body;
+            if (lastName) account.lastName = lastName;
+            if (firstName) account.firstName = firstName;
+            if (middleName) account.middleName = middleName;
+            account.password = newPassword;
+        } else if (isCurrentUser) {
+            const { currentPassword, newPassword, retypePassword } = req.body;
             if (newPassword) {
                 if (!currentPassword) throw new ServerError(400, 'error.validation.current_password', 'Current password is required');
                 if (!retypePassword) throw new ServerError(400, 'error.validation.retype_password', 'Password must be retyped');

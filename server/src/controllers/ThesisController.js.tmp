@@ -226,13 +226,10 @@ ThesisController.post('/thesis/deadline', requireToken, transacted, async (req, 
         session.startTransaction();
         if (kind.toLowerCase() !== 'administrator') throw new ServerError(403, 'Only administrators can adjust the thesis submission deadlines.');
 
-        for (const [phase, date] of Object.entries(entries)) {
-            const deadline = await SubmissionDate.findOne({ phase }).session(session);
-            if (deadline) {
-                deadline.date = date;
-                await deadline.save();
-            } else {
-                await SubmissionDate.create([{ phase, date }], { session });
+        await SubmissionDate.deleteMany({}).session(session);
+        for (const [phase, dates] of Object.entries(entries)) {
+            for (let i = 0; i < dates.length; i++) {
+                await SubmissionDate.create([{ phase, subphase: i, date: dates[i] }]);
             }
         }
 

@@ -6,6 +6,10 @@ const AnnouncementService = {
     return await response.json();
   },
 
+  readAnnouncement: async (id) => {
+    await WebService.post(`/announcement/${id}/read`);
+  },
+
   createAnnouncement: async (announcement) => {
     const response = await WebService.postJson('/announcement', announcement);
     return await response.json();

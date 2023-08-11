@@ -23,6 +23,8 @@ function AnnouncementsPage() {
   const navigate = useNavigate();
   const { t } = useTranslation();
 
+  const [loading, setLoading] = useState(false);
+
   // Announcement list and pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(5);
@@ -40,13 +42,23 @@ function AnnouncementsPage() {
   const [saving, setSaving] = useState(false);
   const [title, setTitle] = useState('');
   const [text, setText] = useState('');
+  const [fromDate, setFromDate] = useState('');
+  const [fromTime, setFromTime] = useState('');
+  const [toDate, setToDate] = useState('');
+  const [toTime, setToTime] = useState('');
+  const [phase, setPhase] = useState('');
   const [error, setError] = useState('');
   const [deleteID, setDeleteID] = useState('');
 
   const load = async () => {
-    const results = await loadAnnouncements(currentPage, itemsPerPage);
-    setAnnouncements(results.items);
-    setTotalPages(results.totalPages);
+    try {
+      setLoading(true);
+      const results = await loadAnnouncements(currentPage, itemsPerPage);
+      setAnnouncements(results.items);
+      setTotalPages(results.totalPages);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -66,10 +78,13 @@ function AnnouncementsPage() {
     e.preventDefault();
     try {
       setSaving(true);
+      const from = fromDate && fromTime ? new Date(`${fromDate}T${fromTime}`).getTime() : null;
+      const to = toDate && toTime ? new Date(`${toDate}T${toTime}`).getTime() : null;
+      const _phase = phase ? Number.parseInt(phase) : null;
       if (updateID) {
-        await AnnouncementService.updateAnnouncement(updateID, { title, text });
+        await AnnouncementService.updateAnnouncement(updateID, { title, text, from, to, phase: _phase });
       } else {
-        await AnnouncementService.createAnnouncement({ title, text });
+        await AnnouncementService.createAnnouncement({ title, text, from, to, phase: _phase });
       }
       setCurrentPage(1);
       await load();
@@ -105,6 +120,11 @@ function AnnouncementsPage() {
     setUpdateID('');
     setTitle('');
     setText('');
+    setFromDate('');
+    setFromTime('');
+    setToDate('');
+    setToTime('');
+    setPhase('');
     setError('');
     setAnnouncementDialog(true);
   };
@@ -113,6 +133,23 @@ function AnnouncementsPage() {
     setUpdateID(e._id);
     setTitle(e.title);
     setText(e.text);
+    if (e.from) {
+      const from = dayjs(e.from);
+      setFromDate(from.local().format('YYYY-MM-DD'));
+      setFromTime(from.local().format('HH:mm'));
+    } else {
+      setFromDate('');
+      setFromTime('');
+    }
+    if (e.to) {
+      const to = dayjs(e.to);
+      setToDate(to.local().format('YYYY-MM-DD'));
+      setToTime(to.local().format('HH:mm'));
+    } else {
+      setToDate('');
+      setToTime('');
+    }
+    setPhase(e.phase ? e.phase.toString() : '');
     setError('');
     setAnnouncementDialog(true);
   };
@@ -144,45 +181,48 @@ function AnnouncementsPage() {
         </Col>
       </Row>
       {
-        announcements && announcements.length > 0 ?
-          announcements.map(e => (
-            <Card className='mb-4'>
-              <Card.Body>
-                <Card.Title>
-                  <Row>
-                    <Col className='d-flex flex-row align-items-middle'>
-                      <span>{e.title}</span>
-                    </Col>
-                    <Col className='d-flex flex-column align-items-end'>
-                      <div className='d-flex flex-row align-items-center'>
-                        {
-                          account.kind === 'administrator' &&
-                            <>
-                              <Button className='p-0' variant='light' onClick={() => openUpdateDialog(e)}>
-                                <Pencil />
-                              </Button>
-                              <Button className='p-0' variant='light' onClick={() => tryDeleteAnnouncement(e._id)}>
-                                <Trash />
-                              </Button>
-                            </>
-                        }
-                      </div>
-                    </Col>
-                  </Row>
-                </Card.Title>
-                <Card.Subtitle className='text-muted'>
-                  {dayjs(e.sent).format('LLL')}
-                </Card.Subtitle>
-                <Card.Text>
-                  <div style={{ whiteSpace: 'pre-wrap' }}>
-                    {e.text}
-                  </div>
-                </Card.Text>
-              </Card.Body>
-            </Card>
-          ))
+        loading ?
+          <p>Loading announcements.</p>
           :
-          <p>There are no announcements.</p>
+          announcements && announcements.length > 0 ?
+            announcements.map(e => (
+              <Card className='mb-4'>
+                <Card.Body>
+                  <Card.Title>
+                    <Row>
+                      <Col className='d-flex flex-row align-items-middle'>
+                        <span>{e.title}</span>
+                      </Col>
+                      <Col className='d-flex flex-column align-items-end'>
+                        <div className='d-flex flex-row align-items-center'>
+                          {
+                            account.kind === 'administrator' &&
+                              <>
+                                <Button variant='secondary' onClick={() => openUpdateDialog(e)}>
+                                  Edit
+                                </Button>
+                                <Button className='ms-2' variant='secondary' onClick={() => tryDeleteAnnouncement(e._id)}>
+                                  Delete
+                                </Button>
+                              </>
+                          }
+                        </div>
+                      </Col>
+                    </Row>
+                  </Card.Title>
+                  <Card.Subtitle className='text-muted'>
+                    {dayjs(e.sent).format('LLL')}
+                  </Card.Subtitle>
+                  <Card.Text>
+                    <div style={{ whiteSpace: 'pre-wrap' }}>
+                      {e.text}
+                    </div>
+                  </Card.Text>
+                </Card.Body>
+              </Card>
+            ))
+            :
+            <p>There are no announcements.</p>
       }
       {
         announcements && announcements.length > 0 && (
@@ -211,11 +251,68 @@ function AnnouncementsPage() {
                     disabled={saving}
                   />
                 </Form.Group>
+                <Row>
+                  <Col>
+                    <Form.Group className="mb-3" controlId="formFrom">
+                      <Form.Label>From</Form.Label>
+                      <Row>
+                        <Col>
+                          <Form.Control
+                            type='date'
+                            value={fromDate}
+                            onChange={e => setFromDate(e.currentTarget.value)}
+                            disabled={saving}
+                          />
+                        </Col>
+                        <Col>
+                          <Form.Control
+                            type='time'
+                            value={fromTime}
+                            onChange={e => setFromTime(e.currentTarget.value)}
+                            disabled={saving}
+                          />
+                        </Col>
+                      </Row>
+                    </Form.Group>
+                  </Col>
+                  <Col>
+                    <Form.Group className="mb-3" controlId="formTo">
+                      <Form.Label>To</Form.Label>
+                      <Row>
+                        <Col>
+                          <Form.Control
+                            type='date'
+                            value={toDate}
+                            onChange={e => setToDate(e.currentTarget.value)}
+                            disabled={saving}
+                          />
+                        </Col>
+                        <Col>
+                          <Form.Control
+                            type='time'
+                            value={toTime}
+                            onChange={e => setToTime(e.currentTarget.value)}
+                            disabled={saving}
+                          />
+                        </Col>
+                      </Row>
+                    </Form.Group>
+                  </Col>
+                </Row>
+                <Form.Group className="mb-3" controlId="formPhase">
+                  <Form.Label>Phase</Form.Label>
+                  <Form.Select value={phase} onChange={e => setPhase(e.currentTarget.value)} disabled={saving}>
+                    <option value=''>All phases</option>
+                    <option value='1'>{t('values.thesis_phase.1')}</option>
+                    <option value='2'>{t('values.thesis_phase.2')}</option>
+                    <option value='3'>{t('values.thesis_phase.3')}</option>
+                  </Form.Select>
+                </Form.Group>
                 <Form.Group className="mb-3" controlId="formBody">
                   <Form.Label>Body</Form.Label>
                   <Form.Control
                     as='textarea'
-                    rows={10}
+                    rows={7}
                     value={text}
                     onChange={e => setText(e.currentTarget.value)}
                     disabled={saving}

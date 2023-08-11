@@ -42,7 +42,7 @@ AccountController.post('/auth/login', async (req, res) => {
         return res.error(error, 'Could not sign in.');
     }
 });
-/*
+
 AccountController.post('/auth/code', async (req, res) => {
     const { email, code, password, repeat } = req.body;
 
@@ -55,20 +55,21 @@ AccountController.post('/auth/code', async (req, res) => {
             if (password !== repeat) throw new ServerError(400, 'error.validation.password_mismatch', 'Password mismatch', { field: 'repeat' });
         }
 
-        const user = await Account.findOne({ email, accessCode: code });
+        const user = await Account.User.findOne({ email, accessCode: code });
         if (!user) throw new ServerError(401, 'Invalid access code or email');
-        const tokenInfo = buildTokenInfo(user);
-        const token = jwt.sign(tokenInfo, 'secret'); // TODO: change secret
+        //const tokenInfo = buildTokenInfo(user);
+        //const token = jwt.sign(tokenInfo, 'secret'); // TODO: change secret
 
-        return res.json({
-            token: token,
-            data: tokenInfo.data
-        });
+        user.password = password;
+        user.activated = true;
+        await user.save();
+
+        return res.sendStatus(204);
     } catch (error) {
         return res.error(error, 'Could not sign in.');
     }
 });
-*/
+
 AccountController.post('/auth/token', requireToken, async (req, res) => {
     return res.json(req.token);
 });

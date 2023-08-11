@@ -280,9 +280,9 @@ function ThesisEditor(props) {
                 <Form.Group className="mb-3" controlId="formPhase">
                   <Form.Label className='fw-bold'>Phase</Form.Label>
                   <Form.Select value={phase} onChange={e => setPhase(e.currentTarget.value)}>
-                    <option value='1'>First</option>
-                    <option value='2'>Second</option>
-                    <option value='3'>Third</option>
+                    <option value='1'>{t('values.thesis_phase.1')}</option>
+                    <option value='2'>{t('values.thesis_phase.2')}</option>
+                    <option value='3'>{t('values.thesis_phase.3')}</option>
                   </Form.Select>
                 </Form.Group>
               </Col>

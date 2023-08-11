@@ -35,9 +35,9 @@ const en = {
       declined: 'Declined'
     },
     thesis_phase: {
-      '1': 'First',
-      '2': 'Second',
-      '3': 'Third'
+      '1': 'THS-ST1',
+      '2': 'THS-ST2',
+      '3': 'THS-ST3'
     },
     full_name: '{{lastName}}, {{firstName}}',
     full_name_regular: '{{firstName}} {{lastName}}',

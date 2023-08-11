@@ -19,7 +19,7 @@ const app = express();
 const DEFAULT_PORT = 8550;
 
 if (process.env.USE_CORS) app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: 1048576 * 10 }));
 
 app.use((req, res, next) => {
     res.error = require('./utility/errorResponse');

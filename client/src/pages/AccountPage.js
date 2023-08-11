@@ -21,6 +21,7 @@ function AccountPage() {
   const [lastName, setLastName] = useState('');
   const [firstName, setFirstName] = useState('');
   const [middleName, setMiddleName] = useState('');
+  const [password, setPassword] = useState(''); // TODO: fix registration
   const [accessCode, setAccessCode] = useState('');
   const [type, setType] = useState('');
   const [locked, setLocked] = useState(false);
@@ -51,16 +52,38 @@ function AccountPage() {
     }
   };
 
+  const handleCopy = () => {
+    navigator.clipboard.writeText(accessCode);
+  };
+
   const handleSave = async (e) => {
     e.preventDefault();
     if (!aid) {
       try {
         setSaving(true);
-        const account = await AccountService.createAccount({ email, lastName, firstName, middleName, kind: type });
+        const account = await AccountService.createAccount({ email, lastName, firstName, middleName, password, kind: type });
         if (backToList) {
           pushNotification({
             title: 'Account created',
             message: `Account ${t('values.full_name', { firstName, lastName })} has been created.`
+          });
+          navigate('/account', { replace: true });
+        } else {
+          navigate(`/account/${account._id}`, { replace: true });
+        }
+      } catch (error) {
+        setError(error.code ? t(error.code) : error.message);
+      } finally {
+        setSaving(false);
+      }
+    } else {
+      try {
+        setSaving(true);
+        const account = await AccountService.updateAccount(aid, { lastName, firstName, middleName, newPassword: password });
+        if (backToList) {
+          pushNotification({
+            title: 'Account updated',
+            message: `Account ${t('values.full_name', { firstName, lastName })} has been updated.`
           });
           navigate('/account', { replace: true });
         } else {
@@ -127,6 +150,10 @@ function AccountPage() {
               <Form.Label>Middle Name</Form.Label>
               <Form.Control type="text" value={middleName} onChange={e => setMiddleName(e.currentTarget.value)} />
             </Form.Group>
+            <Form.Group className="mb-3" controlId="formMiddleName">
+              <Form.Label>Password</Form.Label>
+              <Form.Control type="text" value={password} onChange={e => setPassword(e.currentTarget.value)} />
+            </Form.Group>
             {
               !isNew && (
                 <Form.Group className="mb-3" controlId="formAccessCode">
@@ -136,7 +163,7 @@ function AccountPage() {
                       <Form.Control type='text' value={accessCode} disabled readOnly />
                     </Col>
                     <Col>
-                      <Button>Copy to clipboard</Button>
+                      <Button className='me-2' onClick={handleCopy}>Copy to clipboard</Button>
                     </Col>
                   </Row>
                 </Form.Group>

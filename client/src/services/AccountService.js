@@ -36,6 +36,9 @@ const AccountService = {
 
   updateAccount: async (accountID, values) => {
     const form = new FormData();
+    if (values.lastName) form.append('lastName', values.lastName);
+    if (values.firstName) form.append('firstName', values.firstName);
+    if (values.middleName) form.append('middleName', values.middleName);
     if (values.newPassword) form.append('newPassword', values.newPassword);
     if (values.currentPassword) form.append('currentPassword', values.currentPassword);
     if (values.retypePassword) form.append('retypePassword', values.retypePassword);
@@ -43,7 +46,7 @@ const AccountService = {
       form.append('photo', values.photo);
     }
 
-    const removes = [];
+    /*const removes = [];
     if (values.schedule) {
       for (const entry of values.schedule) {
         if (entry.mode === 'add') {
@@ -53,7 +56,7 @@ const AccountService = {
         }
       }
     }
-    form.append('scheduleRemove', JSON.stringify(removes));
+    form.append('scheduleRemove', JSON.stringify(removes));*/
     
     await WebService.patchForm(`/account/${accountID}`, form);
   },

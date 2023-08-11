@@ -82,20 +82,23 @@ function MainLayout() {
           { name: 'Defense', path: '/defense' },
           { name: 'Announcements', path: '/announcement' },
           { name: 'Thesis Projects', path: '/thesis' },
-          { name: 'Accounts', path: '/account' }
+          { name: 'Accounts', path: '/account' },
+          { name: 'Schedule', path: '/schedule' }
         ];
       case 'faculty':
         return [
           { name: 'Home', path: '/' },
           { name: 'Defense', path: '/defense' },
-          { name: 'Thesis Projects', path: '/thesis' }
+          { name: 'Thesis Projects', path: '/thesis' },
+          { name: 'Schedule', path: '/schedule' }
         ];
       case 'student':
       default:
         return [
           { name: 'Home', path: '/' },
           { name: 'Defense', path: '/defense' },
-          { name: 'My Thesis', path: '/thesis/my' }
+          { name: 'My Thesis', path: '/thesis/my' },
+          { name: 'Schedule', path: '/schedule' }
         ];
     }
   }

@@ -11,7 +11,7 @@ const ThesisSchema = new Schema({
     locked: { type: Boolean, required: true, default: false },                                  // Whether further changes to the thesis are allowed
     phase: { type: Number, required: true, default: 1 },                                        // Phase number of the thesis
     
-    // Grades given to the thesis group
+    // Grades given to the thesis group (deprecated in favor of individual grading)
     grades: [{
         value: { type: Number, required: true },                            // Grade given
         date: { type: Date, required: true, default: Date.now },            // Date graded
@@ -36,7 +36,22 @@ const ThesisSchema = new Schema({
         ],
         default: 'new'
     },
+    endorse_subphase: Number,
     
+    adviser_approval: [
+        {
+            adviser: { type: Schema.Types.ObjectId, ref: 'Faculty', required: true },
+            status: {
+                type: String,
+                enum: [
+                    'pending',
+                    'approved',
+                    'denied'
+                ],
+                default: 'pending'
+            }
+        }
+    ],
     approved: { type: Boolean, required: true, default: true }              // For student-created theses, whether approved by an admin
 });
 

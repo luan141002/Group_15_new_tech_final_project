@@ -20,6 +20,10 @@ AnnouncementController.get('/announcement', requireToken, async (req, res) => {
         if (!isQueryTrue(all)) {
             const allRead = await AnnouncementRead.find({ account: accountID });
             $and.push({ _id: { $nin: allRead.map(e => e.announcement.toString()) } });
+
+            const now = Date.now();
+            $and.push({ $or: [ { from: null }, { from: { $lt: now } } ] });
+            $and.push({ $or: [ { to: null }, { to: { $gt: now } } ] });
         }
 
         if (!isQueryTrue(all) || kind !== 'administrator') {
@@ -31,11 +35,11 @@ AnnouncementController.get('/announcement', requireToken, async (req, res) => {
                     $and.push({ filterPhase: null });
                 }
             }
-            $and.push({ filterTypes: kind });
+            //$and.push({ filterTypes: kind });
         }
 
         if ($and.length > 0) query.$and = $and;
-
+        
         const count = await Announcement.countDocuments(query);
         let isPaginated = false;
         let nItems = 10;
@@ -75,12 +79,12 @@ AnnouncementController.get('/announcement', requireToken, async (req, res) => {
 
         const announcements = await announcementsQuery;
         if (!isQueryTrue(all)) {
-            const read = announcements.map(e => ({ announcement: e._id, account: accountID }));
+            /*const read = announcements.map(e => ({ announcement: e._id, account: accountID }));
             try {
                 await AnnouncementRead.create(read);
             } catch (err) {
                 // no error handling
-            }
+            }*/
         }
 
         const results = {
@@ -94,6 +98,9 @@ AnnouncementController.get('/announcement', requireToken, async (req, res) => {
                 },
                 title: e.title,
                 text: e.text,
+                from: e.from,
+                to: e.to,
+                phase: e.filterPhase,
                 sent: e.sent
             }))
         };
@@ -113,7 +120,7 @@ AnnouncementController.get('/announcement', requireToken, async (req, res) => {
 AnnouncementController.post('/announcement', requireToken, transacted, async (req, res) => {
     const { session } = req;
     const { accountID, kind, lastName, firstName, middleName } = req.token;
-    const { title, text } = req.body;
+    const { title, text, from, to, phase } = req.body;
 
     try {
         session.startTransaction();
@@ -122,7 +129,10 @@ AnnouncementController.post('/announcement', requireToken, transacted, async (re
         const announcement = await Announcement.create({
             author: accountID,
             title,
-            text
+            text,
+            from,
+            to,
+            filterPhase: phase
         });
 
         await session.commitTransaction();
@@ -144,11 +154,29 @@ AnnouncementController.post('/announcement', requireToken, transacted, async (re
     }
 });
 
+AnnouncementController.post('/announcement/:id/read', requireToken, transacted, async (req, res) => {
+    const { session } = req;
+    const { id } = req.params;
+    const { accountID } = req.token;
+
+    try {
+        session.startTransaction();
+
+        await AnnouncementRead.create({ announcement: id, account: accountID });
+        await session.commitTransaction();
+
+        return res.sendStatus(204);
+    } catch (error) {
+        await session.abortTransaction();
+        return res.sendStatus(204); // It is not an error if this happens
+    }
+});
+
 AnnouncementController.put('/announcement/:id', requireToken, transacted, async (req, res) => {
     const { session } = req;
     const { id } = req.params;
     const { kind } = req.token;
-    const { title, text } = req.body;
+    const { title, text, from, to, phase } = req.body;
 
     try {
         if (kind !== 'administrator') throw new ServerError(403, 'You must be an administrator to delete announcements');
@@ -158,6 +186,9 @@ AnnouncementController.put('/announcement/:id', requireToken, transacted, async 
 
         announcement.title = title;
         announcement.text = text;
+        announcement.from = from;
+        announcement.to = to;
+        announcement.filterPhase = phase;
         await announcement.save();
 
         await session.commitTransaction();

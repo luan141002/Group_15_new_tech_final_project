@@ -3,15 +3,13 @@ import Button from 'react-bootstrap/Button';
 import Card from 'react-bootstrap/Card';
 import Col from 'react-bootstrap/Col';
 import Row from 'react-bootstrap/Row';
-import { X } from 'react-bootstrap-icons';
 import { useTranslation } from 'react-i18next';
 import { LinkContainer } from 'react-router-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
-import dayjs from 'dayjs';
 import DefenseCalendar from '../../components/DefenseCalendar';
 import DefenseSummaryDialog from '../../components/DefenseSummaryDialog';
 import ThesisTable from '../../components/ThesisTable';
-import AnnouncementService from '../../services/AnnouncementService';
+import AnnouncementSection from '../../components/AnnouncementSection';
 import DefenseService from '../../services/DefenseService';
 import ThesisService from '../../services/ThesisService';
 
@@ -19,7 +17,6 @@ function DashboardPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [theses, setTheses] = useState([]);
-  const [announcements, setAnnouncements] = useState({ items: [] });
   const [defenses, setDefenses] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -42,22 +39,11 @@ function DashboardPage() {
   const onLoad = async () => {
     try {
       setLoading(true);
-      setAnnouncements(await AnnouncementService.getAnnouncements());
       setTheses(await ThesisService.getTheses());
       setDefenses(await DefenseService.getDefenses());
     } finally {
       setLoading(false);
     }
-  };
-
-  const dismissAnnouncement = id => {
-    setAnnouncements(prev => {
-      const { items, ...rest } = prev;
-      return {
-        items: items.filter(e => e._id !== id),
-        ...rest
-      }
-    });
   };
 
   useEffect(() => {
@@ -68,31 +54,7 @@ function DashboardPage() {
     <>
       <Row>
         <Col sm={8}>
-          {
-            announcements.items && announcements.items.length > 0 &&
-              <Card className='mb-4'>
-                <Card.Body>
-                  <Card.Title>Announcements</Card.Title>
-                  <Card.Text>
-                    {
-                      announcements.items.map(e => (
-                        <>
-                          <hr />
-                          <div className='clearfix'>
-                            <h4 className='float-start'>{e.title}</h4>
-                            <Button variant='light' className='float-end' onClick={() => dismissAnnouncement(e._id)}>
-                              <span style={{ verticalAlign: 'super' }}><X /></span>
-                            </Button>
-                          </div>
-                          <h6 className='text-muted'>{dayjs(e.sent).format('LLL')}</h6>
-                          <p>{e.text}</p>
-                        </>
-                      ))
-                    }
-                  </Card.Text>
-                </Card.Body>
-              </Card>
-          }
+          <AnnouncementSection />
           <Card className='mb-4'>
             <Card.Body>
               <Card.Title>Theses to be checked</Card.Title>

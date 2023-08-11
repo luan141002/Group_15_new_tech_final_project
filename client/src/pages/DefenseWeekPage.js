@@ -525,7 +525,7 @@ function AdjustScheduleDialog(props) {
     <Modal show={open} animation={false} centered size='lg'>
       <Modal.Header>
         <Modal.Title>
-          Adjust Schedule
+          Defense Week Schedule
         </Modal.Title>
       </Modal.Header>
       <Modal.Body>
@@ -538,9 +538,9 @@ function AdjustScheduleDialog(props) {
                   <Form.Group className="mb-3" controlId="formPhase">
                     <Form.Label>Phase</Form.Label>
                     <Form.Select value={phase} onChange={e => setPhase(e.currentTarget.value)}>
-                      <option value='1'>First</option>
-                      <option value='2'>Second</option>
-                      <option value='3'>Third</option>
+                      <option value='1'>{t('values.thesis_phase.1')}</option>
+                      <option value='2'>{t('values.thesis_phase.2')}</option>
+                      <option value='3'>{t('values.thesis_phase.3')}</option>
                     </Form.Select>
                   </Form.Group>
                   <p>Currently editing the <span className='fw-bold'>{t(`values.thesis_phase.${phase}`)}</span> phase</p>
@@ -569,7 +569,7 @@ function AdjustScheduleDialog(props) {
             :
             <Row>
               <Col>
-                <p>First Phase</p>
+                <p>{t('values.thesis_phase.1')}</p>
                 <ul>
                   {
                     schedule['1'] && renderDates(schedule['1']) ?
@@ -582,7 +582,7 @@ function AdjustScheduleDialog(props) {
                 </ul>
               </Col>
               <Col>
-                <p>Second Phase</p>
+                <p>{t('values.thesis_phase.2')}</p>
                 <ul>
                   {
                     schedule['2'] && renderDates(schedule['2']) ?
@@ -595,7 +595,7 @@ function AdjustScheduleDialog(props) {
                 </ul>
               </Col>
               <Col>
-                <p>Third Phase</p>
+                <p>{t('values.thesis_phase.3')}</p>
                 <ul>
                   {
                     schedule['3'] && renderDates(schedule['3']) ?
@@ -614,7 +614,7 @@ function AdjustScheduleDialog(props) {
         { edit && <Button disabled={saving} onClick={handleSave}>Save changes</Button> }
         { edit && <Button disabled={saving} variant='secondary' onClick={() => setEdit(false)}>Discard changes</Button> }
         { !edit && <Button onClick={handleStartEdit}>Start editing</Button> }
-        <Button variant='secondary' disabled={saving} onClick={handleClose}>Cancel</Button>
+        <Button variant='secondary' disabled={saving} onClick={handleClose}>Back</Button>
       </Modal.Footer>
     </Modal>
   );
@@ -623,15 +623,12 @@ function AdjustScheduleDialog(props) {
 function GenerateDefenseDialog(props) {
   const { account } = useAccount();
   const { t } = useTranslation();
-  const { open, event, error, onCancel, onAction } = props;
+  const { defenseDates, studentThesis, open, event, error, onCancel, onAction, onGenerate } = props;
   const [_error, _setError] = useState('');
   const [saving, setSaving] = useState(false);
 
   const [thesis, setThesis] = useState(null);
   const [description, setDescription] = useState('');
-  const [date, setDate] = useState('');
-  const [startTime, setStartTime] = useState('');
-  const [endTime, setEndTime] = useState('');
   const [panelists, setPanelists] = useState([]);
   const [phase, setPhase] = useState(undefined);
   const edit = !event || event.action === 'create';
@@ -641,6 +638,8 @@ function GenerateDefenseDialog(props) {
   const [selectedFaculty, setSelectedFaculty] = useState([]);
 
   const [generated, setGenerated] = useState([]);
+  const [schedules, setSchedules] = useState([]);
+  const calendarRef = useRef(null);
 
   const handleSubmit = async e => {
     const form = e.currentTarget;
@@ -657,54 +656,14 @@ function GenerateDefenseDialog(props) {
         _setError('The thesis must be selected from the search dropdown list.');
         return;
       }
-
-      /*const djNow = dayjs();
-      const djStart = dayjs(`${date}T${startTime}`);
-      const djEnd = dayjs(`${date}T${endTime}`);
-      const djMin = dayjs(`${date}T${minTime}`);
-      const djMax = dayjs(`${date}T${maxTime}`);
-  
-      if (djStart.isSameOrAfter(djEnd)) {
-        _setError('Start time must be earlier than end time.');
-        //setDialogValidated(true);
-        return;
-      }
-  
-      if (djNow.isAfter(djStart)) {
-        _setError('Cannot schedule a defense in the past.');
-        //setDialogValidated(true);
-        return;
-      }
-  
-      if (djMin.isAfter(djStart) ||
-          djMin.isAfter(djEnd) ||
-          djMax.isBefore(djStart) ||
-          djMax.isBefore(djEnd)) {
-        _setError(`Event must be within ${djMin.format('LT')} and ${djMax.format('LT')}.`);
-        //setDialogValidated(true);
-        return;
-      }
-
-      if (validDates && !validDates.includes(date)) {
-        _setError('Event must be within the dates designated by the administrator.');
-        return;
-      }
-  
-      const start = new Date(`${date}T${startTime}`);
-      const end = new Date(`${date}T${endTime}`);
-
-      const action = event ? 'update' : 'create';
+      
       setSaving(true);
       try {
-        const result = onAction(action, {
-          _id: event ? event._id : undefined,
-          thesis: studentThesis || thesis,
-          description,
-          start,
-          end,
-          phase,
+        const result = onAction({
+          thesis,
           panelists,
-          status: account && account.kind === 'administrator' ? 'confirmed' : undefined
+          schedules,
+          status: 'confirmed'
         });
         if (result && result.then) {
           await result;
@@ -713,7 +672,7 @@ function GenerateDefenseDialog(props) {
         _setError(error.code ? t(error.code) : error.message);
       } finally {
         setSaving(false);
-      }*/
+      }
     }
   };
 
@@ -768,9 +727,24 @@ function GenerateDefenseDialog(props) {
   const handleGenerate = async () => {
     setSaving(true);
     try {
+      setSchedules([]);
       setGenerated([]);
-      const schedules = await DefenseService.generateSlots(thesis._id);
-      setGenerated(schedules);
+      const schedules = await DefenseService.generateSlots(studentThesis ? studentThesis._id : thesis._id, {
+        panelists: panelists.map(e => e._id)
+      });
+      setGenerated(schedules.map(e => ({
+        id: new Date(e.start).getTime().toString(),
+        start: e.start,
+        end: e.end,
+        display: 'background'
+      })));
+      if (calendarRef.current && schedules && schedules.length > 0) {
+        const api = calendarRef.current.getApi();
+        const first = schedules[0].start;
+        api.gotoDate(first);
+      }
+
+      if (onGenerate) onGenerate(schedules);
     } catch (error) {
       _setError(error.code ? t(error.code) : error.message);
     } finally {
@@ -778,21 +752,65 @@ function GenerateDefenseDialog(props) {
     }
   }
 
+  const withinGenerated = (start, end) => {
+    return generated.some(e => {
+      const cstart = dayjs(e.start).valueOf();
+      const cend = dayjs(e.end).valueOf();
+      return cstart <= (dayjs(start).valueOf()) && cend >= (dayjs(end).valueOf())
+    });
+  }
+
+  const handleRangeSelect = async e => {
+    if (calendarRef.current) {
+      const api = calendarRef.current.getApi();
+      if (api.view.type === 'timeGridWeek') {
+        const startDay = dayjs(e.start).startOf('day');
+        const endDay = dayjs(e.end).startOf('day');
+        if (withinGenerated(dayjs(e.start).valueOf(), dayjs(e.end).valueOf())) {
+          setSchedules(prev => {
+            const next = [...prev];
+            next.push({
+              id: `s_${new Date(e.start).getTime()}`,
+              start: e.start,
+              end: e.end
+            });
+            return next;
+          })
+        }
+        api.unselect();
+      }
+    }
+  };
+
+  const handleEventClick = e => {
+    if (calendarRef.current) {
+      /*const event = functions.getEvent(e.event.id);
+      setSelectedEvent(event);
+      setEventDialogOpen(true);*/
+      setSchedules(prev => {
+        return prev.filter(e2 => e2.id !== e.event.id);
+      })
+    }
+  };
+
+  const handleDateClick = e => {
+    if (calendarRef.current) {
+      const api = calendarRef.current.getApi();
+      if (api.view.type === 'dayGridMonth') {
+        api.changeView('timeGridWeek', e.dateStr);
+      }
+    }
+  };
+
   useEffect(() => {
     if (event) {
       setThesis(event.thesis);
       setDescription(event.description);
-      setDate(dayjs(event.start).format('YYYY-MM-DD'));
-      setStartTime(dayjs(event.start).format('HH:mm'));
-      setEndTime(dayjs(event.end).format('HH:mm'));
       setPhase(event.phase);
       setPanelists(event.panelists ? event.panelists.map(e => e.faculty) : []);
     } else {
       setThesis(null);
       setDescription('');
-      setDate('');
-      setStartTime('00:00');
-      setEndTime('00:00');
       setPhase(undefined);
       setPanelists([]);
     }
@@ -801,8 +819,19 @@ function GenerateDefenseDialog(props) {
   useEffect(() => {
     if (open) {
       _setError('');
+
+      if (studentThesis) {
+        setPanelists([
+          ...studentThesis.advisers,
+          ...studentThesis.panelists
+        ]);
+        setPhase(studentThesis.phase);
+        setDescription(studentThesis.title);
+      } else {
+
+      }
     }
-  }, [open]);
+  }, [open, studentThesis]);
 
   const handleChangeThesis = value => {
     setThesis(value);
@@ -824,32 +853,8 @@ function GenerateDefenseDialog(props) {
           { (error || _error) && <Alert variant='danger' onClose={() => _setError(false)} dismissible>{error || _error}</Alert> }
           <Form.Group className="mb-3" controlId="formTitle">
             <Form.Label>Thesis</Form.Label>
-            <ThesisSelector value={thesis} onChange={handleChangeThesis} required disabled={(!account || account.kind === 'student') || saving} />
+            <ThesisSelector value={studentThesis || thesis} onChange={handleChangeThesis} required disabled={(!account || account.kind === 'student') || saving} />
           </Form.Group>
-          {/*<Form.Group className="mb-3" controlId="formTitle">
-            <Form.Label>Description</Form.Label>
-            <Form.Control as='textarea' rows={3} value={description} onChange={e => setDescription(e.currentTarget.value)} disabled={saving} />
-          </Form.Group>*/}
-          <Row>
-            <Col>
-              <Form.Group className="mb-3" controlId="formDate">
-                <Form.Label>Date</Form.Label>
-                <Form.Control type='date' value={date} onChange={e => setDate(e.currentTarget.value)} required disabled={saving} />
-              </Form.Group>
-            </Col>
-            <Col>
-              <Form.Group className="mb-3" controlId="formStartTime">
-                <Form.Label>Start time</Form.Label>
-                <Form.Control type='time' value={startTime} onChange={e => setStartTime(e.currentTarget.value)} required disabled={saving} />
-              </Form.Group>
-            </Col>
-            <Col>
-              <Form.Group className="mb-3" controlId="formEndTime">
-                <Form.Label>End time</Form.Label>
-                <Form.Control type='time' value={endTime} onChange={e => setEndTime(e.currentTarget.value)} required disabled={saving} />
-              </Form.Group>
-            </Col>
-          </Row>
           <Form.Group className="mb-3" controlId="formAdviser">
             <Form.Label>Panelists</Form.Label>
             <Row className="align-items-center">
@@ -898,7 +903,29 @@ function GenerateDefenseDialog(props) {
               }
             </tbody>
           </Table>
-          <Row as='dl'>
+          <Form.Label>Schedule</Form.Label>
+          <FullCalendar
+            plugins={[ dayGridPlugin, interactionPlugin, timeGridPlugin ]}
+            initialView='timeGridWeek'
+            /*dateClick={handleDateClick}
+            eventClick={handleEventClick}
+            select={handleRangeSelect}*/
+            slotMinTime='07:00'
+            slotMaxTime='22:00'
+            slotDuration={15 * 60 * 1000}
+            selectable
+            hiddenDays={[0]}
+            expandRows
+            height='50vh'
+            headerToolbar={{
+              start: 'today,prev,next',
+              center: 'title',
+              end: 'dayGridMonth,timeGridWeek'
+            }}
+            events={[...generated, ...schedules]}
+            ref={calendarRef}
+          />
+          {/*<Row as='dl'>
             <Col as='dt' sm={3}>
               Schedule
             </Col>
@@ -913,10 +940,10 @@ function GenerateDefenseDialog(props) {
                 }
               </ul>
             </Col>
-          </Row>
+          </Row>*/}
         </Modal.Body>
         <Modal.Footer>
-          <Button variant='primary' onClick={handleGenerate} disabled={saving || !thesis}>Generate</Button>
+          <Button variant='primary' onClick={handleGenerate} disabled={saving || (!studentThesis && !thesis)}>Generate</Button>
           <Button variant='secondary' onClick={handleCancel} disabled={saving}>Close</Button>
         </Modal.Footer>
       </Form>
@@ -945,6 +972,7 @@ function DefenseWeekPage() {
   const [selectedEvent, setSelectedEvent] = useState(null);
 
   const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
+  const [generatedSchedules, setGeneratedSchedules] = useState([]);
 
   const functions = {
     isAuthor: (thesis) => {
@@ -1218,6 +1246,17 @@ function DefenseWeekPage() {
         };
       });
 
+      console.log(generatedSchedules);
+      const generated = generatedSchedules.map(e => ({
+        start: e.start,
+        end: e.end,
+        display: 'inverse-background',
+        groupId: 'valid-defense',
+        backgroundColor: colorPalette.unavailable.backgroundColor,
+        textColor: colorPalette.unavailable.textColor
+      }));
+      console.log(generated);
+
       if (account.kind === 'student') {
         const bglist = defenseDates.map(e => ({
           start: e,
@@ -1227,12 +1266,28 @@ function DefenseWeekPage() {
           backgroundColor: colorPalette.unavailable.backgroundColor,
           textColor: colorPalette.unavailable.textColor
         }));
-        return [...list, ...bglist];
+        if (generated.length > 0) {
+          return [...generated, ...list];
+        } else {
+          return [...list, ...bglist];
+        }
       } else {
-        return list;
+        if (generated.length > 0) {
+          return [...generated, ...list];
+        } else {
+          return list;
+        }
       }
     }
   };
+
+  const withinGenerated = (start, end) => {
+    return generatedSchedules.length > 0 ? generatedSchedules.some(e => {
+      const cstart = dayjs(e.start).valueOf();
+      const cend = dayjs(e.end).valueOf();
+      return cstart <= (dayjs(start).valueOf()) && cend >= (dayjs(end).valueOf())
+    }) : true;
+  }
 
   const handleRangeSelect = async e => {
     if (calendarRef.current) {
@@ -1242,7 +1297,7 @@ function DefenseWeekPage() {
         const endDay = dayjs(e.end).startOf('day');
         if (account.kind === 'student' && (thesis && thesis.status === 'endorsed')) {
           const startDate = startDay.format('YYYY-MM-DD');
-          if (defenseDates.includes(startDate) && startDay.isSame(endDay)) {
+          if (defenseDates.includes(startDate) && startDay.isSame(endDay) && withinGenerated(e.start, e.end)) {
             const action = [functions.tryAddDefense({
               start: e.start,
               end: e.end,
@@ -1338,6 +1393,26 @@ function DefenseWeekPage() {
     }
   };
 
+  const handleGeneratedSchedules = (data) => {
+    /*const { thesis, panelists, schedules } = data;
+    const slots = schedules.map(e => ({
+      start: e.start,
+      end: e.end,
+      thesis: thesis._id,
+      panelists
+    }));
+    await DefenseService.processDefenseSlots(slots);
+    await load();*/
+
+    setGeneratedSchedules(data);
+    if (calendarRef.current) {
+      const api = calendarRef.current.getApi();
+      api.changeView('timeGridWeek');
+      api.gotoDate(data[0].start);
+    }
+    // TODO: Can close modal
+  };
+
   useEffect(() => {
     load();
   }, [account]);
@@ -1356,7 +1431,7 @@ function DefenseWeekPage() {
                 <>
                   {
                     account.kind === 'administrator' &&
-                      <Button variant='secondary' className='ms-2' onClick={() => setAdjustScheduleDialogOpen(true)}>Adjust schedule</Button>
+                      <Button variant='secondary' className='ms-2' onClick={() => setAdjustScheduleDialogOpen(true)}>Defense Week Schedule</Button>
                   }
                   {
                     account.kind === 'student' && (thesis && thesis.status === 'endorsed') &&
@@ -1367,7 +1442,8 @@ function DefenseWeekPage() {
                       <Button className='ms-2' onClick={handleOpenEventDialog} disabled={saving}>Create a slot</Button>
                   }
                   {
-                    account.kind === 'administrator' &&
+                    generatedSchedules.length > 0 ?
+                      <Button className='ms-2' onClick={() => setGeneratedSchedules([])} disabled={saving}>Clear schedule</Button> :
                       <Button className='ms-2' onClick={handleOpenGenerateDialog} disabled={saving}>Generate group schedule</Button>
                   }
                   {/*<Button className='ms-2' onClick={handleSaveDefense} disabled={!functions.hasTentativeChanges() || saving}>Save</Button>
@@ -1492,8 +1568,10 @@ function DefenseWeekPage() {
       />
       <GenerateDefenseDialog
         open={generateDialogOpen}
+        studentThesis={thesis}
         onCancel={handleCloseGenerateDialog}
-        
+        /*onAction={handleGeneratedSchedules}*/
+        onGenerate={handleGeneratedSchedules}
       />
       {
         account.kind === 'student' && thesis &&

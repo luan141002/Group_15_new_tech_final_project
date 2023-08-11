@@ -7,6 +7,7 @@ import Form from 'react-bootstrap/Form';
 import Modal from 'react-bootstrap/Modal';
 import Row from 'react-bootstrap/Row';
 import Spinner from 'react-bootstrap/Spinner';
+import Table from 'react-bootstrap/Table';
 import { Download, Eye, Pencil, Trash } from "react-bootstrap-icons";
 import { useTranslation } from "react-i18next";
 import { LinkContainer } from "react-router-bootstrap";
@@ -28,10 +29,13 @@ function ThesisPage() {
   
   // Grade form
   const [grade, setGrade] = useState('');
+  const [gradeMode, setGradeMode] = useState(false);
+  const [studentGrades, setStudentGrades] = useState({});
   const [remarks, setRemarks] = useState('');
   const [updateGradeDialogOpen, setUpdateGradeDialogOpen] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [gradeSummaryDialogOpen, setGradeSummaryDialogOpen] = useState(false);
+  const [updateStudentGradeDialogOpen, setUpdateStudentGradeDialogOpen] = useState(false);
 
   // Password verification
   const [packet, setPacket] = useState(null);
@@ -45,6 +49,7 @@ function ThesisPage() {
 
   // Comments
   const [comment, setComment] = useState('');
+  const [commentPhase, setCommentPhase] = useState('');
   const [comments, setComments] = useState([]);
   const [submittingComment, setSubmittingComment] = useState(false);
   const [commentToDelete, setCommentToDelete] = useState(false);
@@ -58,9 +63,9 @@ function ThesisPage() {
       const thesis = await ThesisService.getThesis(tid, { getSubmissions: true });
       if (thesis) {
         setThesis(thesis);
-        const phase = thesis.phase;
-        if (deadlines[phase.toString()]) {
-          setDeadlines(deadlines[phase.toString()]);
+        const phase = thesis.phase.toString();
+        if (deadlines[phase]) {
+          setDeadlines(new Date(deadlines[phase]));
         }
         setComments(await ThesisService.getCommentsOnThesis(tid));
       } else {
@@ -70,9 +75,9 @@ function ThesisPage() {
       const theses = await ThesisService.getTheses({ getSubmissions: true });
       if (theses && theses[0]) {
         setThesis(theses[0]);
-        const phase = theses[0].phase;
-        if (deadlines[phase.toString()]) {
-          setDeadlines(deadlines[phase.toString()]);
+        const phase = theses[0].phase.toString();
+        if (deadlines[phase]) {
+          setDeadlines(new Date(deadlines[phase]));
         }
         setComments(await ThesisService.getCommentsOnThesis(theses[0]._id));
       } else {
@@ -106,22 +111,22 @@ function ThesisPage() {
   };
 
   const handleCheckThesis = () => {
-    setPacket({ status: 'checked' });
+    setPacket({ type: 'status', status: 'checked' });
     setPasswordDialogOpen(true);
   };
 
   const handleAdvanceThesis = () => {
-    setPacket({ status: 'new', phase: thesis.phase + 1 });
+    setPacket({ type: 'status', status: 'new', phase: thesis.phase + 1 });
     setPasswordDialogOpen(true);
   };
 
   const handleLockThesis = () => {
-    setPacket({ status: 'final' });
+    setPacket({ type: 'status', status: 'final' });
     setPasswordDialogOpen(true);
   };
 
   const handleEndorsement = () => {
-    setPacket({ status: 'endorsed' });
+    setPacket({ type: 'status', status: 'endorsed' });
     setPasswordDialogOpen(true);
   };
 
@@ -135,6 +140,56 @@ function ThesisPage() {
       newGrade = Number.parseFloat(grade);
     }
     setPacket({ status, grade: newGrade, remarks });
+    setPasswordDialogOpen(true);
+  };
+
+  const openStudentGradeDialog = () => {
+    setGrade('');
+    setRemarks('');
+    const obj = thesis.authors.reduce((p, e) => ({ ...p, [e._id]: { grade: e.grade || '', remarks: e.remarks || '' } }), {});
+    setStudentGrades(obj);
+    setGradeMode(false);
+
+    setUpdateStudentGradeDialogOpen(true);
+  };
+
+  const closeStudentGradeDialog = () => {
+    setUpdateStudentGradeDialogOpen(false);
+  };
+
+  const updateGroupGrade = (val) => {
+    setGrade(val);
+    setStudentGrades(prev => {
+      const copy = { ...prev };
+      for (const author of thesis.authors) {
+        copy[author._id].grade = val;
+      }
+      return copy;
+    });
+  };
+
+  const updateGroupRemarks = (val) => {
+    setRemarks(val);
+    setStudentGrades(prev => {
+      const copy = { ...prev };
+      for (const author of thesis.authors) {
+        copy[author._id].remarks = val;
+      }
+      return copy;
+    });
+  };
+
+  const updateStudentGrade = (id, val) => {
+    setStudentGrades(prev => ({ ...prev, [id]: { grade: val, remarks: prev[id] ? prev[id].remarks : '' } }));
+  };
+
+  const updateStudentRemarks = (id, val) => {
+    setStudentGrades(prev => ({ ...prev, [id]: { grade: prev[id] ? prev[id].grade : '', remarks: val } }));
+  };
+
+  const handleStudentGradeSubmission = e => {
+    e.preventDefault();
+    setPacket({ type: 'grade', grades: studentGrades });
     setPasswordDialogOpen(true);
   };
 
@@ -190,12 +245,12 @@ function ThesisPage() {
   };
 
   const handleApproveThesisRequest = () => {
-    setPacket({ approved: true });
+    setPacket({ type: 'approve', approved: true });
     setPasswordDialogOpen(true);
   };
 
   const handleDeleteThesis = () => {
-    setPacket({ delete: true });
+    setPacket({ type: 'reject', delete: true });
     setPasswordDialogOpen(true);
   }
 
@@ -204,7 +259,7 @@ function ThesisPage() {
     setUpdating(true);
     try {
       if (packet) {
-        if (packet.delete) {
+        if (packet.type === 'reject' && packet.delete) {
           await ThesisService.deleteThesis(thesis._id);
           navigate('/thesis');
         } else {
@@ -213,7 +268,7 @@ function ThesisPage() {
         }
       }
       setPacket(null);
-      setUpdateGradeDialogOpen(false);
+      setUpdateStudentGradeDialogOpen(false);
     } catch (error) {
       
     } finally {
@@ -239,9 +294,9 @@ function ThesisPage() {
 
   const renderName = account => <><Link to={`/account/${account._id}`}>{t('values.display_full_name', account)}</Link>;&nbsp;</>;
   
-  const gradeToDisplay = (() => {
+  const gradeToDisplay = () => {
     if (!thesis) return null;
-    const { grades } = thesis;
+    /*const { grades } = thesis;
     if (!grades) return null;
     
     const gradesThisPhase = grades.filter(e => e.phase === thesis.phase);
@@ -253,10 +308,12 @@ function ThesisPage() {
       } else {
         return `${gradesThisPhase[0].value.toFixed(1)} (Pass)`;
       }
-    }
+    }*/
+    const author = findMember(thesis, account.accountID);
+    if (!author) return null;
 
-    return null;
-  })();
+    return author.grade;
+  };
 
   return thesis ? (
     <>
@@ -312,10 +369,11 @@ function ThesisPage() {
                     {
                       (account.kind === 'student' && !submitting && deadlines) && (
                         deadlines.getTime() < Date.now()
-                          ? <>You cannot upload files beyond the deadline.</>
-                          : <Button onClick={() => setSubmitting(!submitting)}>Upload Files</Button>
+                          ? <p>You cannot upload files beyond the deadline.</p>
+                          : <><Button onClick={() => setSubmitting(!submitting)}>Upload Files</Button><br /><br /></>
                       )
                     }
+                    <Link to={`/thesis/${thesis._id}/submission`}>See all submissions</Link><br />
                   </>
                   :
                   (
@@ -326,7 +384,7 @@ function ThesisPage() {
                             <p>You have not made any submissions for your thesis.</p>
                             {
                               deadlines.getTime() < Date.now()
-                                ? <>You cannot upload files beyond the deadline.</>
+                                ? <p>You cannot upload files beyond the deadline.</p>
                                 : <Button onClick={() => setSubmitting(!submitting)}>Upload Files</Button>
                             }
                           </>
@@ -394,7 +452,22 @@ function ThesisPage() {
           }
           {
             thesis.approved && <>
-              <h5 className='mt-3'>Comments</h5>
+              <Row className='mb-3'>
+                <Col>
+                  <h5 className='text-muted'>Comments</h5>
+                </Col>
+                <Col className='d-flex flex-column align-items-end'>
+                  <div className='d-flex flex-row align-items-center'>
+                    <Form.Select value={commentPhase ? commentPhase.toString() : ''} onChange={e => setCommentPhase(e.currentTarget.value)}>
+                      <option value=''>Current phase</option>
+                      <option value='1'>{t('values.thesis_phase.1')}</option>
+                      <option value='2'>{t('values.thesis_phase.2')}</option>
+                      <option value='3'>{t('values.thesis_phase.3')}</option>
+                      <option value='all'>All phases</option>
+                    </Form.Select>
+                  </div>
+                </Col>
+              </Row>
               {
                 (isAuthor() || isAdvisory() || isPanelist() || isAdmin()) &&
                   <Form onSubmit={handleSubmitComment}>
@@ -412,10 +485,10 @@ function ThesisPage() {
                   </Form>
               }
               {
-                comments.length > 0 ?
+                comments.filter(e => commentPhase === 'all' || ((!commentPhase && e.phase === thesis.phase) || (Number.parseInt(commentPhase) === e.phase))).length > 0 ?
                   <div className='mt-3'>
                     {
-                      comments.map(e => (
+                      comments.filter(e => commentPhase === 'all' || ((!commentPhase && e.phase === thesis.phase) || (Number.parseInt(commentPhase) === e.phase))).map(e => (
                         <Card className='mb-3'>
                           <Card.Body>
                             <Card.Title>
@@ -497,13 +570,13 @@ function ThesisPage() {
                       { thesis.status === 'pass' && thesis.phase < 3 && <Button onClick={handleAdvanceThesis}>Advance to next phase</Button> }
                     </p>
                 }
-                <h4>Grade</h4>
+                <h4>{ isAuthor() ? 'My Grade' : 'Grade' }</h4>
                 <p>
-                  { gradeToDisplay || 'No grade yet' }
+                  { gradeToDisplay() || (isAuthor() ? 'No grade yet' : '') }
                   {
-                    isAdvisory() &&
-                      <Button as='a' className='ms-2' bsPrefix='__' onClick={() => setUpdateGradeDialogOpen(true)}>
-                        <Pencil />
+                    (isAdvisory() || isAdmin()) &&
+                      <Button as='a' bsPrefix='__' onClick={openStudentGradeDialog}>
+                        Edit
                       </Button>
                   }
                 </p>
@@ -556,20 +629,97 @@ function ThesisPage() {
           </Modal.Footer>
         </Form>
       </Modal>
+      <Modal show={updateStudentGradeDialogOpen} animation={false} centered size='lg'>
+        <Modal.Header>
+          <Modal.Title>Update student grades</Modal.Title>
+        </Modal.Header>
+        <Form onSubmit={handleStudentGradeSubmission}>
+          <Modal.Body>
+            <Form.Group className="mb-3" controlId="formGradeMode">
+              <Form.Label>Grade individually</Form.Label>
+              <Form.Check aria-label="Grade individually" value={gradeMode} onChange={e => setGradeMode(e.currentTarget.checked)} />
+            </Form.Group>
+            {
+              gradeMode ? <>
+              <Form.Label className='fw-bold'>Author Grades</Form.Label>
+              <Table>
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Grade</th>
+                    <th>Remarks</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {
+                    thesis && thesis.authors.map(e => (
+                      <tr>
+                        <td>{t('values.full_name', e)}</td>
+                        <td>
+                          <Form.Select aria-label="Grade" value={studentGrades[e._id] ? studentGrades[e._id].grade : ''} onChange={ev => updateStudentGrade(e._id, ev.currentTarget.value)}>
+                            <option value="">Select grade...</option>
+                            <option>4.0</option>
+                            <option>3.5</option>
+                            <option>3.0</option>
+                            <option>2.5</option>
+                            <option>2.0</option>
+                            <option>1.5</option>
+                            <option>1.0</option>
+                            <option>0.0</option>
+                            <option>9.9</option>
+                          </Form.Select>
+                        </td>
+                        <td>
+                          <Form.Control aria-label="Remarks" value={studentGrades[e._id] ? studentGrades[e._id].remarks : ''} onChange={ev => updateStudentRemarks(e._id, ev.currentTarget.value)} />
+                        </td>
+                      </tr>
+                    ))
+                  }
+                </tbody>
+              </Table>
+              </> : <>
+                <Form.Group className="mb-3" controlId="formGrade">
+                  <Form.Label>Thesis Grade</Form.Label>
+                  <Form.Select aria-label="Grade" value={grade} onChange={e => updateGroupGrade(e.currentTarget.value)}>
+                    <option value="">Select grade...</option>
+                    <option>4.0</option>
+                    <option>3.5</option>
+                    <option>3.0</option>
+                    <option>2.5</option>
+                    <option>2.0</option>
+                    <option>1.5</option>
+                    <option>1.0</option>
+                    <option>0.0</option>
+                    <option>9.9</option>
+                  </Form.Select>
+                </Form.Group>
+                <Form.Group className="mb-3" controlId="formRemarks">
+                  <Form.Label>Thesis Remarks</Form.Label>
+                  <Form.Control as="textarea" rows={3} value={remarks} onChange={e => updateGroupRemarks(e.currentTarget.value)} />
+                </Form.Group>
+              </>
+            }
+          </Modal.Body>
+          <Modal.Footer>
+            <Button type='submit'>Save</Button>
+            <Button variant='secondary' onClick={closeStudentGradeDialog}>Close without saving</Button>
+          </Modal.Footer>
+        </Form>
+      </Modal>
       <Modal show={gradeSummaryDialogOpen} animation={false} centered>
         <Modal.Header>
           <Modal.Title>Grade summary</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {
-            thesis && thesis.grades && thesis.grades.map(e => (
+            thesis && thesis.authors.map(e => (
               <Row as='dl'>
-                <Col as='dt' sm={3}>
-                  {t(`values.thesis_phase.${e.phase}`)}
+                <Col as='dt' sm={6}>
+                  {t('values.full_name', e)}
                 </Col>
-                <Col as='dt' sm={9}>
+                <Col as='dt' sm={6}>
                   <div className='fw-normal'>
-                    {e.value && e.value.toFixed(1)} <span className='text-muted'>(graded on {dayjs(e.date).format('LLL')})</span>
+                    {findMember(thesis, e._id).grade}
                   </div>
                 </Col>
               </Row>

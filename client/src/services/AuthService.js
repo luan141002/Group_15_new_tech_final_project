@@ -41,6 +41,11 @@ const AuthService = {
     await WebService.postJson('/auth/register', body);
   },
 
+  verifyCode: async (email, code, password, repeat) => {
+    const body = { email, code, password, repeat };
+    await WebService.postJson('/auth/code', body);
+  },
+
   verify: async (token, password, repeat) => {
     const body = { token, password, repeat };
     await WebService.postJson('/auth/verify', body);
