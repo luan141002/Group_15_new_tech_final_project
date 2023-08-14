@@ -266,11 +266,11 @@ AccountController.post('/account', requireToken, transacted, async (req, res) =>
             if (!email) errors.push({ fieldName: 'email', index: i, message: 'Email address is required' });
             if (!lastName) errors.push({ fieldName: 'lastName', index: i, message: 'Last name is required' });
             if (!firstName) errors.push({ fieldName: 'firstName', index: i, message: 'First name is required' });
-            if (!TYPES.includes(kind)) errors.push({ fieldName: 'kind', index: i, message: 'Invalid account type' });
+            if (!TYPES.includes(kind.toLowerCase())) errors.push({ fieldName: 'kind', index: i, message: 'Invalid account type' });
             if (errors.length > 0) throw new ServerError(400, 'Form error', errors);
     
             let schema = Account.User;
-            switch (kind) {
+            switch (kind.toLowerCase()) {
                 case 'administrator': schema = Account.Administrator; break;
                 case 'faculty': schema = Account.Faculty; break;
                 case 'student': schema = Account.Student; break;
@@ -302,8 +302,8 @@ AccountController.post('/account', requireToken, transacted, async (req, res) =>
                     lastName,
                     firstName,
                     middleName,
-                    password: password || undefined,
-                    activated: !!password,
+                    password: password || (kind.toLowerCase() !== 'student' ? 'thesis!' : undefined),
+                    activated: kind.toLowerCase() !== 'student',
                     accessCode: distribution(engine).toString().padStart(6, '0')
                 }], { session });
     

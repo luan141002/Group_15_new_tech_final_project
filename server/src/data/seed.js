@@ -11,6 +11,20 @@ module.exports.initialize = async function() {
             password: 'thesis!',
             activated: true,
         });
+        const facu = await Account.Faculty.create({
+            lastName: 'Faculty',
+            firstName: 'Faculty',
+            email: 'faculty@example.com',
+            password: 'thesis!',
+            activated: true,
+        });
+        const stud = await Account.Student.create({
+            lastName: 'Student',
+            firstName: 'Student',
+            email: 'student@example.com',
+            password: 'thesis!',
+            activated: true,
+        });
 
         if (!process.env.NODE_ENV || process.env.NODE_ENV.trim() !== 'development') return;
 
