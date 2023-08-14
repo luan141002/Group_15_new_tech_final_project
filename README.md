@@ -1,4 +1,10 @@
-# Thesis Management System
+# [Thesis Management System](https://github.com/jamieeow/Thesis-Management-System)
+
+### Authors
+- John Chua
+- Richard Go
+- Jamie Mapa
+- Marc Tiburcio
 
 ## Prerequisites
 
@@ -6,7 +12,9 @@
 - Yarn
 - MongoDB server
 
-## Client
+## Local Development
+
+### Client
 
 To run the client:
 
@@ -16,7 +24,7 @@ To run the client:
 4. Create a new .env.local file from the .env.example and provide appropriate values.
 5. Start the client by running `yarn start`
 
-## Server
+### Server
 
 To run the server
 
