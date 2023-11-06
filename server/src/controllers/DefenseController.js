@@ -12,7 +12,7 @@ const ical = require('node-ical');
 const mongoose = require('mongoose');
 
 const DefenseController = express.Router();
-const CURRENT_TERM = process.env.CURRENT_TERM;
+const CURRENT_TERM = '2023-2024';
 
 DefenseController.get('/defense', requireToken, async (req, res) => {
     const { accountID, kind } = req.token;

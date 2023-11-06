@@ -13,10 +13,10 @@ const mongoose = require('mongoose');
 const AccountController = express.Router();
 const upload = multer();
 
-AccountController.get('/account', requireToken, async (req, res) => {
+AccountController.get('/account', async (req, res) => {
     const { type, q, all, findDuplicates, showActive } = req.query;
     const token = req.token;
-    
+   
     try {
         let schema = Account.User;
         switch (type) {
@@ -24,20 +24,19 @@ AccountController.get('/account', requireToken, async (req, res) => {
             case 'faculty': schema = Account.Faculty; break;
             case 'student': schema = Account.Student; break;
         }
-        
-        const isAdmin = token.kind.toLowerCase() === 'administrator';
-        if (findDuplicates) {
-            if (!isAdmin) throw new ServerError(403, 'Only administrators can use this query parameter');
+        const isAdmin = 'administrator';
+        // if (findDuplicates) {
+        //     if (!isAdmin) throw new ServerError(403, 'Only administrators can use this query parameter');
 
-            const emails = Buffer.from(findDuplicates, 'base64url').toString().split(/;/);
-            const duplicates = await Account.User.find({ email: { $in: emails } });
-            return res.json(duplicates.map(e => ({
-                _id: e._id,
-                email: e.email,
-                lastName: e.lastName,
-                firstName: e.firstName,
-            })));
-        }
+        //     const emails = Buffer.from(findDuplicates, 'base64url').toString().split(/;/);
+        //     const duplicates = await Account.User.find({ email: { $in: emails } });
+        //     return res.json(duplicates.map(e => ({
+        //         _id: e._id,
+        //         email: e.email,
+        //         lastName: e.lastName,
+        //         firstName: e.firstName,
+        //     })));
+        // }
 
         const $and = [];
         const $or = [];
@@ -79,13 +78,13 @@ AccountController.get('/account', requireToken, async (req, res) => {
     }
 });
 
-AccountController.get('/account/:id', requireToken, async (req, res) => {
+AccountController.get('/account/:id', async (req, res) => {
     const { id } = req.params;
     const token = req.token;
     
     try {
-        const isAdmin = token.kind.toLowerCase() === 'administrator';
-        const canSeePrivate = token.accountID === id || isAdmin;
+        const isAdmin =  'administrator';
+        const canSeePrivate = isAdmin;
 
         const result = await Account.User.findById(id);
         return res.json({
@@ -105,12 +104,12 @@ AccountController.get('/account/:id', requireToken, async (req, res) => {
     }
 });
 
-AccountController.delete('/account/:id', requireToken, async (req, res) => {
+AccountController.delete('/account/:id', async (req, res) => {
     const { id } = req.params;
     const token = req.token;
     
     try {
-        const isAdmin = token.kind === 'administrator';
+        const isAdmin ='administrator';
         if (!isAdmin) throw new ServerError(403, 'Only administrators can delete accounts');
 
         const account = await Account.User.findById(id);
@@ -154,7 +153,7 @@ function randomColor(seed) {
     return `#${toHex(r)}${toHex(g)}${toHex(b)}`
 }
 
-AccountController.get('/account/:id/image', requireToken, async (req, res) => {
+AccountController.get('/account/:id/image', async (req, res) => {
     const { id } = req.params;
     const { thumbnail, size, width, height } = req.query;
     
@@ -245,7 +244,7 @@ AccountController.get('/account/:id/image', requireToken, async (req, res) => {
 
 const TYPES = ['student', 'faculty', 'administrator'];
 
-AccountController.post('/account', requireToken, transacted, async (req, res) => {
+AccountController.post('/account', async (req, res) => {
     const { body, session } = req;
 
     // Always expect a 1-D array of account entries
@@ -256,7 +255,6 @@ AccountController.post('/account', requireToken, transacted, async (req, res) =>
     const errors = [];
     
     try {
-        session.startTransaction();
         const results = [];
     
         const distribution = randomjs.integer(1, 999999);
@@ -276,7 +274,7 @@ AccountController.post('/account', requireToken, transacted, async (req, res) =>
                 case 'student': schema = Account.Student; break;
             }
 
-            const other = await schema.findOne({ email }).session(session); // This is the only way to detect duplicate emails
+            const other = await schema.findOne({ email }) // This is the only way to detect duplicate emails
             if (other) {
                 // we've found a duplicate
                 results.push({
@@ -305,7 +303,7 @@ AccountController.post('/account', requireToken, transacted, async (req, res) =>
                     password: password || (kind.toLowerCase() !== 'student' ? 'thesis!' : undefined),
                     activated: kind.toLowerCase() !== 'student',
                     accessCode: distribution(engine).toString().padStart(6, '0')
-                }], { session });
+                }]);
     
                 results.push({
                     _id: result._id,
@@ -320,7 +318,7 @@ AccountController.post('/account', requireToken, transacted, async (req, res) =>
             }
         }
 
-        await session.commitTransaction();
+       
 
         if (results.length === 1) {
             const result = results[0];
@@ -329,20 +327,17 @@ AccountController.post('/account', requireToken, transacted, async (req, res) =>
             return res.status(200).json(results);
         }
     } catch (error) {
-        await session.abortTransaction();
         return res.error(error, 'Cannot create account');
     }
 });
 
-AccountController.patch('/account/:id', requireToken, transacted, upload.single('photo'), async (req, res) => {
-    const { session } = req;
+AccountController.patch('/account/:id', upload.single('photo'), async (req, res) => {
     const { id } = req.params;
     const token = req.token;
 
     try {
-        session.startTransaction();
-        const isAdmin = token.kind.toLowerCase() === 'administrator';
-        const isCurrentUser = id === token.accountID;
+        const isAdmin = 'administrator';
+        const isCurrentUser = id;
 
         const account = await Account.User.findById(id);
         if (!account) throw new ServerError(404, 'Account not found');
@@ -379,22 +374,19 @@ AccountController.patch('/account/:id', requireToken, transacted, upload.single(
 
         await account.save();
 
-        await session.commitTransaction();
 
         return res.sendStatus(204);
     } catch (error) {
-        await session.abortTransaction();
         return res.error(error, 'Cannot get account');
     }
 });
 
-AccountController.patch('/account/:id/schedule', requireToken, transacted, async (req, res) => {
+AccountController.patch('/account/:id/schedule', async (req, res) => {
     const { body, session } = req;
     const { id } = req.params;
     const token = req.token;
 
     try {
-        session.startTransaction();
 
         const account = await Account.User.findById(id);
         if (!account) throw new ServerError(404, 'Account not found');
@@ -418,10 +410,8 @@ AccountController.patch('/account/:id/schedule', requireToken, transacted, async
         account.schedule = schedules;
         await account.save();
 
-        await session.commitTransaction();
         return res.sendStatus(204);
     } catch (error) {
-        await session.abortTransaction();
         return res.error(error, 'Cannot change account schedule');
     }
 });

@@ -10,7 +10,7 @@ const isQueryTrue = require('../utility/isQueryTrue');
 
 const AnnouncementController = express.Router();
 
-AnnouncementController.get('/announcement', requireToken, async (req, res) => {
+AnnouncementController.get('/announcement', async (req, res) => {
     const { accountID, kind } = req.token;
     const { all, items, page } = req.query;
 
@@ -109,7 +109,7 @@ AnnouncementController.get('/announcement', requireToken, async (req, res) => {
     }
 });
 
-AnnouncementController.post('/announcement', requireToken, transacted, async (req, res) => {
+AnnouncementController.post('/announcement', async (req, res) => {
     const { session } = req;
     const { accountID, kind, lastName, firstName, middleName } = req.token;
     const { title, text, from, to, phase } = req.body;
@@ -146,7 +146,7 @@ AnnouncementController.post('/announcement', requireToken, transacted, async (re
     }
 });
 
-AnnouncementController.post('/announcement/:id/read', requireToken, transacted, async (req, res) => {
+AnnouncementController.post('/announcement/:id/read',  async (req, res) => {
     const { session } = req;
     const { id } = req.params;
     const { accountID } = req.token;
@@ -164,7 +164,7 @@ AnnouncementController.post('/announcement/:id/read', requireToken, transacted, 
     }
 });
 
-AnnouncementController.put('/announcement/:id', requireToken, transacted, async (req, res) => {
+AnnouncementController.put('/announcement/:id',  async (req, res) => {
     const { session } = req;
     const { id } = req.params;
     const { kind } = req.token;
@@ -191,7 +191,7 @@ AnnouncementController.put('/announcement/:id', requireToken, transacted, async 
     }
 });
 
-AnnouncementController.delete('/announcement/:id', requireToken, async (req, res) => {
+AnnouncementController.delete('/announcement/:id', async (req, res) => {
     const { id } = req.params;
     const { kind } = req.token;
 

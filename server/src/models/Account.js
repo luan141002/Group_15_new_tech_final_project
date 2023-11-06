@@ -55,6 +55,7 @@ AccountSchema.statics.authenticate = async function(email, password) {
 
     try {
         const account = await User.findOne(query);
+        console.log(account);
         if (!account) throw new ServerError(401, 'error.auth.invalid_credentials', 'Invalid email/password');
         
         if (await bcrypt.compare(password, account.password)) {

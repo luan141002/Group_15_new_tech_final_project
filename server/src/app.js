@@ -18,7 +18,7 @@ const app = express();
 
 const DEFAULT_PORT = 8550;
 
-if (process.env.USE_CORS) app.use(cors());
+app.use(cors());
 app.use(express.json({ limit: 1048576 * 10 }));
 
 app.use((req, res, next) => {
@@ -27,7 +27,7 @@ app.use((req, res, next) => {
 });
 
 async function main(port) {
-    await data.connect(process.env.MONGODB_URL);
+    await data.connect('mongodb://127.0.0.1:27017/thesis_db');
     await seed.initialize();
 
     app.use(express.static(path.join(__dirname, '..', 'build')));

@@ -1,6 +1,6 @@
 import AuthService from './AuthService';
 
-const API_URL = process.env.REACT_APP_API || '/api';
+const API_URL = 'http://localhost:8550/api';
 
 class WebError {
   constructor(status, code, message, details) {
@@ -15,8 +15,10 @@ const WebService = {
   request: async (endpoint, init) => {
     const { headers, ...initRest } = init || {};
     const authHeaders = { ...AuthService.getHeader(), ...headers };
+    console.log(authHeaders);
     try {
       const result = await fetch(`${API_URL}${endpoint}`, { headers: authHeaders, ...initRest });
+      console.log(result);
       if (!result.ok) {
         const reason = await result.json();
         throw new WebError(result.status, reason.code, reason.message, reason.details);
@@ -45,17 +47,20 @@ const WebService = {
   postJson: async (endpoint, body, init) => {
     const { headers, ...rest } = init || {};
     const jsonHeaders = { ...headers, ...{ 'Content-Type': 'application/json' } };
-    return await WebService.request(endpoint, {
+    const res = await WebService.request(endpoint, {
       body: JSON.stringify(body),
       headers: jsonHeaders,
       method: 'POST',
       ...rest
     });
+    console.log(res);
+    return res;
   },
 
   postForm: async (endpoint, form, init) => {
     const { headers, ...rest } = init || {};
     const jsonHeaders = { ...headers };
+    console.log(jsonHeaders);
     return await WebService.request(endpoint, {
       body: form,
       headers: jsonHeaders,
@@ -67,6 +72,7 @@ const WebService = {
   putJson: async (endpoint, body, init) => {
     const { headers, ...rest } = init || {};
     const jsonHeaders = { ...headers, ...{ 'Content-Type': 'application/json' } };
+    
     return await WebService.request(endpoint, {
       body: JSON.stringify(body),
       headers: jsonHeaders,

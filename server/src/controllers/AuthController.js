@@ -17,7 +17,6 @@ function buildTokenInfo(account) {
             kind: account.kind,
             lastName: account.lastName,
             firstName: account.firstName,
-            middleName: account.middleName
         }
     };
 }
@@ -31,7 +30,7 @@ AccountController.post('/auth/login', async (req, res) => {
 
         const user = await Account.User.authenticate(email, password);
         const tokenInfo = buildTokenInfo(user);
-        const token = jwt.sign(tokenInfo, process.env.JWT_SECRET);
+        const token = jwt.sign(tokenInfo,'secret');
 
         return res.json({
             token: token,
@@ -85,7 +84,7 @@ AccountController.post('/auth/register', transacted, async (req, res) => {
             const token = jwt.sign({
                 exp: Math.floor(Date.now() / 1000) + (60 * validity),
                 data: { userID, email }
-            }, process.env.JWT_SECRET);
+            }, 'secret');
         }
 
         await session.commitTransaction();
@@ -104,7 +103,7 @@ AccountController.post('/auth/verify', async (req, res) => {
         if (!password) throw new ServerError(400, 'error.validation.password', 'Password required', { field: 'password' });
         if (password !== repeat) throw new ServerError(400, 'error.validation.password_mismatch', 'Password mismatch', { field: 'repeat' });
 
-        const { data } = jwt.verify(token, process.env.JWT_SECRET);
+        const { data } = jwt.verify(token, 'secret');
         const user = await Account.User.findOne({ /*idnum: data.userID,*/ email: data.email });
         if (!user) throw new ServerError(401, 'error.auth.verify_not_present', 'User does not exist');
 

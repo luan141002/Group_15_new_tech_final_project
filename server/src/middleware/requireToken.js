@@ -50,7 +50,7 @@ async function requireToken(req, res, next) {
     }
 
     try {
-        const token = jwt.verify(rawToken, process.env.JWT_SECRET);
+        const token = jwt.verify(rawToken, 'secret');
         req.token = token.data;
         req.token.kind = req.token.kind.toLowerCase();
     } catch (err) {

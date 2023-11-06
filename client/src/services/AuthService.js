@@ -21,7 +21,7 @@ const AuthService = {
   login: async (email, password, nextUrl) => {
     const body = { email, password };
     const response = await WebService.postJson('/auth/login', body);
-
+    console.log(response);
     if (response.ok) {
       const token = await response.json();
       localStorage.setItem('token', token.token);

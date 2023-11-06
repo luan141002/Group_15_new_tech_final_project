@@ -5,19 +5,7 @@ let isOpen = false;
 let mongo = null;
 
 module.exports.connect = async function(url) {
-    if (isOpen) return;
-
-    const mongooseOpts = {
-        dbName: process.env.MONGODB_NAME || 'thesis_db'
-    };
-
-    if (!url) {
-        mongo = await MongoMemoryServer.create();
-        url = mongo.getUri();
-    }
-    
-    await mongoose.connect(url, mongooseOpts);
-    isOpen = true;
+    await mongoose.connect(url);
 }
 
 module.exports.startSession = async function() {
