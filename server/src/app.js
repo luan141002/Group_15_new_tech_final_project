@@ -27,7 +27,7 @@ app.use((req, res, next) => {
 });
 
 async function main(port) {
-    await data.connect('mongodb://127.0.0.1:27017/thesis_db');
+    await data.connect('mongodb+srv://thoaifamily83:quocthoai0109@thesis-management.9jgkecp.mongodb.net/thesis_db?retryWrites=true&w=majority');
     await seed.initialize();
 
     app.use(express.static(path.join(__dirname, '..', 'build')));
